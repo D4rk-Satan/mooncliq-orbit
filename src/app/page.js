@@ -20,8 +20,8 @@ export default function Home() {
 
       {/* Hero Section */}
       <section className="hero-section">
-        <h1 className="hero-title">Streamline Your Team,<br />Supercharge Your Workflow</h1>
-        <p className="hero-subtitle">All-in-one platform to plan, collaborate, and deliver — faster and smarter.</p>
+        <h1 className="hero-title">Close Deals Faster,<br />Manage Leads Smarter</h1>
+        <p className="hero-subtitle">The ultimate CRM to track pipelines, organize contacts, and drive revenue — powered by the Blueprint Engine.</p>
         <Link href="/sign-up" className="btn-dark" style={{ fontSize: '1.1rem', padding: '1rem 2rem' }}>
           Get started for Free ➔
         </Link>
@@ -45,54 +45,54 @@ export default function Home() {
       {/* Value Props Row */}
       <section className="value-props">
         <div className="value-prop-item">
-          <h3 className="value-prop-title">Real-Time Collaboration</h3>
-          <p className="value-prop-desc">Communicate seamlessly and keep everyone in sync with built-in messaging, file sharing, and live updates.</p>
+          <h3 className="value-prop-title">Dynamic Pipelines</h3>
+          <p className="value-prop-desc">Visualize your entire sales process with custom Kanban boards and strict data transition rules.</p>
         </div>
         <div className="value-prop-item">
-          <h3 className="value-prop-title">Task & Project Tracking</h3>
-          <p className="value-prop-desc">Assign tasks, set deadlines, and visualize progress with boards, lists, and timelines tailored to your team's style.</p>
+          <h3 className="value-prop-title">Centralized Lead Data</h3>
+          <p className="value-prop-desc">Keep every interaction, note, and custom field neatly organized in a single source of truth.</p>
         </div>
         <div className="value-prop-item">
-          <h3 className="value-prop-title">Performance Insights</h3>
-          <p className="value-prop-desc">Make smarter decisions with analytics that show productivity trends, bottlenecks, and team workload balance.</p>
+          <h3 className="value-prop-title">Blueprint Engine</h3>
+          <p className="value-prop-desc">Define exact data requirements for every stage of your funnel to ensure perfect data hygiene.</p>
         </div>
       </section>
 
       {/* Bento Box Section */}
       <section className="bento-section" id="features">
         <div className="bento-header">
-          <h2 className="bento-title">Everything Your Team Needs to Work Smarter</h2>
-          <p className="bento-subtitle">From task tracking to real-time chat, our features are built to keep your team connected, organized, and moving forward—together.</p>
+          <h2 className="bento-title">Everything You Need to Scale Your Sales</h2>
+          <p className="bento-subtitle">From lead capture to deal closing, our CRM is built to keep your sales team laser-focused and moving forward.</p>
         </div>
 
         <div className="bento-grid">
           {/* Chat Image spanning 2 columns */}
           <div className="bento-card bento-chat">
-            <h3>Built-In Team Chat</h3>
-            <p>Communicate instantly, without jumping between tools.</p>
+            <h3>Visual Kanban Boards</h3>
+            <p>Drag-and-drop your leads through custom stages instantly.</p>
           </div>
           
           <div className="bento-card bento-assignment">
-            <h3 style={{ color: '#1c1917' }}>Task Assignment</h3>
-            <p style={{ color: '#57534e' }}>Easily create, assign, and track tasks to keep everyone aligned.</p>
+            <h3 style={{ color: '#1c1917' }}>Strict Data Governance</h3>
+            <p style={{ color: '#57534e' }}>Ensure your team collects the right data before advancing a lead.</p>
           </div>
           
           <div className="bento-card bento-scheduling">
-            <h3 style={{ color: '#1c1917' }}>Real-Time Scheduling</h3>
-            <p style={{ color: '#57534e' }}>Plan meetings, set deadlines, and sync calendars.</p>
+            <h3 style={{ color: '#1c1917' }}>Custom Lead Fields</h3>
+            <p style={{ color: '#57534e' }}>Capture the unique data that matters to your business.</p>
           </div>
           
           <div className="bento-card bento-tracking">
-            <h3>Progress Tracking</h3>
-            <p>Visualize team performance with dynamic dashboards.</p>
+            <h3>Audit Logs & History</h3>
+            <p>Track exactly who moved what lead, and when, for total accountability.</p>
           </div>
         </div>
       </section>
 
       {/* Footer / Call to Action */}
       <footer className="landing-footer">
-        <h2>Proven Results, Real Impact</h2>
-        <p>See how teams around the world are working faster and communicating better.</p>
+        <h2>Built for Modern Sales Teams</h2>
+        <p>Join the fastest-growing businesses using moonCliq to predictably scale their revenue.</p>
         <Link href="/sign-up" className="btn-dark" style={{ fontSize: '1.1rem', padding: '1rem 2rem' }}>
           Get started for Free ➔
         </Link>
