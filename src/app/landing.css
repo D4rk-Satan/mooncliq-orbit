@@ -1,0 +1,355 @@
+.landing-body {
+  margin: 0;
+  padding: 0;
+  background-color: #F8F6F0; /* Warm cream from mockup */
+  color: #1c1917; /* Dark text */
+  font-family: var(--font-inter), sans-serif;
+  overflow-x: hidden;
+}
+
+/* --- Navbar --- */
+.landing-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 3rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.landing-nav-links {
+  display: flex;
+  gap: 2rem;
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+.landing-nav-links a {
+  text-decoration: none;
+  color: #44403c;
+  transition: color 0.2s;
+}
+
+.landing-nav-links a:hover {
+  color: #1c1917;
+}
+
+.landing-logo {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  text-decoration: none;
+  color: #1c1917;
+}
+
+.landing-nav-cta {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.btn-dark {
+  background-color: #1c1917;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 999px;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.95rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: transform 0.2s, background-color 0.2s;
+}
+
+.btn-dark:hover {
+  background-color: #292524;
+  transform: translateY(-1px);
+}
+
+/* --- Hero Section --- */
+.hero-section {
+  text-align: center;
+  padding: 5rem 2rem 2rem 2rem;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.hero-title {
+  font-size: 4.5rem;
+  font-weight: 500;
+  line-height: 1.1;
+  margin-bottom: 1.5rem;
+  font-family: var(--font-outfit), serif;
+  letter-spacing: -1.5px;
+}
+
+.hero-subtitle {
+  font-size: 1.25rem;
+  color: #57534e;
+  margin-bottom: 2.5rem;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.6;
+}
+
+/* --- Curved Carousel --- */
+.carousel-container {
+  position: relative;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  height: 450px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  perspective: 1200px; /* 3D perspective */
+  margin-top: 3rem;
+  margin-bottom: 4rem;
+  overflow: hidden;
+}
+
+.carousel-card {
+  position: absolute;
+  width: 220px;
+  height: 320px;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+  transition: transform 0.5s ease-out;
+  background-color: #e7e5e4;
+}
+
+.carousel-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Positioning the 7 cards to form a curve */
+/* Center */
+.card-4 { transform: translateZ(100px) scale(1); z-index: 4; }
+/* Middle Left/Right */
+.card-3 { transform: translateX(-240px) translateZ(50px) scale(0.95) rotateY(15deg); z-index: 3; }
+.card-5 { transform: translateX(240px) translateZ(50px) scale(0.95) rotateY(-15deg); z-index: 3; }
+/* Far Left/Right */
+.card-2 { transform: translateX(-460px) translateZ(-50px) scale(0.85) rotateY(25deg); z-index: 2; }
+.card-6 { transform: translateX(460px) translateZ(-50px) scale(0.85) rotateY(-25deg); z-index: 2; }
+/* Extreme Left/Right */
+.card-1 { transform: translateX(-640px) translateZ(-150px) scale(0.75) rotateY(35deg); z-index: 1; }
+.card-7 { transform: translateX(640px) translateZ(-150px) scale(0.75) rotateY(-35deg); z-index: 1; }
+
+/* --- Value Props --- */
+.value-props {
+  display: flex;
+  justify-content: center;
+  gap: 4rem;
+  max-width: 1200px;
+  margin: 0 auto 8rem auto;
+  padding: 0 2rem;
+}
+
+.value-prop-item {
+  text-align: center;
+  flex: 1;
+  max-width: 300px;
+}
+
+.value-prop-title {
+  font-weight: 600;
+  font-size: 1.125rem;
+  margin-bottom: 0.75rem;
+}
+
+.value-prop-desc {
+  font-size: 0.95rem;
+  color: #78716c;
+  line-height: 1.5;
+}
+
+/* --- Bento Box Section --- */
+.bento-section {
+  max-width: 1200px;
+  margin: 0 auto 6rem auto;
+  padding: 0 2rem;
+}
+
+.bento-header {
+  text-align: center;
+  margin-bottom: 4rem;
+}
+
+.bento-title {
+  font-size: 2.5rem;
+  font-family: var(--font-outfit), serif;
+  font-weight: 500;
+  margin-bottom: 1rem;
+}
+
+.bento-subtitle {
+  color: #57534e;
+  max-width: 600px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+.bento-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 400px 300px;
+  gap: 1.5rem;
+}
+
+.bento-card {
+  border-radius: 24px;
+  overflow: hidden;
+  position: relative;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  background-color: #e7e5e4;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+}
+
+.bento-large-left {
+  grid-row: span 2;
+  background-image: url('https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&q=80&w=1000');
+  background-size: cover;
+  background-position: center;
+  color: white;
+}
+
+.bento-top-right {
+  background-color: #f5f5f4;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.bento-bottom-left {
+  display: none; /* In grid layout, we merge cells or adjust. Wait, mockup has 4 items. */
+  /* Re-adjusting grid: 
+     Left col: Span 1 row (Top Left is large, wait mockup: Left large spans top. But mockup has 4 items.
+     Let's do standard grid:
+  */
+}
+
+/* Refined Grid for Mockup */
+.bento-grid {
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 350px 350px;
+  grid-template-areas: 
+    "chat chat assignment"
+    "scheduling tracking tracking";
+}
+
+.bento-chat {
+  grid-area: chat;
+  background-image: linear-gradient(rgba(0,0,0,0), rgba(0,0,0,0.6)), url('https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&q=80&w=1200');
+  background-size: cover;
+  color: white;
+}
+
+.bento-assignment {
+  grid-area: assignment;
+  background-color: #EBE6DF;
+}
+
+.bento-scheduling {
+  grid-area: scheduling;
+  background-color: #D3CBBF;
+  color: white;
+}
+
+.bento-tracking {
+  grid-area: tracking;
+  background-color: #6A7B66; /* Green from mockup */
+  background-image: url('https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=800');
+  background-size: cover;
+  background-position: right;
+  color: white;
+}
+
+.bento-card h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  z-index: 2;
+}
+
+.bento-card p {
+  font-size: 0.95rem;
+  opacity: 0.9;
+  line-height: 1.5;
+  z-index: 2;
+  max-width: 80%;
+}
+
+/* Footer Section */
+.landing-footer {
+  text-align: center;
+  padding: 6rem 2rem;
+  background-color: #F8F6F0;
+}
+
+.landing-footer h2 {
+  font-size: 2.5rem;
+  font-family: var(--font-outfit), serif;
+  font-weight: 500;
+  margin-bottom: 1rem;
+}
+
+.landing-footer p {
+  color: #57534e;
+  margin-bottom: 3rem;
+}
+
+@media (max-width: 1024px) {
+  .carousel-card {
+    width: 180px;
+    height: 260px;
+  }
+  .bento-grid {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas: 
+      "chat chat"
+      "assignment scheduling"
+      "tracking tracking";
+  }
+}
+
+@media (max-width: 768px) {
+  .landing-nav {
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+  }
+  .landing-nav-links {
+    display: none;
+  }
+  .hero-title {
+    font-size: 3rem;
+  }
+  .carousel-container {
+    height: 300px;
+    transform: scale(0.6);
+  }
+  .value-props {
+    flex-direction: column;
+    gap: 2rem;
+  }
+  .bento-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+    grid-template-areas: 
+      "chat"
+      "assignment"
+      "scheduling"
+      "tracking";
+  }
+  .bento-card {
+    min-height: 250px;
+  }
+}

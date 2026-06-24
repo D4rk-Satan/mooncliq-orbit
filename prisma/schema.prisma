@@ -1,0 +1,132 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ------------------------------------------------------------------
+// PHASE 0: Multi-Tenant Foundation
+// ------------------------------------------------------------------
+model Organization {
+  id         String      @id @default(uuid())
+  name       String
+  createdAt  DateTime    @default(now())
+  
+  users      User[]
+  blueprints Blueprint[]
+  leads      Lead[]
+  auditLogs  AuditLog[]
+}
+
+model User {
+  id             String       @id // This will be the AWS Cognito User ID
+  email          String       @unique
+  organizationId String
+  createdAt      DateTime     @default(now())
+  
+  organization   Organization @relation(fields: [organizationId], references: [id])
+}
+
+// ------------------------------------------------------------------
+// PHASE 1: The Blueprint Contract (Config)
+// ------------------------------------------------------------------
+model Blueprint {
+  id             String       @id @default(uuid())
+  organizationId String
+  moduleType     String       // e.g., "Lead", "Deal", "Ticket"
+  version        Int          @default(1)
+  name           String       @default("Default Pipeline")
+  
+  stages         Stage[]
+  transitions    Transition[]
+  fields         Field[]
+  leads          Lead[]
+  
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  
+  @@unique([organizationId, moduleType, version])
+}
+
+model Stage {
+  id             String    @id @default(uuid())
+  blueprintId    String
+  name           String    // e.g., "New", "Contacted"
+  orderIndex     Int
+  requiredFields String[]  // Array of field names required to enter this stage
+  color          String?
+  
+  blueprint      Blueprint @relation(fields: [blueprintId], references: [id])
+  leads          Lead[]
+  
+  outgoingTransitions Transition[] @relation("FromStages")
+  incomingTransitions Transition[] @relation("ToStage")
+}
+
+model Field {
+  id          String    @id @default(uuid())
+  blueprintId String
+  name        String    // JSON key, e.g., "industry"
+  label       String    // Display name, e.g., "Industry"
+  type        String    // "text", "number", "select", "currency"
+  options     String[]  // Dropdown options
+  isRequired  Boolean   @default(false)
+  orderIndex  Int
+  
+  blueprint   Blueprint @relation(fields: [blueprintId], references: [id])
+}
+
+model Transition {
+  id             String    @id @default(uuid())
+  blueprintId    String
+  name           String    // e.g., "Qualify Lead" or "Move to Trash"
+  fromStages     Stage[]   @relation("FromStages")
+  toStageId      String
+  requiredFields String[]  // Fields required to execute this transition
+  necessaryFields String[] // High-friction security checkpoint fields
+  
+  blueprint      Blueprint @relation(fields: [blueprintId], references: [id])
+  toStage        Stage     @relation("ToStage", fields: [toStageId], references: [id], onDelete: Cascade)
+  isGlobal       Boolean   @default(false)
+}
+
+// ------------------------------------------------------------------
+// PHASE 2: The Data & Audit Layer
+// ------------------------------------------------------------------
+model Lead {
+  id             String    @id @default(uuid())
+  organizationId String
+  blueprintId    String
+  stageId        String
+  
+  // Standard indexed fields
+  firstName      String
+  lastName       String
+  email          String?
+  phone          String?
+  owner          String?
+  
+  // Dynamic payload
+  customData     Json      @default("{}")
+  
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  blueprint      Blueprint    @relation(fields: [blueprintId], references: [id])
+  stage          Stage        @relation(fields: [stageId], references: [id])
+  auditLogs      AuditLog[]
+}
+
+model AuditLog {
+  id             String       @id @default(uuid())
+  organizationId String
+  leadId         String
+  actionType     String       // e.g., "LeadCreated", "StageMoved", "FieldUpdated"
+  details        Json         // e.g., { fromStage: "New", toStage: "Contacted" }
+  createdAt      DateTime     @default(now())
+
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  lead           Lead         @relation(fields: [leadId], references: [id], onDelete: Cascade)
+}
