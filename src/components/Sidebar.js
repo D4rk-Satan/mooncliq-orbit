@@ -12,7 +12,7 @@ export default function Sidebar() {
   const handleSignOut = async () => {
     try {
       await signOut();
-      router.push("/sign-in");
+      router.push("/");
     } catch (error) {
       console.error("Error signing out:", error);
     }
