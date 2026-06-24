@@ -60,16 +60,6 @@ export default function ForgotPassword() {
 
   return (
     <div className="auth-container">
-      <Link href="/">
-        <Image
-          src="/logo.png"
-          alt="MoonCliq Logo"
-          width={240}
-          height={77}
-          className="auth-brand-logo"
-          priority
-        />
-      </Link>
       <div className="auth-card">
         <div className="auth-header">
           <h2 className="auth-title">Reset Password</h2>
