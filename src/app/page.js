@@ -1,7 +1,7 @@
 import Link from 'next/link';
+import { BarChart2, Users, FileText } from 'lucide-react';
 import FAQ from '../components/FAQ';
 import './landing.css';
-
 export default function Home() {
   return (
     <div className="landing-body">
@@ -46,16 +46,27 @@ export default function Home() {
       {/* Value Props Row */}
       <section className="value-props">
         <div className="value-prop-item">
-          <h3 className="value-prop-title">Dynamic Pipelines</h3>
-          <p className="value-prop-desc">Visualize your entire sales process with custom Kanban boards and strict data transition rules.</p>
+          <div className="value-prop-icon"><BarChart2 size={24} /></div>
+          <div className="value-prop-text">
+            <h3 className="value-prop-title">Dynamic Pipelines</h3>
+            <p className="value-prop-desc">Visualize your entire sales process with customizable pipelines that adapt to your workflow.</p>
+          </div>
         </div>
+        <div className="value-prop-divider"></div>
         <div className="value-prop-item">
-          <h3 className="value-prop-title">Centralized Lead Data</h3>
-          <p className="value-prop-desc">Keep every interaction, note, and custom field neatly organized in a single source of truth.</p>
+          <div className="value-prop-icon"><Users size={24} /></div>
+          <div className="value-prop-text">
+            <h3 className="value-prop-title">Centralized Lead Data</h3>
+            <p className="value-prop-desc">Keep every interaction, note, and custom field organized in one place — so your team stays aligned.</p>
+          </div>
         </div>
+        <div className="value-prop-divider"></div>
         <div className="value-prop-item">
-          <h3 className="value-prop-title">Blueprint Engine</h3>
-          <p className="value-prop-desc">Define exact data requirements for every stage of your funnel to ensure perfect data hygiene.</p>
+          <div className="value-prop-icon"><FileText size={24} /></div>
+          <div className="value-prop-text">
+            <h3 className="value-prop-title">Blueprint Engine</h3>
+            <p className="value-prop-desc">Define exact data requirements for every stage and ensure your team follows the right process every time.</p>
+          </div>
         </div>
       </section>
 
