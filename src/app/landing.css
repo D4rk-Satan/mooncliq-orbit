@@ -248,8 +248,9 @@
 
 .bento-chat {
   grid-area: chat;
-  background-image: linear-gradient(rgba(0,0,0,0), rgba(0,0,0,0.6)), url('https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&q=80&w=1200');
+  background-image: linear-gradient(rgba(0,0,0,0), rgba(0,0,0,0.6)), url('/kanban_ui.png');
   background-size: cover;
+  background-position: center top;
   color: white;
 }
 
