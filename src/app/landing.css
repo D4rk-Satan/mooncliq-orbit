@@ -256,21 +256,21 @@
 
 .bento-assignment {
   grid-area: assignment;
-  background: linear-gradient(135deg, #27272a, #18181b);
-  color: white;
+  background: linear-gradient(135deg, #f5f0e6, #ece5d8);
+  color: #1c1917;
 }
 
 .bento-scheduling {
   grid-area: scheduling;
-  background: linear-gradient(135deg, #3f3f46, #27272a);
-  color: white;
+  background: linear-gradient(135deg, #c7beaf, #b5aa99);
+  color: #1c1917;
 }
 
 .bento-tracking {
   grid-area: tracking;
-  background-image: linear-gradient(rgba(0,0,0,0), rgba(0,0,0,0.7)), url('/audit_logs.png');
+  background-image: linear-gradient(to right, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0) 60%), url('/audit_logs.png');
   background-size: cover;
-  background-position: center;
+  background-position: center right;
   color: white;
 }
 
