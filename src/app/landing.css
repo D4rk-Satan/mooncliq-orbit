@@ -250,21 +250,19 @@
   grid-area: chat;
   background-image: linear-gradient(rgba(0,0,0,0), rgba(0,0,0,0.6)), url('/kanban_ui.png');
   background-size: cover;
-  background-position: center top;
+  background-position: center;
   color: white;
 }
 
 .bento-assignment {
   grid-area: assignment;
-  background-image: linear-gradient(rgba(0,0,0,0), rgba(0,0,0,0.7)), url('https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&q=80&w=800');
-  background-size: cover;
+  background: linear-gradient(135deg, #27272a, #18181b);
   color: white;
 }
 
 .bento-scheduling {
   grid-area: scheduling;
-  background-image: linear-gradient(rgba(0,0,0,0), rgba(0,0,0,0.7)), url('https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&q=80&w=800');
-  background-size: cover;
+  background: linear-gradient(135deg, #3f3f46, #27272a);
   color: white;
 }
 
