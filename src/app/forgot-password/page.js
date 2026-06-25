@@ -14,6 +14,7 @@ export default function ForgotPassword() {
   const [newPassword, setNewPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleRequestCode = async (e) => {
     e.preventDefault();
@@ -106,16 +107,26 @@ export default function ForgotPassword() {
 
             <div className="form-group">
               <label className="form-label" htmlFor="newPassword">New Password</label>
-              <input
-                type="password"
-                id="newPassword"
-                className="form-input"
-                placeholder="••••••••"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                required
-                minLength={8}
-              />
+              <div className="password-input-wrapper">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  id="newPassword"
+                  className="form-input"
+                  placeholder="••••••••"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  required
+                  minLength={8}
+                />
+                <button 
+                  type="button" 
+                  className="password-toggle-btn"
+                  onClick={() => setShowPassword(!showPassword)}
+                  tabIndex="-1"
+                >
+                  {showPassword ? "Hide" : "Show"}
+                </button>
+              </div>
             </div>
 
             <button type="submit" className="form-button" disabled={isLoading}>
