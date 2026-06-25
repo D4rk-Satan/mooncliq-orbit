@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import FAQ from '../components/FAQ';
 import './landing.css';
-
 export default function Home() {
   return (
     <div className="landing-body">
@@ -46,16 +45,33 @@ export default function Home() {
       {/* Value Props Row */}
       <section className="value-props">
         <div className="value-prop-item">
-          <h3 className="value-prop-title">Dynamic Pipelines</h3>
-          <p className="value-prop-desc">Visualize your entire sales process with custom Kanban boards and strict data transition rules.</p>
+          <div className="value-prop-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg>
+          </div>
+          <div className="value-prop-text">
+            <h3 className="value-prop-title">Dynamic Pipelines</h3>
+            <p className="value-prop-desc">Visualize your entire sales process with customizable pipelines that adapt to your workflow.</p>
+          </div>
         </div>
+        <div className="value-prop-divider"></div>
         <div className="value-prop-item">
-          <h3 className="value-prop-title">Centralized Lead Data</h3>
-          <p className="value-prop-desc">Keep every interaction, note, and custom field neatly organized in a single source of truth.</p>
+          <div className="value-prop-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          </div>
+          <div className="value-prop-text">
+            <h3 className="value-prop-title">Centralized Lead Data</h3>
+            <p className="value-prop-desc">Keep every interaction, note, and custom field organized in one place — so your team stays aligned.</p>
+          </div>
         </div>
+        <div className="value-prop-divider"></div>
         <div className="value-prop-item">
-          <h3 className="value-prop-title">Blueprint Engine</h3>
-          <p className="value-prop-desc">Define exact data requirements for every stage of your funnel to ensure perfect data hygiene.</p>
+          <div className="value-prop-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+          </div>
+          <div className="value-prop-text">
+            <h3 className="value-prop-title">Blueprint Engine</h3>
+            <p className="value-prop-desc">Define exact data requirements for every stage and ensure your team follows the right process every time.</p>
+          </div>
         </div>
       </section>
 
