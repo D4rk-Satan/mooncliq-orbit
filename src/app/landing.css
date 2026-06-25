@@ -97,15 +97,15 @@
 /* --- Curved Carousel --- */
 .carousel-container {
   position: relative;
-  width: 100%;
-  max-width: 1200px;
+  width: 100vw;
+  max-width: 100%;
   margin: 0 auto;
   height: 320px;
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-top: 1rem;
-  margin-bottom: 3rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0;
   overflow: hidden;
 }
 
@@ -131,22 +131,24 @@
 /* Center */
 .card-4 { transform: translateX(0) scale(1); z-index: 4; }
 /* Middle Left/Right */
-.card-3 { transform: translateX(-180px) scale(0.9); z-index: 3; }
-.card-5 { transform: translateX(180px) scale(0.9); z-index: 3; }
+.card-3 { transform: translateX(-240px) scale(0.9); z-index: 3; }
+.card-5 { transform: translateX(240px) scale(0.9); z-index: 3; }
 /* Far Left/Right */
-.card-2 { transform: translateX(-340px) scale(0.8); z-index: 2; }
-.card-6 { transform: translateX(340px) scale(0.8); z-index: 2; }
+.card-2 { transform: translateX(-460px) scale(0.8); z-index: 2; }
+.card-6 { transform: translateX(460px) scale(0.8); z-index: 2; }
 /* Extreme Left/Right */
-.card-1 { transform: translateX(-480px) scale(0.7); z-index: 1; }
-.card-7 { transform: translateX(480px) scale(0.7); z-index: 1; }
+.card-1 { transform: translateX(-660px) scale(0.7); z-index: 1; }
+.card-7 { transform: translateX(660px) scale(0.7); z-index: 1; }
 
 /* --- Value Props --- */
 .value-props {
   display: flex;
   justify-content: space-between;
-  max-width: 1000px;
-  margin: 0 auto 4rem auto;
+  max-width: 1200px;
+  margin: -1rem auto 4rem auto;
   padding: 0 2rem;
+  z-index: 5;
+  position: relative;
 }
 
 .value-prop-item {
