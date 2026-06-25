@@ -269,7 +269,7 @@
 
 .bento-tracking {
   grid-area: tracking;
-  background-image: linear-gradient(rgba(0,0,0,0), rgba(0,0,0,0.7)), url('https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=800');
+  background-image: linear-gradient(rgba(0,0,0,0), rgba(0,0,0,0.7)), url('/audit_logs.png');
   background-size: cover;
   background-position: center top;
   color: white;
