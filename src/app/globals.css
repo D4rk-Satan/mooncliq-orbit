@@ -676,43 +676,89 @@ body {
 .kanban-card {
   background-color: white;
   border-radius: 8px;
-  padding: 1rem;
-  border: 1px solid #e5e7eb;
+  padding: 1.25rem;
+  border: 1px solid #e2e8f0;
   cursor: pointer;
   transition: border-color 0.2s, box-shadow 0.2s;
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
+  gap: 0.75rem;
 }
 
 .kanban-card:hover {
-  border-color: #d1d5db;
+  border-color: #cbd5e1;
   box-shadow: 0 4px 12px rgba(0,0,0,0.05);
 }
 
-.minimal-card-header {
+.card-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
   margin-bottom: 0.25rem;
 }
 
-.minimal-company {
-  font-size: 0.95rem;
+.card-title {
+  font-size: 1rem;
   font-weight: 600;
-  color: #111827;
+  color: #1e293b;
   margin: 0;
   line-height: 1.2;
 }
 
-.minimal-info-row {
+.card-menu-btn {
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  padding: 0;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.85rem;
-  color: #4b5563;
-  line-height: 1.4;
+  justify-content: center;
 }
 
-.text-muted {
-  color: #6b7280;
+.card-subtitle {
+  font-size: 0.85rem;
+  color: #64748b;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.card-footer-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+}
+
+.date-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  color: #475569;
+  font-weight: 500;
+}
+
+.card-icons {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #64748b;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.card-icon-item {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
 }
 
 .kanban-empty-dropzone {
