@@ -98,9 +98,9 @@
 .carousel-container {
   position: relative;
   width: 100%;
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
-  height: 250px;
+  height: 350px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -112,8 +112,8 @@
 
 .carousel-card {
   position: absolute;
-  width: 150px;
-  height: 220px;
+  width: 200px;
+  height: 280px;
   border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 20px 40px rgba(0,0,0,0.1);
@@ -130,16 +130,16 @@
 
 /* Positioning the 7 cards to form a curve */
 /* Center */
-.card-4 { transform: translateZ(100px) scale(1); z-index: 4; }
+.card-4 { transform: translateZ(120px) scale(1); z-index: 4; }
 /* Middle Left/Right */
-.card-3 { transform: translateX(-160px) translateZ(50px) scale(0.95) rotateY(15deg); z-index: 3; }
-.card-5 { transform: translateX(160px) translateZ(50px) scale(0.95) rotateY(-15deg); z-index: 3; }
+.card-3 { transform: translateX(-220px) translateZ(60px) scale(0.95) rotateY(15deg); z-index: 3; }
+.card-5 { transform: translateX(220px) translateZ(60px) scale(0.95) rotateY(-15deg); z-index: 3; }
 /* Far Left/Right */
-.card-2 { transform: translateX(-300px) translateZ(-50px) scale(0.85) rotateY(25deg); z-index: 2; }
-.card-6 { transform: translateX(300px) translateZ(-50px) scale(0.85) rotateY(-25deg); z-index: 2; }
+.card-2 { transform: translateX(-420px) translateZ(-20px) scale(0.9) rotateY(25deg); z-index: 2; }
+.card-6 { transform: translateX(420px) translateZ(-20px) scale(0.9) rotateY(-25deg); z-index: 2; }
 /* Extreme Left/Right */
-.card-1 { transform: translateX(-420px) translateZ(-150px) scale(0.75) rotateY(35deg); z-index: 1; }
-.card-7 { transform: translateX(420px) translateZ(-150px) scale(0.75) rotateY(-35deg); z-index: 1; }
+.card-1 { transform: translateX(-600px) translateZ(-100px) scale(0.8) rotateY(35deg); z-index: 1; }
+.card-7 { transform: translateX(600px) translateZ(-100px) scale(0.8) rotateY(-35deg); z-index: 1; }
 
 /* --- Value Props --- */
 .value-props {
