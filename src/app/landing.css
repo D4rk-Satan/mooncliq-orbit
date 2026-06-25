@@ -12,7 +12,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.5rem 3rem;
+  padding: 1rem 3rem;
   max-width: 1400px;
   margin: 0 auto;
 }
@@ -70,53 +70,52 @@
 /* --- Hero Section --- */
 .hero-section {
   text-align: center;
-  padding: 1rem 2rem 0rem 2rem;
+  padding: 2rem 2rem 1rem 2rem;
   max-width: 800px;
   margin: 0 auto;
 }
 
 .hero-title {
-  font-size: 3.5rem;
+  font-size: 2.8rem;
   font-weight: 500;
-  line-height: 1;
-  margin-bottom: 0.5rem;
+  line-height: 1.1;
+  margin-bottom: 1rem;
   font-family: var(--font-outfit), serif;
-  letter-spacing: -1.5px;
+  letter-spacing: -1px;
 }
 
 .hero-subtitle {
-  font-size: 1.2rem;
+  font-size: 1.15rem;
   color: #57534e;
-  margin-bottom: 0.5rem;
+  margin-bottom: 2rem;
   max-width: 600px;
   margin-left: auto;
   margin-right: auto;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
 /* --- Curved Carousel --- */
 .carousel-container {
   position: relative;
   width: 100%;
-  max-width: 1400px;
+  max-width: 1200px;
   margin: 0 auto;
-  height: 280px;
+  height: 320px;
   display: flex;
   justify-content: center;
   align-items: center;
-  perspective: 1200px; /* 3D perspective */
-  margin-top: 0.5rem;
-  margin-bottom: 0.5rem;
+  margin-top: 1rem;
+  margin-bottom: 3rem;
   overflow: hidden;
 }
 
 .carousel-card {
   position: absolute;
-  width: 200px;
-  height: 280px;
-  border-radius: 16px;
+  width: 220px;
+  height: 300px;
+  border-radius: 20px;
   overflow: hidden;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+  box-shadow: 0 15px 35px rgba(0,0,0,0.15);
   transition: transform 0.5s ease-out;
   background-color: #e7e5e4;
 }
@@ -128,25 +127,24 @@
   object-position: center top;
 }
 
-/* Positioning the 7 cards to form a curve */
+/* Positioning the 7 cards to form a curve using pure scale */
 /* Center */
-.card-4 { transform: translateZ(120px) scale(1); z-index: 4; }
+.card-4 { transform: translateX(0) scale(1); z-index: 4; }
 /* Middle Left/Right */
-.card-3 { transform: translateX(-220px) translateZ(60px) scale(0.95) rotateY(15deg); z-index: 3; }
-.card-5 { transform: translateX(220px) translateZ(60px) scale(0.95) rotateY(-15deg); z-index: 3; }
+.card-3 { transform: translateX(-180px) scale(0.9); z-index: 3; }
+.card-5 { transform: translateX(180px) scale(0.9); z-index: 3; }
 /* Far Left/Right */
-.card-2 { transform: translateX(-420px) translateZ(-20px) scale(0.9) rotateY(25deg); z-index: 2; }
-.card-6 { transform: translateX(420px) translateZ(-20px) scale(0.9) rotateY(-25deg); z-index: 2; }
+.card-2 { transform: translateX(-340px) scale(0.8); z-index: 2; }
+.card-6 { transform: translateX(340px) scale(0.8); z-index: 2; }
 /* Extreme Left/Right */
-.card-1 { transform: translateX(-600px) translateZ(-100px) scale(0.8) rotateY(35deg); z-index: 1; }
-.card-7 { transform: translateX(600px) translateZ(-100px) scale(0.8) rotateY(-35deg); z-index: 1; }
+.card-1 { transform: translateX(-480px) scale(0.7); z-index: 1; }
+.card-7 { transform: translateX(480px) scale(0.7); z-index: 1; }
 
 /* --- Value Props --- */
 .value-props {
   display: flex;
-  justify-content: center;
-  gap: 4rem;
-  max-width: 1200px;
+  justify-content: space-between;
+  max-width: 1000px;
   margin: 0 auto 4rem auto;
   padding: 0 2rem;
 }
