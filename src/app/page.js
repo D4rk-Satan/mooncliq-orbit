@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import FAQ from '../components/FAQ';
 import './landing.css';
 
 export default function Home() {
@@ -88,6 +89,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* FAQ Section */}
+      <FAQ />
 
       {/* Footer / Call to Action */}
       <footer className="landing-footer">
