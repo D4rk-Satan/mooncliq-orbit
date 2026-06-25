@@ -255,21 +255,23 @@
 
 .bento-assignment {
   grid-area: assignment;
-  background-color: #EBE6DF;
+  background-image: linear-gradient(rgba(0,0,0,0), rgba(0,0,0,0.7)), url('https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&q=80&w=800');
+  background-size: cover;
+  color: white;
 }
 
 .bento-scheduling {
   grid-area: scheduling;
-  background-color: #D3CBBF;
+  background-image: linear-gradient(rgba(0,0,0,0), rgba(0,0,0,0.7)), url('https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&q=80&w=800');
+  background-size: cover;
   color: white;
 }
 
 .bento-tracking {
   grid-area: tracking;
-  background-color: #6A7B66; /* Green from mockup */
-  background-image: url('https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=800');
+  background-image: linear-gradient(rgba(0,0,0,0), rgba(0,0,0,0.7)), url('https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=800');
   background-size: cover;
-  background-position: right;
+  background-position: center top;
   color: white;
 }
 

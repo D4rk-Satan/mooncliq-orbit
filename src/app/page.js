@@ -73,13 +73,13 @@ export default function Home() {
           </div>
           
           <div className="bento-card bento-assignment">
-            <h3 style={{ color: '#1c1917' }}>Strict Data Governance</h3>
-            <p style={{ color: '#57534e' }}>Ensure your team collects the right data before advancing a lead.</p>
+            <h3>Strict Data Governance</h3>
+            <p>Ensure your team collects the right data before advancing a lead.</p>
           </div>
           
           <div className="bento-card bento-scheduling">
-            <h3 style={{ color: '#1c1917' }}>Custom Lead Fields</h3>
-            <p style={{ color: '#57534e' }}>Capture the unique data that matters to your business.</p>
+            <h3>Custom Lead Fields</h3>
+            <p>Capture the unique data that matters to your business.</p>
           </div>
           
           <div className="bento-card bento-tracking">
