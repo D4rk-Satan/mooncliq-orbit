@@ -271,7 +271,7 @@
   grid-area: tracking;
   background-image: linear-gradient(rgba(0,0,0,0), rgba(0,0,0,0.7)), url('/audit_logs.png');
   background-size: cover;
-  background-position: center top;
+  background-position: center;
   color: white;
 }
 
