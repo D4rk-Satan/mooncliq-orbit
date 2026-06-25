@@ -132,6 +132,34 @@ body {
   color: #1c1917;
 }
 
+.password-requirements {
+  margin-top: 0.75rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+}
+
+.req-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: color 0.2s;
+}
+
+.req-item.met {
+  color: #16a34a; /* Tailwind green-600 */
+}
+
+.req-item.unmet {
+  color: #94a3b8; /* Tailwind slate-400 */
+}
+
+.req-icon {
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
 .form-button {
   width: 100%;
   padding: 1rem;

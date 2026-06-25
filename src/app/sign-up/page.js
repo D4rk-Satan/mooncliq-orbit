@@ -6,6 +6,27 @@ import { useState } from "react";
 import { signUp, confirmSignUp } from 'aws-amplify/auth';
 import { useRouter } from "next/navigation";
 
+const PasswordRequirements = ({ password }) => {
+  const requirements = [
+    { label: "8+ characters", met: password.length >= 8 },
+    { label: "One uppercase", met: /[A-Z]/.test(password) },
+    { label: "One lowercase", met: /[a-z]/.test(password) },
+    { label: "One number", met: /[0-9]/.test(password) },
+    { label: "One special character", met: /[^A-Za-z0-9]/.test(password) },
+  ];
+
+  return (
+    <div className="password-requirements">
+      {requirements.map((req, idx) => (
+        <div key={idx} className={`req-item ${req.met ? 'met' : 'unmet'}`}>
+          <span className="req-icon">{req.met ? '✓' : '○'}</span>
+          {req.label}
+        </div>
+      ))}
+    </div>
+  );
+};
+
 export default function SignUp() {
   const router = useRouter();
   const [step, setStep] = useState('signup'); // 'signup' or 'confirm'
@@ -128,6 +149,7 @@ export default function SignUp() {
                   {showPassword ? "Hide" : "Show"}
                 </button>
               </div>
+              <PasswordRequirements password={formData.password} />
             </div>
 
             <button type="submit" className="form-button" disabled={isLoading}>
