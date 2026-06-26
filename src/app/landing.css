@@ -70,7 +70,7 @@
 /* --- Hero Section --- */
 .hero-section {
   text-align: center;
-  padding: 3rem 2rem 0rem 2rem;
+  padding: 2rem 2rem 0rem 2rem;
   max-width: 800px;
   margin: 0 auto;
 }
@@ -79,7 +79,7 @@
   font-size: 3.2rem;
   font-weight: 600;
   line-height: 1.1;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
   font-family: var(--font-outfit), serif;
   letter-spacing: -1px;
 }
@@ -87,7 +87,7 @@
 .hero-subtitle {
   font-size: 1.15rem;
   color: #57534e;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
   max-width: 600px;
   margin-left: auto;
   margin-right: auto;
@@ -100,10 +100,10 @@
   width: 100vw;
   max-width: 100%;
   margin: 0 auto;
-  height: 380px;
+  height: 340px;
   perspective: 1200px;
   transform-style: preserve-3d;
-  margin-top: 3.5rem;
+  margin-top: 2rem;
   margin-bottom: 2rem;
   overflow: visible;
 }
@@ -112,10 +112,10 @@
   position: absolute;
   top: 50%;
   left: 50%;
-  margin-top: -170px; /* height 340 / 2 */
-  margin-left: -120px; /* width 240 / 2 */
-  width: 240px;
-  height: 340px;
+  margin-top: -160px; /* height 320 / 2 */
+  margin-left: -115px; /* width 230 / 2 */
+  width: 230px;
+  height: 320px;
   border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 10px 25px rgba(0,0,0,0.15);
