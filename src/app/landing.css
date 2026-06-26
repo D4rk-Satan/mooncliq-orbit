@@ -134,14 +134,14 @@
 /* Center */
 .card-4 { transform: translateZ(80px) scale(1); z-index: 4; }
 /* Middle Left/Right */
-.card-3 { transform: translateX(-120px) translateZ(-20px) rotateY(12deg) scale(0.95); z-index: 3; }
-.card-5 { transform: translateX(120px) translateZ(-20px) rotateY(-12deg) scale(0.95); z-index: 3; }
+.card-3 { transform: translateX(-140px) translateZ(-20px) rotateY(12deg) scale(0.95); z-index: 3; }
+.card-5 { transform: translateX(140px) translateZ(-20px) rotateY(-12deg) scale(0.95); z-index: 3; }
 /* Far Left/Right */
-.card-2 { transform: translateX(-220px) translateZ(-100px) rotateY(20deg) scale(0.85); z-index: 2; }
-.card-6 { transform: translateX(220px) translateZ(-100px) rotateY(-20deg) scale(0.85); z-index: 2; }
+.card-2 { transform: translateX(-260px) translateZ(-100px) rotateY(20deg) scale(0.85); z-index: 2; }
+.card-6 { transform: translateX(260px) translateZ(-100px) rotateY(-20deg) scale(0.85); z-index: 2; }
 /* Extreme Left/Right */
-.card-1 { transform: translateX(-300px) translateZ(-160px) rotateY(28deg) scale(0.75); z-index: 1; }
-.card-7 { transform: translateX(300px) translateZ(-160px) rotateY(-28deg) scale(0.75); z-index: 1; }
+.card-1 { transform: translateX(-360px) translateZ(-160px) rotateY(28deg) scale(0.75); z-index: 1; }
+.card-7 { transform: translateX(360px) translateZ(-160px) rotateY(-28deg) scale(0.75); z-index: 1; }
 
 /* --- Value Props --- */
 .value-props {
