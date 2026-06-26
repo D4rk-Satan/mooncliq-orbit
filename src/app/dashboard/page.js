@@ -13,10 +13,10 @@ const GaugeChart = ({ percentage }) => {
           const angle = -90 + (i * (180 / (totalTicks - 1)));
           const isActive = (i / totalTicks) <= (percentage / 100);
           return (
-            <div 
-              key={i} 
-              className={`report-gauge-tick ${isActive ? 'active' : 'inactive'}`} 
-              style={{ transform: `rotate(${angle}deg)` }} 
+            <div
+              key={i}
+              className={`report-gauge-tick ${isActive ? 'active' : 'inactive'}`}
+              style={{ transform: `rotate(${angle}deg)` }}
             />
           );
         })}
@@ -65,15 +65,15 @@ const DashboardReport = () => {
     <div className="dashboard-report-section">
       <BarChart />
       <GaugeChart percentage={68} />
-      
+
       <div className="report-kpi-block">
         <div className="report-kpi-value">53</div>
-        <div className="report-kpi-label">Tasks<br/>in progress <span className="report-kpi-arrow">→</span></div>
+        <div className="report-kpi-label">Tasks<br />in progress <span className="report-kpi-arrow">→</span></div>
       </div>
 
       <div className="report-kpi-block">
         <div className="report-kpi-value">$ 15.890</div>
-        <div className="report-kpi-label">Prepayments<br/>from customers <span className="report-kpi-arrow">→</span></div>
+        <div className="report-kpi-label">Prepayments<br />from customers <span className="report-kpi-arrow">→</span></div>
       </div>
     </div>
   );
@@ -100,25 +100,25 @@ const ProgressReport = () => {
           <button>Month</button>
         </div>
       </div>
-      
+
       <div className="progress-chart">
         {days.map((day) => (
           <div key={day.name} className={`progress-bar-column ${day.active ? 'active' : ''}`}>
             {day.active ? (
               <div className="progress-badge">
-                {day.value} 
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m18 15-6-6-6 6"/></svg>
+                {day.value}
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m18 15-6-6-6 6" /></svg>
               </div>
             ) : (
               <div className="progress-value">{day.value}</div>
             )}
-            
+
             <div className="progress-bar-container" style={{ height: `${day.value * 2}px` }}>
-               <div className="segment segment-3" style={{ flex: day.segments[2] }}></div>
-               <div className="segment segment-2" style={{ flex: day.segments[1] }}></div>
-               <div className="segment segment-1" style={{ flex: day.segments[0] }}></div>
+              <div className="segment segment-3" style={{ flex: day.segments[2] }}></div>
+              <div className="segment segment-2" style={{ flex: day.segments[1] }}></div>
+              <div className="segment segment-1" style={{ flex: day.segments[0] }}></div>
             </div>
-            
+
             <div className={`progress-day ${day.active ? 'active' : ''}`}>{day.name}</div>
           </div>
         ))}
@@ -126,7 +126,7 @@ const ProgressReport = () => {
 
       <div className="progress-report-footer">
         <div className="legend">
-          <span className="legend-dot"></span> Minutes of focused study
+          <span className="legend-dot"></span> Minutes of Talk
         </div>
         <div className="average">
           Average per day: 48 min

@@ -30,10 +30,10 @@ export default function Sidebar() {
         </Link>
         <div className="nav-item">Deal</div>
         <div className="nav-item">Customer</div>
-        <div className="nav-item">Customer Contact</div>
-        <div className="nav-item">Products</div>
         <div className="nav-item">Task</div>
         <div className="nav-item">Projects</div>
+        <div className="nav-item">Customer Contact</div>
+        <div className="nav-item">Products</div>
       </nav>
       <div style={{ marginTop: 'auto', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
         <button
