@@ -477,13 +477,6 @@ export default function SettingsPage() {
               <input type="text" className="form-input" placeholder="e.g. Qualify Lead" value={selectedRule.name} onChange={e => setSelectedRule({...selectedRule, name: e.target.value})} />
             </div>
 
-            <div style={{ marginBottom: '1.5rem' }}>
-              <label className="form-label">Destination Stage (To)</label>
-              <select className="form-input" value={selectedRule.toStageId} onChange={e => setSelectedRule({...selectedRule, toStageId: e.target.value})}>
-                {blueprint.stages.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-            </div>
-
             <div style={{ marginBottom: '1.5rem', padding: '1rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
               <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span>Allowed Starting Stages (From)</span>
@@ -507,6 +500,13 @@ export default function SettingsPage() {
                   ))}
                 </div>
               )}
+            </div>
+
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label className="form-label">Destination Stage (To)</label>
+              <select className="form-input" value={selectedRule.toStageId} onChange={e => setSelectedRule({...selectedRule, toStageId: e.target.value})}>
+                {blueprint.stages.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
             </div>
 
             <div style={{ marginBottom: '2rem' }}>
