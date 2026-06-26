@@ -79,7 +79,62 @@ const DashboardReport = () => {
   );
 };
 
-const mockData = [];
+const ProgressReport = () => {
+  const days = [
+    { name: 'Mon', value: 56, segments: [20, 20, 16] },
+    { name: 'Tue', value: 40, segments: [15, 15, 10] },
+    { name: 'Wed', value: 68, segments: [25, 25, 18], active: true },
+    { name: 'Thu', value: 44, segments: [20, 15, 9] },
+    { name: 'Fri', value: 52, segments: [20, 20, 12] },
+  ];
+
+  return (
+    <div className="progress-report-card">
+      <div className="progress-report-header">
+        <div>
+          <h2>Your progress</h2>
+          <p>See how your focus changes across the week.</p>
+        </div>
+        <div className="progress-toggle">
+          <button className="active">Week</button>
+          <button>Month</button>
+        </div>
+      </div>
+      
+      <div className="progress-chart">
+        {days.map((day) => (
+          <div key={day.name} className={`progress-bar-column ${day.active ? 'active' : ''}`}>
+            {day.active ? (
+              <div className="progress-badge">
+                {day.value} 
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m18 15-6-6-6 6"/></svg>
+              </div>
+            ) : (
+              <div className="progress-value">{day.value}</div>
+            )}
+            
+            <div className="progress-bar-container" style={{ height: `${day.value * 2}px` }}>
+               <div className="segment segment-3" style={{ flex: day.segments[2] }}></div>
+               <div className="segment segment-2" style={{ flex: day.segments[1] }}></div>
+               <div className="segment segment-1" style={{ flex: day.segments[0] }}></div>
+            </div>
+            
+            <div className={`progress-day ${day.active ? 'active' : ''}`}>{day.name}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="progress-report-footer">
+        <div className="legend">
+          <span className="legend-dot"></span> Minutes of focused study
+        </div>
+        <div className="average">
+          Average per day: 48 min
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default function Dashboard() {
   const [selectedRecord, setSelectedRecord] = useState(null);
@@ -109,31 +164,7 @@ export default function Dashboard() {
 
         <DashboardReport />
 
-        <div className="table-container">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>GI Challan</th>
-                <th>Process House</th>
-                <th>Vendor</th>
-                <th>Stage</th>
-              </tr>
-            </thead>
-            <tbody>
-              {mockData.map((row) => (
-                <tr key={row.id} onClick={() => handleRowClick(row)}>
-                  <td className="font-medium">{row.id}</td>
-                  <td>{row.processHouse}</td>
-                  <td>{row.vendor}</td>
-                  <td><span className="badge">{row.stage}</span></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <div className="table-footer">
-            Showing {mockData.length} of {mockData.length} records
-          </div>
-        </div>
+        <ProgressReport />
       </main>
 
       <SlideOverPanel
