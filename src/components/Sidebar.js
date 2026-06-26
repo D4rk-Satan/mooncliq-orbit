@@ -37,7 +37,7 @@ export default function Sidebar() {
         <button 
           onClick={handleSignOut} 
           className="nav-item" 
-          style={{ display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444' }}
+          style={{ display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}
         >
           🚪 Log Out
         </button>
