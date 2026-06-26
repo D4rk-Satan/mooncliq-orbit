@@ -79,13 +79,7 @@ const DashboardReport = () => {
   );
 };
 
-const mockData = [
-  { id: "26-27/232", date: "07/06/2026", processHouse: "Sunita Processors Pvt. Ltd.", vendor: "VISHNU LAXMI TEXTILE", billNo: "411", challanNo: "411", stage: "Dyeing Warehouse", batch: "48", mts: "6412.00" },
-  { id: "26-27/231", date: "08/06/2026", processHouse: "RADHIKA SYNTEX PRIVATE LIMITED", vendor: "GOVIND INDUSTRIES", billNo: "412", challanNo: "412", stage: "Printing", batch: "49", mts: "3200.00" },
-  { id: "26-27/230", date: "09/06/2026", processHouse: "Sunita Processors Pvt. Ltd.", vendor: "SHREE JEEN FABRICS", billNo: "413", challanNo: "413", stage: "Finishing", batch: "50", mts: "1200.50" },
-  { id: "26-27/229", date: "10/06/2026", processHouse: "Sunita Processors Pvt. Ltd.", vendor: "SHREE JEEN FABRICS", billNo: "414", challanNo: "414", stage: "Packaging", batch: "51", mts: "840.00" },
-  { id: "26-27/228", date: "11/06/2026", processHouse: "Sunita Processors Pvt. Ltd.", vendor: "SHREE JEEN FABRICS", billNo: "415", challanNo: "415", stage: "Dyeing Warehouse", batch: "52", mts: "4100.00" },
-];
+const mockData = [];
 
 export default function Dashboard() {
   const [selectedRecord, setSelectedRecord] = useState(null);
