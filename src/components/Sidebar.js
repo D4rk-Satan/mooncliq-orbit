@@ -29,9 +29,9 @@ export default function Sidebar() {
           Lead
         </Link>
         <div className="nav-item">Deal</div>
-        <div className="nav-item">Customer</div>
+        <div className="nav-item">Project</div>
         <div className="nav-item">Task</div>
-        <div className="nav-item">Projects</div>
+        <div className="nav-item">Customer</div>
         <div className="nav-item">Customer Contact</div>
         <div className="nav-item">Products</div>
       </nav>
