@@ -488,23 +488,30 @@ export default function SettingsPage() {
               
               {!selectedRule.isGlobal && (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '1rem' }}>
-                  {blueprint.stages.map(stage => (
-                    <label key={stage.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                  {blueprint.stages.map(stage => {
+                    const isDisabled = stage.id === selectedRule.toStageId;
+                    return (
+                    <label key={stage.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: isDisabled ? 'not-allowed' : 'pointer', opacity: isDisabled ? 0.5 : 1 }}>
                       <input 
                         type="checkbox" 
+                        disabled={isDisabled}
                         checked={selectedRule.fromStageIds.includes(stage.id)} 
                         onChange={() => setSelectedRule({...selectedRule, fromStageIds: toggleArrayItem(selectedRule.fromStageIds, stage.id)})}
                       />
                       {stage.name}
                     </label>
-                  ))}
+                  )})}
                 </div>
               )}
             </div>
 
             <div style={{ marginBottom: '1.5rem' }}>
               <label className="form-label">Destination Stage (To)</label>
-              <select className="form-input" value={selectedRule.toStageId} onChange={e => setSelectedRule({...selectedRule, toStageId: e.target.value})}>
+              <select className="form-input" value={selectedRule.toStageId} onChange={e => {
+                const newToId = e.target.value;
+                const newFromIds = selectedRule.fromStageIds.filter(id => id !== newToId);
+                setSelectedRule({...selectedRule, toStageId: newToId, fromStageIds: newFromIds});
+              }}>
                 {blueprint.stages.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
             </div>
