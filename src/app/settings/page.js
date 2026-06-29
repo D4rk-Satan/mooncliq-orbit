@@ -19,6 +19,7 @@ export default function SettingsPage() {
 
   // Rules Manager State
   const [selectedRule, setSelectedRule] = useState(null);
+  const [activeRuleTab, setActiveRuleTab] = useState('during');
   // selectedRule schema: { id, name, toStageId, fromStageIds: [], isGlobal: boolean, requiredFields: [], necessaryFields: [] }
 
   useEffect(() => {
@@ -163,6 +164,7 @@ export default function SettingsPage() {
 
   // --- Rule Handlers ---
   const openRuleModal = (existingRule = null) => {
+    setActiveRuleTab('during');
     if (existingRule) {
       setSelectedRule({
         id: existingRule.id,
@@ -496,92 +498,161 @@ export default function SettingsPage() {
               <button onClick={() => setSelectedRule(null)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#94a3b8' }}>✕</button>
             </div>
 
-            <div style={{ marginBottom: '1.5rem' }}>
-              <label className="form-label">Button Name (Action)</label>
-              <input type="text" className="form-input" placeholder="e.g. Qualify Lead" value={selectedRule.name} onChange={e => setSelectedRule({ ...selectedRule, name: e.target.value })} />
+            <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '1rem' }}>
+              <div style={{ flex: 1 }}>
+                <label className="form-label">Button Name (Action)</label>
+                <input type="text" className="form-input" placeholder="e.g. Qualify Lead" value={selectedRule.name} onChange={e => setSelectedRule({ ...selectedRule, name: e.target.value })} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label className="form-label">Destination Stage (To)</label>
+                <select className="form-input" value={selectedRule.toStageId} onChange={e => {
+                  const newToId = e.target.value;
+                  const newFromIds = selectedRule.fromStageIds.filter(id => id !== newToId);
+                  setSelectedRule({ ...selectedRule, toStageId: newToId, fromStageIds: newFromIds });
+                }}>
+                  {blueprint.stages.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+              </div>
             </div>
 
-            <div style={{ marginBottom: '1.5rem', padding: '1rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-              <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>Allowed Starting Stages (From)</span>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 500, color: 'var(--primary)' }}>
-                  <input type="checkbox" checked={selectedRule.isGlobal} onChange={e => setSelectedRule({ ...selectedRule, isGlobal: e.target.checked })} />
-                  Global (All Stages)
-                </label>
-              </label>
+            <div style={{ display: 'flex', borderBottom: '1px solid #e2e8f0', marginBottom: '1.5rem' }}>
+              <button 
+                onClick={() => setActiveRuleTab('before')} 
+                style={{ padding: '0.75rem 1.5rem', background: 'none', border: 'none', borderBottom: activeRuleTab === 'before' ? '2px solid var(--primary)' : '2px solid transparent', color: activeRuleTab === 'before' ? 'var(--primary)' : '#64748b', fontWeight: 600, cursor: 'pointer' }}
+              >
+                Before
+              </button>
+              <button 
+                onClick={() => setActiveRuleTab('during')} 
+                style={{ padding: '0.75rem 1.5rem', background: 'none', border: 'none', borderBottom: activeRuleTab === 'during' ? '2px solid var(--primary)' : '2px solid transparent', color: activeRuleTab === 'during' ? 'var(--primary)' : '#64748b', fontWeight: 600, cursor: 'pointer' }}
+              >
+                During
+              </button>
+              <button 
+                onClick={() => setActiveRuleTab('after')} 
+                style={{ padding: '0.75rem 1.5rem', background: 'none', border: 'none', borderBottom: activeRuleTab === 'after' ? '2px solid var(--primary)' : '2px solid transparent', color: activeRuleTab === 'after' ? 'var(--primary)' : '#64748b', fontWeight: 600, cursor: 'pointer' }}
+              >
+                After
+              </button>
+            </div>
 
-              {!selectedRule.isGlobal && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '1rem' }}>
-                  {blueprint.stages.map(stage => {
-                    const isDisabled = stage.id === selectedRule.toStageId;
-                    return (
-                      <label key={stage.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: isDisabled ? 'not-allowed' : 'pointer', opacity: isDisabled ? 0.5 : 1 }}>
-                        <input
-                          type="checkbox"
-                          disabled={isDisabled}
-                          checked={selectedRule.fromStageIds.includes(stage.id)}
-                          onChange={() => setSelectedRule({ ...selectedRule, fromStageIds: toggleArrayItem(selectedRule.fromStageIds, stage.id) })}
-                        />
-                        {stage.name}
+            <div style={{ minHeight: '300px' }}>
+              
+              {activeRuleTab === 'before' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                  
+                  <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                    <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span>Allowed Starting Stages (From)</span>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 500, color: 'var(--primary)' }}>
+                        <input type="checkbox" checked={selectedRule.isGlobal} onChange={e => setSelectedRule({ ...selectedRule, isGlobal: e.target.checked })} />
+                        Global (All Stages)
                       </label>
-                    )
-                  })}
+                    </label>
+
+                    {!selectedRule.isGlobal && (
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '1rem' }}>
+                        {blueprint.stages.map(stage => {
+                          const isDisabled = stage.id === selectedRule.toStageId;
+                          return (
+                            <label key={stage.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: isDisabled ? 'not-allowed' : 'pointer', opacity: isDisabled ? 0.5 : 1 }}>
+                              <input
+                                type="checkbox"
+                                disabled={isDisabled}
+                                checked={selectedRule.fromStageIds.includes(stage.id)}
+                                onChange={() => setSelectedRule({ ...selectedRule, fromStageIds: toggleArrayItem(selectedRule.fromStageIds, stage.id) })}
+                              />
+                              {stage.name}
+                            </label>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ padding: '1.5rem', border: '1px dashed #cbd5e1', borderRadius: '8px', textAlign: 'center' }}>
+                    <h4 style={{ margin: '0 0 0.5rem 0', color: '#0f172a' }}>Execution Criteria (Coming Soon)</h4>
+                    <p style={{ margin: 0, color: '#64748b', fontSize: '0.875rem' }}>Restrict this button to specific Roles, Profiles, or Field values (e.g. Deal Amount &gt; $10k).</p>
+                  </div>
                 </div>
               )}
-            </div>
 
-            <div style={{ marginBottom: '1.5rem' }}>
-              <label className="form-label">Destination Stage (To)</label>
-              <select className="form-input" value={selectedRule.toStageId} onChange={e => {
-                const newToId = e.target.value;
-                const newFromIds = selectedRule.fromStageIds.filter(id => id !== newToId);
-                setSelectedRule({ ...selectedRule, toStageId: newToId, fromStageIds: newFromIds });
-              }}>
-                {blueprint.stages.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-            </div>
+              {activeRuleTab === 'during' && (
+                <div>
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <label className="form-label">Custom Message</label>
+                    <input type="text" className="form-input bg-white" placeholder="e.g. Please verify the following details before proceeding." />
+                  </div>
 
-            <div style={{ marginBottom: '2rem' }}>
-              <label className="form-label">Field Requirements (High-Friction Engine)</label>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.75rem' }}>
-                {blueprint.fields.length === 0 ? <span style={{ color: '#94a3b8', fontSize: '0.875rem' }}>No fields exist.</span> : null}
-                {blueprint.fields.map(field => {
-                  const isRequired = selectedRule.requiredFields.includes(field.name);
-                  const isNecessary = selectedRule.necessaryFields.includes(field.name);
-                  return (
-                    <div key={field.id} style={{ display: 'flex', alignItems: 'center', gap: '2rem', background: '#f8fafc', padding: '0.75rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                      <div style={{ width: '150px', fontWeight: 500 }}>{field.label}</div>
+                  <label className="form-label">Field Requirements (High-Friction Engine)</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.75rem' }}>
+                    {blueprint.fields.length === 0 ? <span style={{ color: '#94a3b8', fontSize: '0.875rem' }}>No fields exist.</span> : null}
+                    {blueprint.fields.map(field => {
+                      const isRequired = selectedRule.requiredFields.includes(field.name);
+                      const isNecessary = selectedRule.necessaryFields.includes(field.name);
+                      return (
+                        <div key={field.id} style={{ display: 'flex', alignItems: 'center', gap: '2rem', background: '#f8fafc', padding: '0.75rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                          <div style={{ width: '150px', fontWeight: 500 }}>{field.label}</div>
 
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.875rem' }}>
-                        <input
-                          type="checkbox"
-                          checked={isRequired}
-                          onChange={() => {
-                            const newRequired = toggleArrayItem(selectedRule.requiredFields, field.name);
-                            // If unchecking required, also uncheck necessary
-                            let newNecessary = selectedRule.necessaryFields;
-                            if (!newRequired.includes(field.name) && newNecessary.includes(field.name)) {
-                              newNecessary = newNecessary.filter(n => n !== field.name);
-                            }
-                            setSelectedRule({ ...selectedRule, requiredFields: newRequired, necessaryFields: newNecessary });
-                          }}
-                        />
-                        Required (Confirm)
-                      </label>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.875rem' }}>
+                            <input
+                              type="checkbox"
+                              checked={isRequired}
+                              onChange={() => {
+                                const newRequired = toggleArrayItem(selectedRule.requiredFields, field.name);
+                                // If unchecking required, also uncheck necessary
+                                let newNecessary = selectedRule.necessaryFields;
+                                if (!newRequired.includes(field.name) && newNecessary.includes(field.name)) {
+                                  newNecessary = newNecessary.filter(n => n !== field.name);
+                                }
+                                setSelectedRule({ ...selectedRule, requiredFields: newRequired, necessaryFields: newNecessary });
+                              }}
+                            />
+                            Required (Confirm)
+                          </label>
 
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: isRequired ? 'pointer' : 'not-allowed', fontSize: '0.875rem', opacity: isRequired ? 1 : 0.5 }}>
-                        <input
-                          type="checkbox"
-                          disabled={!isRequired}
-                          checked={isNecessary}
-                          onChange={() => setSelectedRule({ ...selectedRule, necessaryFields: toggleArrayItem(selectedRule.necessaryFields, field.name) })}
-                        />
-                        Mandatory (Double-Verify)
-                      </label>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: isRequired ? 'pointer' : 'not-allowed', fontSize: '0.875rem', opacity: isRequired ? 1 : 0.5 }}>
+                            <input
+                              type="checkbox"
+                              disabled={!isRequired}
+                              checked={isNecessary}
+                              onChange={() => setSelectedRule({ ...selectedRule, necessaryFields: toggleArrayItem(selectedRule.necessaryFields, field.name) })}
+                            />
+                            Mandatory (Double-Verify)
+                          </label>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {activeRuleTab === 'after' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <div style={{ padding: '1rem', border: '1px solid #e2e8f0', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc' }}>
+                    <div>
+                      <h4 style={{ margin: '0 0 0.25rem 0', color: '#0f172a' }}>Email Notifications</h4>
+                      <p style={{ margin: 0, color: '#64748b', fontSize: '0.875rem' }}>Send an automated email to lead or staff.</p>
                     </div>
-                  );
-                })}
-              </div>
+                    <button className="btn-primary" style={{ background: 'white', color: 'var(--primary)', border: '1px solid #e2e8f0' }}>+ Add Email</button>
+                  </div>
+                  <div style={{ padding: '1rem', border: '1px solid #e2e8f0', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc' }}>
+                    <div>
+                      <h4 style={{ margin: '0 0 0.25rem 0', color: '#0f172a' }}>Field Updates</h4>
+                      <p style={{ margin: 0, color: '#64748b', fontSize: '0.875rem' }}>Automatically update fields (e.g. Closing Date = Today).</p>
+                    </div>
+                    <button className="btn-primary" style={{ background: 'white', color: 'var(--primary)', border: '1px solid #e2e8f0' }}>+ Add Update</button>
+                  </div>
+                  <div style={{ padding: '1rem', border: '1px solid #e2e8f0', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc' }}>
+                    <div>
+                      <h4 style={{ margin: '0 0 0.25rem 0', color: '#0f172a' }}>Webhooks</h4>
+                      <p style={{ margin: 0, color: '#64748b', fontSize: '0.875rem' }}>Trigger external APIs (Zapier, Slack, etc.).</p>
+                    </div>
+                    <button className="btn-primary" style={{ background: 'white', color: 'var(--primary)', border: '1px solid #e2e8f0' }}>+ Add Webhook</button>
+                  </div>
+                </div>
+              )}
+
             </div>
 
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
