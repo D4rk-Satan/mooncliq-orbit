@@ -64,13 +64,13 @@ export default function SettingsPage() {
 
       const res = await fetch('/api/fields', {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(payload)
       });
-      
+
       if (res.ok) {
         setNewField({ name: "", label: "", type: "text" });
         setIsAddingField(false);
@@ -105,7 +105,7 @@ export default function SettingsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      
+
       if (res.ok) {
         setNewStage({ name: "", color: "#fde68a" });
         setIsAddingStage(false);
@@ -257,12 +257,12 @@ export default function SettingsPage() {
           ) : currentView === 'hub' ? (
             <div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '2rem' }}>
-                
+
                 {/* Customization Card */}
                 <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '1.5rem', boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.05)', border: '1px solid #e2e8f0' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
                     <div style={{ background: '#f3f4f6', padding: '0.5rem', borderRadius: '8px', color: '#475569' }}>
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72Z"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/><path d="M11 3H9"/></svg>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72Z" /><path d="m14 7 3 3" /><path d="M5 6v4" /><path d="M19 14v4" /><path d="M10 2v2" /><path d="M7 8H3" /><path d="M21 16h-4" /><path d="M11 3H9" /></svg>
                     </div>
                     <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: '#0f172a' }}>Lead Customization</h3>
                   </div>
@@ -271,38 +271,8 @@ export default function SettingsPage() {
                       Modules and Fields
                     </button>
                     <button onClick={() => setCurrentView('blueprint')} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
-                      Pipelines
+                      Workflow Engine
                     </button>
-                  </div>
-                </div>
-
-                {/* Process Management Card */}
-                <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '1.5rem', boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.05)', border: '1px solid #e2e8f0' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
-                    <div style={{ background: '#f3f4f6', padding: '0.5rem', borderRadius: '8px', color: '#475569' }}>
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
-                    </div>
-                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: '#0f172a' }}>Process Management</h3>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                    <button onClick={() => setCurrentView('blueprint')} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
-                      Blueprint (Workflow Engine)
-                    </button>
-                    <div style={{ padding: '0.5rem', color: '#94a3b8', fontSize: '0.95rem', cursor: 'not-allowed' }}>Approval Processes ✨</div>
-                  </div>
-                </div>
-
-                {/* Automation Card */}
-                <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '1.5rem', boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.05)', border: '1px solid #e2e8f0' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
-                    <div style={{ background: '#f3f4f6', padding: '0.5rem', borderRadius: '8px', color: '#475569' }}>
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m11.2 8.2 2.6-2.6a2.83 2.83 0 0 1 4 4l-2.6 2.6"/><path d="m12.8 15.8-2.6 2.6a2.83 2.83 0 0 1-4-4l2.6-2.6"/><path d="m14 10-4 4"/></svg>
-                    </div>
-                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: '#0f172a' }}>Automation</h3>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                    <div style={{ padding: '0.5rem', color: '#94a3b8', fontSize: '0.95rem', cursor: 'not-allowed' }}>Actions & Webhooks</div>
-                    <div style={{ padding: '0.5rem', color: '#94a3b8', fontSize: '0.95rem', cursor: 'not-allowed' }}>Assignment Rules</div>
                   </div>
                 </div>
 
@@ -310,10 +280,10 @@ export default function SettingsPage() {
             </div>
           ) : (
             <div className="settings-container" style={{ backgroundColor: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.05)' }}>
-              
+
               <div style={{ display: 'flex', alignItems: 'center', padding: '1rem 2rem', borderBottom: '1px solid #e2e8f0', backgroundColor: '#f8fafc' }}>
-                <button 
-                  onClick={() => setCurrentView('hub')} 
+                <button
+                  onClick={() => setCurrentView('hub')}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.95rem' }}
                 >
                   ← Back to Setup
@@ -326,7 +296,7 @@ export default function SettingsPage() {
               </div>
 
               <div style={{ padding: '2rem' }}>
-                
+
                 {/* BLUEPRINT TAB */}
                 {currentView === 'blueprint' && (
                   <div>
@@ -338,8 +308,8 @@ export default function SettingsPage() {
                           const nextStage = blueprint.stages[index + 1];
                           return (
                             <React.Fragment key={stage.id}>
-                              <div style={{ 
-                                border: '2px solid #e2e8f0', padding: '0.75rem 1.5rem', borderRadius: '8px', fontWeight: 600, 
+                              <div style={{
+                                border: '2px solid #e2e8f0', padding: '0.75rem 1.5rem', borderRadius: '8px', fontWeight: 600,
                                 backgroundColor: 'white', display: 'flex', alignItems: 'center', gap: '0.5rem',
                                 boxShadow: '0 1px 2px rgba(0,0,0,0.05)', flexShrink: 0
                               }}>
@@ -354,12 +324,12 @@ export default function SettingsPage() {
                             </React.Fragment>
                           );
                         })}
-                        {blueprint.stages.length === 0 && <span style={{color: '#94a3b8'}}>No stages created yet.</span>}
+                        {blueprint.stages.length === 0 && <span style={{ color: '#94a3b8' }}>No stages created yet.</span>}
                       </div>
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
-                      
+
                       {/* STAGE MANAGER (Drag & Drop) */}
                       <div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
@@ -368,11 +338,11 @@ export default function SettingsPage() {
                             {isAddingStage ? 'Cancel' : '+ Add Stage'}
                           </button>
                         </div>
-                        
+
                         {isAddingStage && (
                           <div style={{ padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '8px', marginBottom: '1rem', border: '1px solid #e2e8f0' }}>
-                            <input required type="text" placeholder="Stage Name" className="form-input bg-white" style={{marginBottom: '0.5rem'}} value={newStage.name} onChange={e => setNewStage({...newStage, name: e.target.value})} />
-                            <select className="form-input bg-white" style={{marginBottom: '1rem'}} value={newStage.color} onChange={e => setNewStage({...newStage, color: e.target.value})}>
+                            <input required type="text" placeholder="Stage Name" className="form-input bg-white" style={{ marginBottom: '0.5rem' }} value={newStage.name} onChange={e => setNewStage({ ...newStage, name: e.target.value })} />
+                            <select className="form-input bg-white" style={{ marginBottom: '1rem' }} value={newStage.color} onChange={e => setNewStage({ ...newStage, color: e.target.value })}>
                               <option value="#fde68a">Yellow</option>
                               <option value="#fed7aa">Orange</option>
                               <option value="#c4b5fd">Purple</option>
@@ -381,7 +351,7 @@ export default function SettingsPage() {
                               <option value="#bfdbfe">Blue</option>
                               <option value="#fca5a5">Red</option>
                             </select>
-                            <button onClick={handleAddStage} className="btn-primary" style={{width: '100%'}}>Save Stage</button>
+                            <button onClick={handleAddStage} className="btn-primary" style={{ width: '100%' }}>Save Stage</button>
                           </div>
                         )}
 
@@ -396,17 +366,17 @@ export default function SettingsPage() {
                                         ref={provided.innerRef}
                                         {...provided.draggableProps}
                                         {...provided.dragHandleProps}
-                                        style={{ 
-                                          padding: '1rem', border: '1px solid #e2e8f0', borderRadius: '8px', 
-                                          marginBottom: '0.5rem', background: 'white', display: 'flex', 
+                                        style={{
+                                          padding: '1rem', border: '1px solid #e2e8f0', borderRadius: '8px',
+                                          marginBottom: '0.5rem', background: 'white', display: 'flex',
                                           justifyContent: 'space-between', alignItems: 'center',
-                                          ...provided.draggableProps.style 
+                                          ...provided.draggableProps.style
                                         }}
                                       >
-                                        <div style={{display: 'flex', alignItems: 'center', gap: '0.75rem'}}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                                           <div style={{ cursor: 'grab', color: '#cbd5e1' }}>⋮⋮</div>
                                           <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: stage.color }}></div>
-                                          <span style={{fontWeight: 500}}>{stage.name}</span>
+                                          <span style={{ fontWeight: 500 }}>{stage.name}</span>
                                         </div>
                                         <button onClick={() => handleDeleteStage(stage.id)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
                                       </div>
@@ -430,12 +400,12 @@ export default function SettingsPage() {
                         </div>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                          {blueprint.transitions.length === 0 && <p style={{color: '#64748b', fontSize: '0.875rem'}}>No transition rules created.</p>}
+                          {blueprint.transitions.length === 0 && <p style={{ color: '#64748b', fontSize: '0.875rem' }}>No transition rules created.</p>}
                           {blueprint.transitions.map(t => {
                             const destStage = blueprint.stages.find(s => s.id === t.toStageId);
                             return (
-                              <div 
-                                key={t.id} 
+                              <div
+                                key={t.id}
                                 onClick={() => openRuleModal(t)}
                                 style={{ padding: '1rem', background: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
                               >
@@ -445,7 +415,7 @@ export default function SettingsPage() {
                                     {t.isGlobal ? "From Any Stage" : `From ${t.fromStages?.length || 0} Stage(s)`} ➔ To {destStage?.name || "Unknown"}
                                   </div>
                                 </div>
-                                <div style={{color: '#cbd5e1'}}>➔</div>
+                                <div style={{ color: '#cbd5e1' }}>➔</div>
                               </div>
                             )
                           })}
@@ -471,11 +441,11 @@ export default function SettingsPage() {
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                           <div>
                             <label className="form-label">Field Label (e.g. Lead Source)</label>
-                            <input required type="text" className="form-input bg-white" value={newField.label} onChange={e => setNewField({...newField, label: e.target.value})} />
+                            <input required type="text" className="form-input bg-white" value={newField.label} onChange={e => setNewField({ ...newField, label: e.target.value })} />
                           </div>
                           <div>
                             <label className="form-label">Field Type</label>
-                            <select className="form-input bg-white" value={newField.type} onChange={e => setNewField({...newField, type: e.target.value})}>
+                            <select className="form-input bg-white" value={newField.type} onChange={e => setNewField({ ...newField, type: e.target.value })}>
                               <option value="text">Text Input</option>
                               <option value="number">Number</option>
                             </select>
@@ -528,33 +498,34 @@ export default function SettingsPage() {
 
             <div style={{ marginBottom: '1.5rem' }}>
               <label className="form-label">Button Name (Action)</label>
-              <input type="text" className="form-input" placeholder="e.g. Qualify Lead" value={selectedRule.name} onChange={e => setSelectedRule({...selectedRule, name: e.target.value})} />
+              <input type="text" className="form-input" placeholder="e.g. Qualify Lead" value={selectedRule.name} onChange={e => setSelectedRule({ ...selectedRule, name: e.target.value })} />
             </div>
 
             <div style={{ marginBottom: '1.5rem', padding: '1rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
               <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span>Allowed Starting Stages (From)</span>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 500, color: 'var(--primary)' }}>
-                  <input type="checkbox" checked={selectedRule.isGlobal} onChange={e => setSelectedRule({...selectedRule, isGlobal: e.target.checked})} />
+                  <input type="checkbox" checked={selectedRule.isGlobal} onChange={e => setSelectedRule({ ...selectedRule, isGlobal: e.target.checked })} />
                   Global (All Stages)
                 </label>
               </label>
-              
+
               {!selectedRule.isGlobal && (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '1rem' }}>
                   {blueprint.stages.map(stage => {
                     const isDisabled = stage.id === selectedRule.toStageId;
                     return (
-                    <label key={stage.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: isDisabled ? 'not-allowed' : 'pointer', opacity: isDisabled ? 0.5 : 1 }}>
-                      <input 
-                        type="checkbox" 
-                        disabled={isDisabled}
-                        checked={selectedRule.fromStageIds.includes(stage.id)} 
-                        onChange={() => setSelectedRule({...selectedRule, fromStageIds: toggleArrayItem(selectedRule.fromStageIds, stage.id)})}
-                      />
-                      {stage.name}
-                    </label>
-                  )})}
+                      <label key={stage.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: isDisabled ? 'not-allowed' : 'pointer', opacity: isDisabled ? 0.5 : 1 }}>
+                        <input
+                          type="checkbox"
+                          disabled={isDisabled}
+                          checked={selectedRule.fromStageIds.includes(stage.id)}
+                          onChange={() => setSelectedRule({ ...selectedRule, fromStageIds: toggleArrayItem(selectedRule.fromStageIds, stage.id) })}
+                        />
+                        {stage.name}
+                      </label>
+                    )
+                  })}
                 </div>
               )}
             </div>
@@ -564,7 +535,7 @@ export default function SettingsPage() {
               <select className="form-input" value={selectedRule.toStageId} onChange={e => {
                 const newToId = e.target.value;
                 const newFromIds = selectedRule.fromStageIds.filter(id => id !== newToId);
-                setSelectedRule({...selectedRule, toStageId: newToId, fromStageIds: newFromIds});
+                setSelectedRule({ ...selectedRule, toStageId: newToId, fromStageIds: newFromIds });
               }}>
                 {blueprint.stages.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
@@ -573,18 +544,18 @@ export default function SettingsPage() {
             <div style={{ marginBottom: '2rem' }}>
               <label className="form-label">Field Requirements (High-Friction Engine)</label>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.75rem' }}>
-                {blueprint.fields.length === 0 ? <span style={{color: '#94a3b8', fontSize: '0.875rem'}}>No fields exist.</span> : null}
+                {blueprint.fields.length === 0 ? <span style={{ color: '#94a3b8', fontSize: '0.875rem' }}>No fields exist.</span> : null}
                 {blueprint.fields.map(field => {
                   const isRequired = selectedRule.requiredFields.includes(field.name);
                   const isNecessary = selectedRule.necessaryFields.includes(field.name);
                   return (
                     <div key={field.id} style={{ display: 'flex', alignItems: 'center', gap: '2rem', background: '#f8fafc', padding: '0.75rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
                       <div style={{ width: '150px', fontWeight: 500 }}>{field.label}</div>
-                      
+
                       <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.875rem' }}>
-                        <input 
-                          type="checkbox" 
-                          checked={isRequired} 
+                        <input
+                          type="checkbox"
+                          checked={isRequired}
                           onChange={() => {
                             const newRequired = toggleArrayItem(selectedRule.requiredFields, field.name);
                             // If unchecking required, also uncheck necessary
@@ -592,18 +563,18 @@ export default function SettingsPage() {
                             if (!newRequired.includes(field.name) && newNecessary.includes(field.name)) {
                               newNecessary = newNecessary.filter(n => n !== field.name);
                             }
-                            setSelectedRule({...selectedRule, requiredFields: newRequired, necessaryFields: newNecessary});
+                            setSelectedRule({ ...selectedRule, requiredFields: newRequired, necessaryFields: newNecessary });
                           }}
                         />
                         Required (Confirm)
                       </label>
 
                       <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: isRequired ? 'pointer' : 'not-allowed', fontSize: '0.875rem', opacity: isRequired ? 1 : 0.5 }}>
-                        <input 
-                          type="checkbox" 
+                        <input
+                          type="checkbox"
                           disabled={!isRequired}
-                          checked={isNecessary} 
-                          onChange={() => setSelectedRule({...selectedRule, necessaryFields: toggleArrayItem(selectedRule.necessaryFields, field.name)})}
+                          checked={isNecessary}
+                          onChange={() => setSelectedRule({ ...selectedRule, necessaryFields: toggleArrayItem(selectedRule.necessaryFields, field.name) })}
                         />
                         Mandatory (Double-Verify)
                       </label>
