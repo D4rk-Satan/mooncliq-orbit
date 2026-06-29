@@ -7,7 +7,7 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 export default function SettingsPage() {
   const [blueprint, setBlueprint] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("stages");
+  const [currentView, setCurrentView] = useState("hub");
 
   // New Field State
   const [newField, setNewField] = useState({ name: "", label: "", type: "text" });
@@ -254,27 +254,81 @@ export default function SettingsPage() {
             <div>Loading Settings...</div>
           ) : !blueprint || blueprint.error ? (
             <div>Failed to load blueprint: {blueprint?.error || "Unknown error"}</div>
+          ) : currentView === 'hub' ? (
+            <div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '2rem' }}>
+                
+                {/* Customization Card */}
+                <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '1.5rem', boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.05)', border: '1px solid #e2e8f0' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                    <div style={{ background: '#f3f4f6', padding: '0.5rem', borderRadius: '8px', color: '#475569' }}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72Z"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/><path d="M11 3H9"/></svg>
+                    </div>
+                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: '#0f172a' }}>Lead Customization</h3>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <button onClick={() => setCurrentView('fields')} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
+                      Modules and Fields
+                    </button>
+                    <button onClick={() => setCurrentView('blueprint')} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
+                      Pipelines
+                    </button>
+                  </div>
+                </div>
+
+                {/* Process Management Card */}
+                <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '1.5rem', boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.05)', border: '1px solid #e2e8f0' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                    <div style={{ background: '#f3f4f6', padding: '0.5rem', borderRadius: '8px', color: '#475569' }}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                    </div>
+                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: '#0f172a' }}>Process Management</h3>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <button onClick={() => setCurrentView('blueprint')} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
+                      Blueprint (Workflow Engine)
+                    </button>
+                    <div style={{ padding: '0.5rem', color: '#94a3b8', fontSize: '0.95rem', cursor: 'not-allowed' }}>Approval Processes ✨</div>
+                  </div>
+                </div>
+
+                {/* Automation Card */}
+                <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '1.5rem', boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.05)', border: '1px solid #e2e8f0' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                    <div style={{ background: '#f3f4f6', padding: '0.5rem', borderRadius: '8px', color: '#475569' }}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m11.2 8.2 2.6-2.6a2.83 2.83 0 0 1 4 4l-2.6 2.6"/><path d="m12.8 15.8-2.6 2.6a2.83 2.83 0 0 1-4-4l2.6-2.6"/><path d="m14 10-4 4"/></svg>
+                    </div>
+                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: '#0f172a' }}>Automation</h3>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <div style={{ padding: '0.5rem', color: '#94a3b8', fontSize: '0.95rem', cursor: 'not-allowed' }}>Actions & Webhooks</div>
+                    <div style={{ padding: '0.5rem', color: '#94a3b8', fontSize: '0.95rem', cursor: 'not-allowed' }}>Assignment Rules</div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
           ) : (
-            <div className="settings-container" style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
-              <div style={{ display: 'flex', borderBottom: '1px solid #e2e8f0', backgroundColor: '#f8fafc' }}>
+            <div className="settings-container" style={{ backgroundColor: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.05)' }}>
+              
+              <div style={{ display: 'flex', alignItems: 'center', padding: '1rem 2rem', borderBottom: '1px solid #e2e8f0', backgroundColor: '#f8fafc' }}>
                 <button 
-                  style={{ padding: '1rem 2rem', fontWeight: 500, borderBottom: activeTab === 'stages' ? '2px solid var(--primary)' : 'none', color: activeTab === 'stages' ? 'var(--primary)' : '#64748b' }}
-                  onClick={() => setActiveTab('stages')}
+                  onClick={() => setCurrentView('hub')} 
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.95rem' }}
                 >
-                  Workflow Engine
+                  ← Back to Setup
                 </button>
-                <button 
-                  style={{ padding: '1rem 2rem', fontWeight: 500, borderBottom: activeTab === 'fields' ? '2px solid var(--primary)' : 'none', color: activeTab === 'fields' ? 'var(--primary)' : '#64748b' }}
-                  onClick={() => setActiveTab('fields')}
-                >
-                  Custom Fields
-                </button>
+                <div style={{ width: '1px', height: '24px', backgroundColor: '#cbd5e1', margin: '0 1.5rem' }}></div>
+                <h2 style={{ fontSize: '1.15rem', fontWeight: 600, margin: 0, color: '#0f172a' }}>
+                  {currentView === 'blueprint' && "Pipelines & Blueprint"}
+                  {currentView === 'fields' && "Modules and Fields"}
+                </h2>
               </div>
 
               <div style={{ padding: '2rem' }}>
                 
-                {/* STAGES & RULES TAB */}
-                {activeTab === 'stages' && (
+                {/* BLUEPRINT TAB */}
+                {currentView === 'blueprint' && (
                   <div>
                     <div style={{ marginBottom: '2rem' }}>
                       <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '1rem' }}>Live Pipeline Preview</h2>
@@ -403,7 +457,7 @@ export default function SettingsPage() {
                 )}
 
                 {/* FIELDS TAB */}
-                {activeTab === 'fields' && (
+                {currentView === 'fields' && (
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                       <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Lead Fields</h2>
