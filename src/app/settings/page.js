@@ -534,20 +534,20 @@ export default function SettingsPage() {
             </div>
 
             <div style={{ display: 'flex', borderBottom: '1px solid #e2e8f0', marginBottom: '1.5rem' }}>
-              <button 
-                onClick={() => setActiveRuleTab('before')} 
+              <button
+                onClick={() => setActiveRuleTab('before')}
                 style={{ padding: '0.75rem 1.5rem', background: 'none', border: 'none', borderBottom: activeRuleTab === 'before' ? '2px solid var(--primary)' : '2px solid transparent', color: activeRuleTab === 'before' ? 'var(--primary)' : '#64748b', fontWeight: 600, cursor: 'pointer' }}
               >
                 Before
               </button>
-              <button 
-                onClick={() => setActiveRuleTab('during')} 
+              <button
+                onClick={() => setActiveRuleTab('during')}
                 style={{ padding: '0.75rem 1.5rem', background: 'none', border: 'none', borderBottom: activeRuleTab === 'during' ? '2px solid var(--primary)' : '2px solid transparent', color: activeRuleTab === 'during' ? 'var(--primary)' : '#64748b', fontWeight: 600, cursor: 'pointer' }}
               >
                 During
               </button>
-              <button 
-                onClick={() => setActiveRuleTab('after')} 
+              <button
+                onClick={() => setActiveRuleTab('after')}
                 style={{ padding: '0.75rem 1.5rem', background: 'none', border: 'none', borderBottom: activeRuleTab === 'after' ? '2px solid var(--primary)' : '2px solid transparent', color: activeRuleTab === 'after' ? 'var(--primary)' : '#64748b', fontWeight: 600, cursor: 'pointer' }}
               >
                 After
@@ -555,10 +555,10 @@ export default function SettingsPage() {
             </div>
 
             <div style={{ minHeight: '300px' }}>
-              
+
               {activeRuleTab === 'before' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                  
+
                   <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                     <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <span>Allowed Starting Stages (From)</span>
@@ -592,10 +592,10 @@ export default function SettingsPage() {
                     <h4 style={{ margin: '0 0 1rem 0', color: '#0f172a' }}>Execution Criteria</h4>
                     <div style={{ display: 'flex', gap: '1.5rem', marginBottom: '1.5rem' }}>
                       <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                        <input type="radio" name="criteriaType" checked={selectedRule.executionCriteria.type === 'all'} onChange={() => setSelectedRule({...selectedRule, executionCriteria: {...selectedRule.executionCriteria, type: 'all'}})} /> All records
+                        <input type="radio" name="criteriaType" checked={selectedRule.executionCriteria.type === 'all'} onChange={() => setSelectedRule({ ...selectedRule, executionCriteria: { ...selectedRule.executionCriteria, type: 'all' } })} /> All records
                       </label>
                       <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                        <input type="radio" name="criteriaType" checked={selectedRule.executionCriteria.type === 'matching'} onChange={() => setSelectedRule({...selectedRule, executionCriteria: {...selectedRule.executionCriteria, type: 'matching'}})} /> Records matching the conditions
+                        <input type="radio" name="criteriaType" checked={selectedRule.executionCriteria.type === 'matching'} onChange={() => setSelectedRule({ ...selectedRule, executionCriteria: { ...selectedRule.executionCriteria, type: 'matching' } })} /> Records matching the conditions
                       </label>
                     </div>
 
@@ -606,7 +606,7 @@ export default function SettingsPage() {
                             <select className="form-input" style={{ width: '200px' }} value={cond.field} onChange={e => {
                               const newConds = [...selectedRule.executionCriteria.conditions];
                               newConds[idx].field = e.target.value;
-                              setSelectedRule({...selectedRule, executionCriteria: {...selectedRule.executionCriteria, conditions: newConds}});
+                              setSelectedRule({ ...selectedRule, executionCriteria: { ...selectedRule.executionCriteria, conditions: newConds } });
                             }}>
                               <option value="">Select Field</option>
                               {blueprint.fields.map(f => <option key={f.id} value={f.name}>{f.label}</option>)}
@@ -614,7 +614,7 @@ export default function SettingsPage() {
                             <select className="form-input" style={{ width: '150px' }} value={cond.operator} onChange={e => {
                               const newConds = [...selectedRule.executionCriteria.conditions];
                               newConds[idx].operator = e.target.value;
-                              setSelectedRule({...selectedRule, executionCriteria: {...selectedRule.executionCriteria, conditions: newConds}});
+                              setSelectedRule({ ...selectedRule, executionCriteria: { ...selectedRule.executionCriteria, conditions: newConds } });
                             }}>
                               <option value="is">is</option>
                               <option value="isn't">isn't</option>
@@ -629,18 +629,18 @@ export default function SettingsPage() {
                               <input type="text" className="form-input" style={{ flex: 1 }} placeholder="Value" value={cond.value} onChange={e => {
                                 const newConds = [...selectedRule.executionCriteria.conditions];
                                 newConds[idx].value = e.target.value;
-                                setSelectedRule({...selectedRule, executionCriteria: {...selectedRule.executionCriteria, conditions: newConds}});
+                                setSelectedRule({ ...selectedRule, executionCriteria: { ...selectedRule.executionCriteria, conditions: newConds } });
                               }} />
                             )}
                             <button onClick={() => {
                               const newConds = selectedRule.executionCriteria.conditions.filter((_, i) => i !== idx);
-                              setSelectedRule({...selectedRule, executionCriteria: {...selectedRule.executionCriteria, conditions: newConds}});
+                              setSelectedRule({ ...selectedRule, executionCriteria: { ...selectedRule.executionCriteria, conditions: newConds } });
                             }} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '1.25rem' }}>✕</button>
                           </div>
                         ))}
                         <button onClick={() => {
                           const newConds = [...selectedRule.executionCriteria.conditions, { field: '', operator: 'is', value: '' }];
-                          setSelectedRule({...selectedRule, executionCriteria: {...selectedRule.executionCriteria, conditions: newConds}});
+                          setSelectedRule({ ...selectedRule, executionCriteria: { ...selectedRule.executionCriteria, conditions: newConds } });
                         }} style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontWeight: 500, padding: 0 }}>+ Add Condition</button>
                       </div>
                     )}
@@ -657,11 +657,11 @@ export default function SettingsPage() {
                     {isAddMenuOpen && (
                       <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: '0.5rem', background: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', zIndex: 10, padding: '0.5rem', width: '200px', display: 'flex', flexDirection: 'column' }}>
                         <button onClick={() => {
-                          if (!selectedRule.hasCustomMessage) setSelectedRule({...selectedRule, hasCustomMessage: true});
+                          if (!selectedRule.hasCustomMessage) setSelectedRule({ ...selectedRule, hasCustomMessage: true });
                           setIsAddMenuOpen(false);
                         }} style={{ padding: '0.5rem', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', borderRadius: '4px' }} onMouseEnter={e => e.target.style.background = '#f8fafc'} onMouseLeave={e => e.target.style.background = 'transparent'}>Message</button>
                         <button onClick={() => {
-                          setSelectedRule({...selectedRule, checklists: [...selectedRule.checklists, ""]});
+                          setSelectedRule({ ...selectedRule, checklists: [...selectedRule.checklists, ""] });
                           setIsAddMenuOpen(false);
                         }} style={{ padding: '0.5rem', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', borderRadius: '4px' }} onMouseEnter={e => e.target.style.background = '#f8fafc'} onMouseLeave={e => e.target.style.background = 'transparent'}>Checklists</button>
                       </div>
@@ -670,9 +670,9 @@ export default function SettingsPage() {
 
                   {selectedRule.hasCustomMessage && (
                     <div style={{ marginBottom: '1.5rem', background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0', position: 'relative' }}>
-                      <button onClick={() => setSelectedRule({...selectedRule, hasCustomMessage: false, customMessage: ""})} style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}>✕</button>
+                      <button onClick={() => setSelectedRule({ ...selectedRule, hasCustomMessage: false, customMessage: "" })} style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}>✕</button>
                       <label className="form-label">Custom Message</label>
-                      <input type="text" className="form-input bg-white" placeholder="e.g. Please verify the following details before proceeding." value={selectedRule.customMessage} onChange={e => setSelectedRule({...selectedRule, customMessage: e.target.value})} />
+                      <input type="text" className="form-input bg-white" placeholder="e.g. Please verify the following details before proceeding." value={selectedRule.customMessage} onChange={e => setSelectedRule({ ...selectedRule, customMessage: e.target.value })} />
                     </div>
                   )}
 
@@ -686,11 +686,11 @@ export default function SettingsPage() {
                             <input type="text" className="form-input bg-white" style={{ flex: 1 }} placeholder="Checklist item (e.g. Verify ID)" value={item} onChange={e => {
                               const newLists = [...selectedRule.checklists];
                               newLists[idx] = e.target.value;
-                              setSelectedRule({...selectedRule, checklists: newLists});
+                              setSelectedRule({ ...selectedRule, checklists: newLists });
                             }} />
                             <button onClick={() => {
                               const newLists = selectedRule.checklists.filter((_, i) => i !== idx);
-                              setSelectedRule({...selectedRule, checklists: newLists});
+                              setSelectedRule({ ...selectedRule, checklists: newLists });
                             }} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '1.25rem' }}>✕</button>
                           </div>
                         ))}
@@ -744,17 +744,17 @@ export default function SettingsPage() {
               {activeRuleTab === 'after' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', padding: '1.5rem', background: 'white', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                   {[
-                    { id: 'emails', label: 'EMAIL NOTIFICATIONS' },
-                    { id: 'calls', label: 'CALLS', badge: '✨ New' },
-                    { id: 'fieldUpdates', label: 'FIELD UPDATES' },
-                    { id: 'createRecords', label: 'CREATE RECORD', badge: '✨' },
-                    { id: 'webhooks', label: 'WEBHOOKS' },
-                    { id: 'customActions', label: 'CUSTOM ACTIONS' },
+                    { id: 'emails', label: 'Email Notifications' },
+                    { id: 'calls', label: 'Calls' },
+                    { id: 'fieldUpdates', label: 'Field Updates' },
+                    { id: 'createRecords', label: 'Create Records' },
+                    { id: 'webhooks', label: 'Webhooks' },
+                    { id: 'customActions', label: 'Custom Actions' },
                     { id: 'tags', label: 'TAGS' }
                   ].map(actionDef => (
                     <div key={actionDef.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#0ea5e9', letterSpacing: '0.5px' }}>{actionDef.label}</span>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#000000ff', letterSpacing: '0.5px' }}>{actionDef.label}</span>
                         <button onClick={() => {
                           if (actionDef.id === 'tags') {
                             setTagBuilder({ isOpen: true, name: '', color: tagColors[0] });
@@ -763,12 +763,12 @@ export default function SettingsPage() {
                             newActions[actionDef.id] = [...(newActions[actionDef.id] || []), `New ${actionDef.label} Action`];
                             setSelectedRule({ ...selectedRule, afterActions: newActions });
                           }
-                        }} style={{ background: 'none', border: 'none', color: '#0ea5e9', fontSize: '1.25rem', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
+                        }} style={{ background: 'none', border: 'none', color: '#000000ff', fontSize: '1.25rem', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
                         {actionDef.badge && (
                           <span style={{ fontSize: '0.75rem', background: '#334155', color: 'white', padding: '0.1rem 0.4rem', borderRadius: '12px' }}>{actionDef.badge}</span>
                         )}
                       </div>
-                      
+
                       {selectedRule.afterActions?.[actionDef.id]?.length > 0 && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.25rem' }}>
                           {selectedRule.afterActions[actionDef.id].map((item, idx) => (
@@ -791,7 +791,7 @@ export default function SettingsPage() {
                   ))}
                 </div>
               )}
-              
+
               {/* TAG BUILDER MODAL */}
               {tagBuilder.isOpen && (
                 <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -801,26 +801,26 @@ export default function SettingsPage() {
                       Add Tags
                       <button onClick={() => setTagBuilder({ ...tagBuilder, isOpen: false })} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: '#94a3b8' }}>✕</button>
                     </h3>
-                    
+
                     <div style={{ marginBottom: '1.5rem' }}>
-                      <input 
-                        type="text" 
-                        value={tagBuilder.name} 
-                        onChange={(e) => setTagBuilder({ ...tagBuilder, name: e.target.value })} 
-                        placeholder="Tag Name (e.g. VIP)" 
+                      <input
+                        type="text"
+                        value={tagBuilder.name}
+                        onChange={(e) => setTagBuilder({ ...tagBuilder, name: e.target.value })}
+                        placeholder="Tag Name (e.g. VIP)"
                         style={{ width: '100%', padding: '0.75rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '1rem', outline: 'none' }}
                         autoFocus
                       />
                     </div>
-                    
+
                     <div style={{ marginBottom: '2rem' }}>
                       <p style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '0.75rem' }}>Select Color</p>
                       <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                         {tagColors.map(color => (
-                          <div 
+                          <div
                             key={color}
                             onClick={() => setTagBuilder({ ...tagBuilder, color })}
-                            style={{ 
+                            style={{
                               width: '24px', height: '24px', borderRadius: '50%', background: color, cursor: 'pointer',
                               border: tagBuilder.color === color ? '2px solid #0f172a' : '2px solid transparent',
                               boxShadow: tagBuilder.color === color ? '0 0 0 2px white inset' : 'none'
@@ -829,7 +829,7 @@ export default function SettingsPage() {
                         ))}
                       </div>
                     </div>
-                    
+
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
                       <button className="btn-outline" onClick={() => setTagBuilder({ ...tagBuilder, isOpen: false })}>Cancel</button>
                       <button className="btn-primary" onClick={() => {

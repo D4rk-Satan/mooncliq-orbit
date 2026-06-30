@@ -211,6 +211,11 @@ export default function LeadModule() {
                 const callCount = Math.floor(Math.random() * 4) + 1;
                 const attachCount = Math.floor(Math.random() * 3) + 1;
                 
+                let leadTags = [];
+                try {
+                  leadTags = Array.isArray(lead.tags) ? lead.tags : JSON.parse(lead.tags || "[]");
+                } catch(e) {}
+                
                 return (
                   <div
                     key={lead.id}
@@ -227,6 +232,16 @@ export default function LeadModule() {
                     <div className="card-subtitle">
                       {subtitle}
                     </div>
+                    
+                    {leadTags.length > 0 && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', marginTop: '0.5rem', marginBottom: '0.5rem' }}>
+                        {leadTags.map((t, i) => (
+                          <span key={i} style={{ fontSize: '0.65rem', fontWeight: 600, color: 'white', background: t.color, padding: '0.15rem 0.4rem', borderRadius: '8px' }}>
+                            {t.name}
+                          </span>
+                        ))}
+                      </div>
+                    )}
 
                     <div className="card-footer-bottom">
                       <div className="date-badge">
