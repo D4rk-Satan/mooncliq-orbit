@@ -22,9 +22,35 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, onTra
   if (!isOpen || !lead || !blueprint) return null;
 
   const currentStageId = lead.stageId;
-  const availableTransitions = blueprint.transitions.filter(
-    t => t.isGlobal || (t.fromStages && t.fromStages.some(s => s.id === currentStageId))
-  );
+  const availableTransitions = blueprint.transitions.filter(t => {
+    // 1. Stage Check
+    const validStage = t.isGlobal || (t.fromStages && t.fromStages.some(s => s.id === currentStageId));
+    if (!validStage) return false;
+
+    // 2. Execution Criteria Check
+    if (t.executionCriteria && t.executionCriteria.conditions && t.executionCriteria.conditions.length > 0) {
+      const type = t.executionCriteria.type || 'all';
+      const criteriaMet = t.executionCriteria.conditions[type === 'all' ? 'every' : 'some'](cond => {
+        const leadValue = String(lead.customData?.[cond.field] || "").toLowerCase();
+        const condValue = String(cond.value || "").toLowerCase();
+        
+        switch (cond.operator) {
+          case 'is': return leadValue === condValue;
+          case 'is_not': return leadValue !== condValue;
+          case 'contains': return leadValue.includes(condValue);
+          case 'does_not_contain': return !leadValue.includes(condValue);
+          case 'starts_with': return leadValue.startsWith(condValue);
+          case 'ends_with': return leadValue.endsWith(condValue);
+          case 'is_empty': return leadValue === "";
+          case 'is_not_empty': return leadValue !== "";
+          default: return true;
+        }
+      });
+      return criteriaMet;
+    }
+    
+    return true; // If no criteria, button is visible
+  });
 
   const executeTransition = (transition, finalData) => {
     onTransition(lead.id, transition.toStageId, finalData);
