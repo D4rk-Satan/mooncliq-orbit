@@ -115,6 +115,7 @@ model Lead {
   
   // Dynamic payload
   customData     Json      @default("{}")
+  tags           Json      @default("[]") // [{name: 'Urgent', color: '#ef4444'}]
   
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt

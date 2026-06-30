@@ -21,6 +21,8 @@ export default function SettingsPage() {
   const [selectedRule, setSelectedRule] = useState(null);
   const [activeRuleTab, setActiveRuleTab] = useState('during');
   const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
+  const [tagBuilder, setTagBuilder] = useState({ isOpen: false, name: '', color: '#ef4444' });
+  const tagColors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#0ea5e9', '#8b5cf6', '#ec4899', '#64748b', '#84cc16'];
   // selectedRule schema: { id, name, toStageId, fromStageIds: [], isGlobal: boolean, requiredFields: [], necessaryFields: [] }
 
   useEffect(() => {
@@ -754,9 +756,13 @@ export default function SettingsPage() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#0ea5e9', letterSpacing: '0.5px' }}>{actionDef.label}</span>
                         <button onClick={() => {
-                          const newActions = { ...selectedRule.afterActions };
-                          newActions[actionDef.id] = [...(newActions[actionDef.id] || []), `New ${actionDef.label} Action`];
-                          setSelectedRule({ ...selectedRule, afterActions: newActions });
+                          if (actionDef.id === 'tags') {
+                            setTagBuilder({ isOpen: true, name: '', color: tagColors[0] });
+                          } else {
+                            const newActions = { ...selectedRule.afterActions };
+                            newActions[actionDef.id] = [...(newActions[actionDef.id] || []), `New ${actionDef.label} Action`];
+                            setSelectedRule({ ...selectedRule, afterActions: newActions });
+                          }
                         }} style={{ background: 'none', border: 'none', color: '#0ea5e9', fontSize: '1.25rem', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
                         {actionDef.badge && (
                           <span style={{ fontSize: '0.75rem', background: '#334155', color: 'white', padding: '0.1rem 0.4rem', borderRadius: '12px' }}>{actionDef.badge}</span>
@@ -767,7 +773,11 @@ export default function SettingsPage() {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.25rem' }}>
                           {selectedRule.afterActions[actionDef.id].map((item, idx) => (
                             <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 1rem', background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '6px' }}>
-                              <span style={{ fontSize: '0.875rem', color: '#334155' }}>{item} {idx + 1}</span>
+                              {actionDef.id === 'tags' ? (
+                                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'white', background: item.color, padding: '0.25rem 0.75rem', borderRadius: '12px' }}>{item.name}</span>
+                              ) : (
+                                <span style={{ fontSize: '0.875rem', color: '#334155' }}>{item} {idx + 1}</span>
+                              )}
                               <button onClick={() => {
                                 const newActions = { ...selectedRule.afterActions };
                                 newActions[actionDef.id] = newActions[actionDef.id].filter((_, i) => i !== idx);
@@ -779,6 +789,58 @@ export default function SettingsPage() {
                       )}
                     </div>
                   ))}
+                </div>
+              )}
+              
+              {/* TAG BUILDER MODAL */}
+              {tagBuilder.isOpen && (
+                <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)' }} onClick={() => setTagBuilder({ ...tagBuilder, isOpen: false })}></div>
+                  <div style={{ background: 'white', padding: '2rem', borderRadius: '12px', width: '100%', maxWidth: '400px', position: 'relative', zIndex: 10 }}>
+                    <h3 style={{ marginTop: 0, fontSize: '1.25rem', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between' }}>
+                      Add Tags
+                      <button onClick={() => setTagBuilder({ ...tagBuilder, isOpen: false })} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: '#94a3b8' }}>✕</button>
+                    </h3>
+                    
+                    <div style={{ marginBottom: '1.5rem' }}>
+                      <input 
+                        type="text" 
+                        value={tagBuilder.name} 
+                        onChange={(e) => setTagBuilder({ ...tagBuilder, name: e.target.value })} 
+                        placeholder="Tag Name (e.g. VIP)" 
+                        style={{ width: '100%', padding: '0.75rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '1rem', outline: 'none' }}
+                        autoFocus
+                      />
+                    </div>
+                    
+                    <div style={{ marginBottom: '2rem' }}>
+                      <p style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '0.75rem' }}>Select Color</p>
+                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        {tagColors.map(color => (
+                          <div 
+                            key={color}
+                            onClick={() => setTagBuilder({ ...tagBuilder, color })}
+                            style={{ 
+                              width: '24px', height: '24px', borderRadius: '50%', background: color, cursor: 'pointer',
+                              border: tagBuilder.color === color ? '2px solid #0f172a' : '2px solid transparent',
+                              boxShadow: tagBuilder.color === color ? '0 0 0 2px white inset' : 'none'
+                            }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                      <button className="btn-outline" onClick={() => setTagBuilder({ ...tagBuilder, isOpen: false })}>Cancel</button>
+                      <button className="btn-primary" onClick={() => {
+                        if (!tagBuilder.name.trim()) return;
+                        const newActions = { ...selectedRule.afterActions };
+                        newActions.tags = [...(newActions.tags || []), { name: tagBuilder.name.trim(), color: tagBuilder.color }];
+                        setSelectedRule({ ...selectedRule, afterActions: newActions });
+                        setTagBuilder({ ...tagBuilder, isOpen: false });
+                      }}>Save Tag</button>
+                    </div>
+                  </div>
                 </div>
               )}
 

@@ -79,10 +79,10 @@ export async function PATCH(request) {
     }
 
     const data = await request.json();
-    const { leadId, stageId } = data;
+    const { leadId, stageId, customData, tags } = data;
 
-    if (!leadId || !stageId) {
-      return NextResponse.json({ error: "Missing leadId or stageId" }, { status: 400 });
+    if (!leadId) {
+      return NextResponse.json({ error: "Missing leadId" }, { status: 400 });
     }
 
     // Verify lead belongs to user's org
@@ -94,9 +94,14 @@ export async function PATCH(request) {
       return NextResponse.json({ error: "Lead not found" }, { status: 404 });
     }
 
+    const updateData = {};
+    if (stageId) updateData.stageId = stageId;
+    if (customData) updateData.customData = customData;
+    if (tags !== undefined) updateData.tags = tags;
+
     const updatedLead = await prisma.lead.update({
       where: { id: leadId },
-      data: { stageId },
+      data: updateData,
       include: { stage: true }
     });
 
