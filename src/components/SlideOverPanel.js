@@ -224,7 +224,35 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, onTra
             <h2 className="slide-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
               {lead.firstName} {lead.lastName}
               {localTags.map((t, idx) => (
-                <span key={idx} style={{ fontSize: '0.75rem', fontWeight: 600, color: 'white', background: t.color, padding: '0.2rem 0.6rem', borderRadius: '12px' }}>{t.name}</span>
+                <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', fontWeight: 600, color: 'white', background: t.color, padding: '0.2rem 0.6rem', borderRadius: '12px' }}>
+                  {t.name}
+                  <button 
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      const newTags = localTags.filter((_, i) => i !== idx);
+                      setLocalTags(newTags);
+                      
+                      try {
+                        const { fetchAuthSession } = await import('aws-amplify/auth');
+                        const session = await fetchAuthSession();
+                        const token = session.tokens?.idToken?.toString();
+                        
+                        await fetch('/api/leads', {
+                          method: 'PATCH',
+                          headers: { 
+                            'Content-Type': 'application/json',
+                            'Authorization': token ? `Bearer ${token}` : ''
+                          },
+                          body: JSON.stringify({ leadId: lead.id, tags: newTags })
+                        });
+                      } catch (err) {
+                        console.error("Failed to remove tag", err);
+                      }
+                    }} 
+                    style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.8)', cursor: 'pointer', padding: 0, fontSize: '0.8rem', display: 'flex', alignItems: 'center' }}
+                    aria-label="Remove tag"
+                  >✕</button>
+                </span>
               ))}
               <button onClick={() => setTagBuilder({ isOpen: true, name: '', color: tagColors[0] })} style={{ background: 'none', border: '1px dashed #cbd5e1', color: '#64748b', fontSize: '0.75rem', fontWeight: 500, padding: '0.2rem 0.6rem', borderRadius: '12px', cursor: 'pointer' }}>+ Add Tag</button>
             </h2>
