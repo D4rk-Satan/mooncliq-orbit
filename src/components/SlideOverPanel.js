@@ -149,6 +149,71 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, onTra
     <>
       <div className={`slide-backdrop ${isOpen ? 'open' : ''}`} onClick={onClose}></div>
 
+      {/* TAG BUILDER MODAL */}
+      {tagBuilder.isOpen && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)' }} onClick={() => setTagBuilder({ ...tagBuilder, isOpen: false })}></div>
+          <div style={{ background: 'white', padding: '2rem', borderRadius: '12px', width: '100%', maxWidth: '400px', position: 'relative', zIndex: 10 }}>
+            <h3 style={{ marginTop: 0, fontSize: '1.25rem', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between' }}>
+              Add Tags
+              <button onClick={() => setTagBuilder({ ...tagBuilder, isOpen: false })} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: '#94a3b8' }}>✕</button>
+            </h3>
+            
+            <div style={{ marginBottom: '1.5rem' }}>
+              <input 
+                type="text" 
+                value={tagBuilder.name} 
+                onChange={(e) => setTagBuilder({ ...tagBuilder, name: e.target.value })} 
+                placeholder="Tag Name (e.g. VIP)" 
+                style={{ width: '100%', padding: '0.75rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '1rem', outline: 'none' }}
+                autoFocus
+              />
+            </div>
+            
+            <div style={{ marginBottom: '2rem' }}>
+              <p style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '0.75rem' }}>Select Color</p>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                {tagColors.map(color => (
+                  <div 
+                    key={color}
+                    onClick={() => setTagBuilder({ ...tagBuilder, color })}
+                    style={{ 
+                      width: '24px', height: '24px', borderRadius: '50%', background: color, cursor: 'pointer',
+                      border: tagBuilder.color === color ? '2px solid #0f172a' : '2px solid transparent',
+                      boxShadow: tagBuilder.color === color ? '0 0 0 2px white inset' : 'none'
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+            
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <button className="btn-outline" onClick={() => setTagBuilder({ ...tagBuilder, isOpen: false })}>Cancel</button>
+              <button className="btn-primary" onClick={async () => {
+                if (!tagBuilder.name.trim()) return;
+                const newTags = [...localTags, { name: tagBuilder.name.trim(), color: tagBuilder.color }];
+                setLocalTags(newTags);
+                setTagBuilder({ ...tagBuilder, isOpen: false });
+                
+                try {
+                  const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
+                  await fetch('/api/leads', {
+                    method: 'PATCH',
+                    headers: { 
+                      'Content-Type': 'application/json',
+                      'Authorization': token ? `Bearer ${token}` : ''
+                    },
+                    body: JSON.stringify({ leadId: lead.id, tags: newTags })
+                  });
+                } catch (e) {
+                  console.error("Failed to save tag", e);
+                }
+              }}>Save Tag</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className={`modal-card ${isOpen ? 'open' : ''}`} style={{ display: 'flex', flexDirection: 'column' }}>
         <div className="slide-header">
           <div>
@@ -165,71 +230,6 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, onTra
         </div>
 
         <div className="slide-content" style={{ flex: 1, overflowY: 'auto', position: 'relative' }}>
-          
-          {/* TAG BUILDER MODAL */}
-          {tagBuilder.isOpen && (
-            <div style={{ position: 'fixed', inset: 0, zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)' }} onClick={() => setTagBuilder({ ...tagBuilder, isOpen: false })}></div>
-              <div style={{ background: 'white', padding: '2rem', borderRadius: '12px', width: '100%', maxWidth: '400px', position: 'relative', zIndex: 10 }}>
-                <h3 style={{ marginTop: 0, fontSize: '1.25rem', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between' }}>
-                  Add Tags
-                  <button onClick={() => setTagBuilder({ ...tagBuilder, isOpen: false })} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: '#94a3b8' }}>✕</button>
-                </h3>
-                
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <input 
-                    type="text" 
-                    value={tagBuilder.name} 
-                    onChange={(e) => setTagBuilder({ ...tagBuilder, name: e.target.value })} 
-                    placeholder="Tag Name (e.g. VIP)" 
-                    style={{ width: '100%', padding: '0.75rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '1rem', outline: 'none' }}
-                    autoFocus
-                  />
-                </div>
-                
-                <div style={{ marginBottom: '2rem' }}>
-                  <p style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '0.75rem' }}>Select Color</p>
-                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                    {tagColors.map(color => (
-                      <div 
-                        key={color}
-                        onClick={() => setTagBuilder({ ...tagBuilder, color })}
-                        style={{ 
-                          width: '24px', height: '24px', borderRadius: '50%', background: color, cursor: 'pointer',
-                          border: tagBuilder.color === color ? '2px solid #0f172a' : '2px solid transparent',
-                          boxShadow: tagBuilder.color === color ? '0 0 0 2px white inset' : 'none'
-                        }}
-                      />
-                    ))}
-                  </div>
-                </div>
-                
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
-                  <button className="btn-outline" onClick={() => setTagBuilder({ ...tagBuilder, isOpen: false })}>Cancel</button>
-                  <button className="btn-primary" onClick={async () => {
-                    if (!tagBuilder.name.trim()) return;
-                    const newTags = [...localTags, { name: tagBuilder.name.trim(), color: tagBuilder.color }];
-                    setLocalTags(newTags);
-                    setTagBuilder({ ...tagBuilder, isOpen: false });
-                    
-                    try {
-                      const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
-                      await fetch('/api/leads', {
-                        method: 'PATCH',
-                        headers: { 
-                          'Content-Type': 'application/json',
-                          'Authorization': token ? `Bearer ${token}` : ''
-                        },
-                        body: JSON.stringify({ leadId: lead.id, tags: newTags })
-                      });
-                    } catch (e) {
-                      console.error("Failed to save tag", e);
-                    }
-                  }}>Save Tag</button>
-                </div>
-              </div>
-            </div>
-          )}
 
           <div className="data-section">
             <h3 className="section-heading">Contact Information</h3>
