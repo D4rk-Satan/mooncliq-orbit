@@ -8,6 +8,7 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, onTra
   const [formData, setFormData] = useState({});
   const [securityData, setSecurityData] = useState({});
   const [securityError, setSecurityError] = useState("");
+  const [checklistState, setChecklistState] = useState({});
 
   useEffect(() => {
     if (isOpen) {
@@ -36,11 +37,13 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, onTra
     setFormData(lead.customData || {});
     setSecurityData({});
     setSecurityError("");
+    setChecklistState((transition.checklists || []).reduce((acc, _, idx) => ({ ...acc, [idx]: false }), {}));
 
     const requiredFields = transition.requiredFields || [];
     const necessaryFields = transition.necessaryFields || [];
+    const checklists = transition.checklists || [];
 
-    if (requiredFields.length > 0) {
+    if (requiredFields.length > 0 || checklists.length > 0) {
       setModalMode('missing');
       return;
     }
@@ -63,6 +66,14 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, onTra
     for (let fieldName of activeTransition.requiredFields || []) {
       if (!formData[fieldName] || String(formData[fieldName]).trim() === "") {
         alert("Please fill all required fields");
+        return;
+      }
+    }
+    
+    const checklists = activeTransition.checklists || [];
+    for (let i = 0; i < checklists.length; i++) {
+      if (!checklistState[i]) {
+        alert("Please complete all checklist items before proceeding.");
         return;
       }
     }
@@ -172,11 +183,26 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, onTra
         <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)' }} onClick={() => setModalMode(null)}></div>
           <div style={{ background: 'white', padding: '2rem', borderRadius: '12px', width: '100%', maxWidth: '400px', position: 'relative', zIndex: 10 }}>
-            <h3 style={{ marginTop: 0, fontSize: '1.25rem', marginBottom: '1rem' }}>Review Required Fields</h3>
+            <h3 style={{ marginTop: 0, fontSize: '1.25rem', marginBottom: '1rem' }}>Review Requirements</h3>
             <p className="text-muted" style={{ marginBottom: '1.5rem', fontSize: '0.875rem' }}>
-              Please review and confirm the required data below to execute <strong>{activeTransition.name}</strong>.
+              {activeTransition.customMessage ? activeTransition.customMessage : (
+                <>Please review and confirm the required data below to execute <strong>{activeTransition.name}</strong>.</>
+              )}
             </p>
             <form onSubmit={handleMissingSubmit}>
+              {(activeTransition.checklists || []).length > 0 && (
+                <div style={{ marginBottom: '1.5rem', background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                  <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.875rem', color: '#334155' }}>Checklist</h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {(activeTransition.checklists || []).map((item, idx) => (
+                      <label key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', cursor: 'pointer', fontSize: '0.875rem' }}>
+                        <input type="checkbox" style={{ marginTop: '0.2rem' }} checked={checklistState[idx] || false} onChange={e => setChecklistState({ ...checklistState, [idx]: e.target.checked })} />
+                        <span style={{ color: checklistState[idx] ? '#94a3b8' : '#0f172a', textDecoration: checklistState[idx] ? 'line-through' : 'none' }}>{item}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
               {(activeTransition.requiredFields || []).map(fieldName => {
                 const fieldDef = blueprint.fields.find(f => f.name === fieldName);
                 if (!fieldDef) return null;
@@ -252,7 +278,9 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, onTra
           <div style={{ background: 'white', padding: '2rem', borderRadius: '12px', width: '100%', maxWidth: '400px', position: 'relative', zIndex: 10, textAlign: 'center' }}>
             <h3 style={{ marginTop: 0, fontSize: '1.25rem', marginBottom: '1rem' }}>Are you sure?</h3>
             <p className="text-muted" style={{ marginBottom: '2rem', fontSize: '1rem' }}>
-              You are about to execute <strong>{activeTransition.name}</strong>. Do you want to proceed?
+              {activeTransition.customMessage ? activeTransition.customMessage : (
+                <>You are about to execute <strong>{activeTransition.name}</strong>. Do you want to proceed?</>
+              )}
             </p>
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
               <button type="button" className="btn-outline" onClick={() => setModalMode(null)}>Cancel</button>
