@@ -20,6 +20,7 @@ export default function SettingsPage() {
   // Rules Manager State
   const [selectedRule, setSelectedRule] = useState(null);
   const [activeRuleTab, setActiveRuleTab] = useState('during');
+  const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
   // selectedRule schema: { id, name, toStageId, fromStageIds: [], isGlobal: boolean, requiredFields: [], necessaryFields: [] }
 
   useEffect(() => {
@@ -165,6 +166,7 @@ export default function SettingsPage() {
   // --- Rule Handlers ---
   const openRuleModal = (existingRule = null) => {
     setActiveRuleTab('during');
+    setIsAddMenuOpen(false);
     if (existingRule) {
       setSelectedRule({
         id: existingRule.id,
@@ -173,7 +175,11 @@ export default function SettingsPage() {
         fromStageIds: existingRule.fromStages?.map(s => s.id) || [],
         isGlobal: existingRule.isGlobal,
         requiredFields: existingRule.requiredFields || [],
-        necessaryFields: existingRule.necessaryFields || []
+        necessaryFields: existingRule.necessaryFields || [],
+        executionCriteria: existingRule.executionCriteria || { type: 'all', conditions: [] },
+        customMessage: existingRule.customMessage || "",
+        hasCustomMessage: !!existingRule.customMessage,
+        checklists: existingRule.checklists || []
       });
     } else {
       setSelectedRule({
@@ -183,7 +189,11 @@ export default function SettingsPage() {
         fromStageIds: [],
         isGlobal: false,
         requiredFields: [],
-        necessaryFields: []
+        necessaryFields: [],
+        executionCriteria: { type: 'all', conditions: [] },
+        customMessage: "",
+        hasCustomMessage: false,
+        checklists: []
       });
     }
   };
@@ -570,19 +580,115 @@ export default function SettingsPage() {
                     )}
                   </div>
 
-                  <div style={{ padding: '1.5rem', border: '1px dashed #cbd5e1', borderRadius: '8px', textAlign: 'center' }}>
-                    <h4 style={{ margin: '0 0 0.5rem 0', color: '#0f172a' }}>Execution Criteria (Coming Soon)</h4>
-                    <p style={{ margin: 0, color: '#64748b', fontSize: '0.875rem' }}>Restrict this button to specific Roles, Profiles, or Field values (e.g. Deal Amount &gt; $10k).</p>
+                  <div style={{ padding: '1.5rem', border: '1px solid #e2e8f0', borderRadius: '8px', background: 'white' }}>
+                    <h4 style={{ margin: '0 0 1rem 0', color: '#0f172a' }}>Execution Criteria</h4>
+                    <div style={{ display: 'flex', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                        <input type="radio" name="criteriaType" checked={selectedRule.executionCriteria.type === 'all'} onChange={() => setSelectedRule({...selectedRule, executionCriteria: {...selectedRule.executionCriteria, type: 'all'}})} /> All records
+                      </label>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                        <input type="radio" name="criteriaType" checked={selectedRule.executionCriteria.type === 'matching'} onChange={() => setSelectedRule({...selectedRule, executionCriteria: {...selectedRule.executionCriteria, type: 'matching'}})} /> Records matching the conditions
+                      </label>
+                    </div>
+
+                    {selectedRule.executionCriteria.type === 'matching' && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        {selectedRule.executionCriteria.conditions.map((cond, idx) => (
+                          <div key={idx} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                            <select className="form-input" style={{ width: '200px' }} value={cond.field} onChange={e => {
+                              const newConds = [...selectedRule.executionCriteria.conditions];
+                              newConds[idx].field = e.target.value;
+                              setSelectedRule({...selectedRule, executionCriteria: {...selectedRule.executionCriteria, conditions: newConds}});
+                            }}>
+                              <option value="">Select Field</option>
+                              {blueprint.fields.map(f => <option key={f.id} value={f.name}>{f.label}</option>)}
+                            </select>
+                            <select className="form-input" style={{ width: '150px' }} value={cond.operator} onChange={e => {
+                              const newConds = [...selectedRule.executionCriteria.conditions];
+                              newConds[idx].operator = e.target.value;
+                              setSelectedRule({...selectedRule, executionCriteria: {...selectedRule.executionCriteria, conditions: newConds}});
+                            }}>
+                              <option value="is">is</option>
+                              <option value="isn't">isn't</option>
+                              <option value="contains">contains</option>
+                              <option value="doesn't contain">doesn't contain</option>
+                              <option value="starts with">starts with</option>
+                              <option value="ends with">ends with</option>
+                              <option value="is empty">is empty</option>
+                              <option value="is not empty">is not empty</option>
+                            </select>
+                            {!['is empty', 'is not empty'].includes(cond.operator) && (
+                              <input type="text" className="form-input" style={{ flex: 1 }} placeholder="Value" value={cond.value} onChange={e => {
+                                const newConds = [...selectedRule.executionCriteria.conditions];
+                                newConds[idx].value = e.target.value;
+                                setSelectedRule({...selectedRule, executionCriteria: {...selectedRule.executionCriteria, conditions: newConds}});
+                              }} />
+                            )}
+                            <button onClick={() => {
+                              const newConds = selectedRule.executionCriteria.conditions.filter((_, i) => i !== idx);
+                              setSelectedRule({...selectedRule, executionCriteria: {...selectedRule.executionCriteria, conditions: newConds}});
+                            }} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '1.25rem' }}>✕</button>
+                          </div>
+                        ))}
+                        <button onClick={() => {
+                          const newConds = [...selectedRule.executionCriteria.conditions, { field: '', operator: 'is', value: '' }];
+                          setSelectedRule({...selectedRule, executionCriteria: {...selectedRule.executionCriteria, conditions: newConds}});
+                        }} style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontWeight: 500, padding: 0 }}>+ Add Condition</button>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
 
               {activeRuleTab === 'during' && (
                 <div>
-                  <div style={{ marginBottom: '1.5rem' }}>
-                    <label className="form-label">Custom Message</label>
-                    <input type="text" className="form-input bg-white" placeholder="e.g. Please verify the following details before proceeding." />
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1.5rem', position: 'relative' }}>
+                    <button onClick={() => setIsAddMenuOpen(!isAddMenuOpen)} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span>+</span> Add
+                    </button>
+                    {isAddMenuOpen && (
+                      <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: '0.5rem', background: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', zIndex: 10, padding: '0.5rem', width: '200px', display: 'flex', flexDirection: 'column' }}>
+                        <button onClick={() => {
+                          if (!selectedRule.hasCustomMessage) setSelectedRule({...selectedRule, hasCustomMessage: true});
+                          setIsAddMenuOpen(false);
+                        }} style={{ padding: '0.5rem', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', borderRadius: '4px' }} onMouseEnter={e => e.target.style.background = '#f8fafc'} onMouseLeave={e => e.target.style.background = 'transparent'}>Message</button>
+                        <button onClick={() => {
+                          setSelectedRule({...selectedRule, checklists: [...selectedRule.checklists, ""]});
+                          setIsAddMenuOpen(false);
+                        }} style={{ padding: '0.5rem', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', borderRadius: '4px' }} onMouseEnter={e => e.target.style.background = '#f8fafc'} onMouseLeave={e => e.target.style.background = 'transparent'}>Checklists</button>
+                      </div>
+                    )}
                   </div>
+
+                  {selectedRule.hasCustomMessage && (
+                    <div style={{ marginBottom: '1.5rem', background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0', position: 'relative' }}>
+                      <button onClick={() => setSelectedRule({...selectedRule, hasCustomMessage: false, customMessage: ""})} style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}>✕</button>
+                      <label className="form-label">Custom Message</label>
+                      <input type="text" className="form-input bg-white" placeholder="e.g. Please verify the following details before proceeding." value={selectedRule.customMessage} onChange={e => setSelectedRule({...selectedRule, customMessage: e.target.value})} />
+                    </div>
+                  )}
+
+                  {selectedRule.checklists?.length > 0 && (
+                    <div style={{ marginBottom: '1.5rem' }}>
+                      <label className="form-label">Checklists</label>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        {selectedRule.checklists.map((item, idx) => (
+                          <div key={idx} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                            <div style={{ color: '#cbd5e1' }}>⋮⋮</div>
+                            <input type="text" className="form-input bg-white" style={{ flex: 1 }} placeholder="Checklist item (e.g. Verify ID)" value={item} onChange={e => {
+                              const newLists = [...selectedRule.checklists];
+                              newLists[idx] = e.target.value;
+                              setSelectedRule({...selectedRule, checklists: newLists});
+                            }} />
+                            <button onClick={() => {
+                              const newLists = selectedRule.checklists.filter((_, i) => i !== idx);
+                              setSelectedRule({...selectedRule, checklists: newLists});
+                            }} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '1.25rem' }}>✕</button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   <label className="form-label">Field Requirements (High-Friction Engine)</label>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.75rem' }}>
