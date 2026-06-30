@@ -221,7 +221,11 @@ export default function SettingsPage() {
           fromStageIds: selectedRule.fromStageIds,
           isGlobal: selectedRule.isGlobal,
           requiredFields: selectedRule.requiredFields,
-          necessaryFields: selectedRule.necessaryFields
+          necessaryFields: selectedRule.necessaryFields,
+          executionCriteria: selectedRule.executionCriteria,
+          customMessage: selectedRule.hasCustomMessage ? selectedRule.customMessage : null,
+          checklists: selectedRule.checklists,
+          afterActions: selectedRule.afterActions
         })
       });
 

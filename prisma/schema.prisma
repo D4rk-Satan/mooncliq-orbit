@@ -89,6 +89,12 @@ model Transition {
   blueprint      Blueprint @relation(fields: [blueprintId], references: [id])
   toStage        Stage     @relation("ToStage", fields: [toStageId], references: [id], onDelete: Cascade)
   isGlobal       Boolean   @default(false)
+  
+  // Advanced Workflow Controls
+  executionCriteria Json?    // { type: 'all' | 'matching', conditions: [] }
+  customMessage     String?  
+  checklists        String[] 
+  afterActions      Json?    // { emails: [], webhooks: [], etc. }
 }
 
 // ------------------------------------------------------------------

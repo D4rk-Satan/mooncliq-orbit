@@ -28,7 +28,10 @@ export async function GET(request) {
   export async function POST(request) {
     try {
       const data = await request.json();
-      const { name, fromStageIds, isGlobal, toStageId, blueprintId, requiredFields, necessaryFields } = data;
+      const { 
+        name, fromStageIds, isGlobal, toStageId, blueprintId, requiredFields, necessaryFields,
+        executionCriteria, customMessage, checklists, afterActions
+      } = data;
   
       if (!name || !toStageId || !blueprintId) {
         return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -42,6 +45,10 @@ export async function GET(request) {
           requiredFields: requiredFields || [],
           necessaryFields: necessaryFields || [],
           isGlobal: isGlobal || false,
+          executionCriteria: executionCriteria || null,
+          customMessage: customMessage || null,
+          checklists: checklists || [],
+          afterActions: afterActions || null,
           fromStages: fromStageIds && fromStageIds.length > 0 ? {
             connect: fromStageIds.map(id => ({ id }))
           } : undefined
