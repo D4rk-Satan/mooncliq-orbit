@@ -129,7 +129,7 @@ export default function LeadModule() {
 
     try {
       const token = await getAuthToken();
-      await fetch('/api/leads', {
+      const res = await fetch('/api/leads', {
         method: 'PATCH',
         headers: { 
           'Content-Type': 'application/json',
@@ -137,6 +137,18 @@ export default function LeadModule() {
         },
         body: JSON.stringify({ leadId, stageId: toStageId, customData: updatedCustomData, transitionId })
       });
+      
+      if (res.ok) {
+        const updatedLeadFromServer = await res.json();
+        setLeads(prevLeads => prevLeads.map(lead => 
+          lead.id === leadId ? updatedLeadFromServer : lead
+        ));
+        
+        // Also update the selectedLead if it's currently open in the SlideOverPanel
+        if (selectedLead && selectedLead.id === leadId) {
+          setSelectedLead(updatedLeadFromServer);
+        }
+      }
     } catch (err) {
       console.error("Failed to transition lead", err);
     }
