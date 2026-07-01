@@ -736,7 +736,7 @@ export default function SettingsPage() {
                               checked={isNecessary}
                               onChange={() => setSelectedRule({ ...selectedRule, necessaryFields: toggleArrayItem(selectedRule.necessaryFields, field.name) })}
                             />
-                            Mandatory (Double-Verify)
+                            Double-Verify
                           </label>
                         </div>
                       );
@@ -864,8 +864,8 @@ export default function SettingsPage() {
 
                     <div style={{ marginBottom: '1.5rem' }}>
                       <label style={{ display: 'block', fontSize: '0.875rem', color: '#64748b', marginBottom: '0.5rem' }}>Select Field to Update</label>
-                      <select 
-                        value={fieldUpdateBuilder.field} 
+                      <select
+                        value={fieldUpdateBuilder.field}
                         onChange={(e) => setFieldUpdateBuilder({ ...fieldUpdateBuilder, field: e.target.value })}
                         style={{ width: '100%', padding: '0.75rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '1rem', outline: 'none' }}
                       >
