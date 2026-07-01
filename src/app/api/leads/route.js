@@ -79,7 +79,7 @@ export async function PATCH(request) {
     }
 
     const data = await request.json();
-    const { leadId, stageId, customData, tags } = data;
+    const { leadId, stageId, customData, tags, transitionId } = data;
 
     if (!leadId) {
       return NextResponse.json({ error: "Missing leadId" }, { status: 400 });
@@ -94,10 +94,40 @@ export async function PATCH(request) {
       return NextResponse.json({ error: "Lead not found" }, { status: 404 });
     }
 
-    const updateData = {};
+    let updateData = {};
     if (stageId) updateData.stageId = stageId;
     if (customData) updateData.customData = customData;
     if (tags !== undefined) updateData.tags = tags;
+
+    // --- AFTER ACTIONS: FIELD UPDATES ---
+    if (transitionId) {
+      const transition = await prisma.transition.findUnique({
+        where: { id: transitionId }
+      });
+      if (transition && transition.afterActions && typeof transition.afterActions === 'object') {
+        const fieldUpdates = transition.afterActions.fieldUpdates;
+        if (Array.isArray(fieldUpdates) && fieldUpdates.length > 0) {
+          // We need to parse customData if we are modifying it
+          let mergedCustomData = updateData.customData || (typeof existingLead.customData === 'string' ? JSON.parse(existingLead.customData || "{}") : existingLead.customData);
+          if (typeof mergedCustomData === 'string') {
+            try { mergedCustomData = JSON.parse(mergedCustomData); } catch(e) { mergedCustomData = {}; }
+          }
+          
+          fieldUpdates.forEach(update => {
+            const { field, value } = update;
+            // standard fields
+            if (['firstName', 'lastName', 'email', 'phone', 'owner'].includes(field)) {
+              updateData[field] = value;
+            } else {
+              // custom dynamic fields
+              mergedCustomData[field] = value;
+            }
+          });
+          
+          updateData.customData = mergedCustomData;
+        }
+      }
+    }
 
     const updatedLead = await prisma.lead.update({
       where: { id: leadId },

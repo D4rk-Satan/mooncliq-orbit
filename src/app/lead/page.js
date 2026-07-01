@@ -135,7 +135,7 @@ export default function LeadModule() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ leadId, stageId: toStageId, customData: updatedCustomData })
+        body: JSON.stringify({ leadId, stageId: toStageId, customData: updatedCustomData, transitionId: transition.id })
       });
     } catch (err) {
       console.error("Failed to transition lead", err);

@@ -22,6 +22,7 @@ export default function SettingsPage() {
   const [activeRuleTab, setActiveRuleTab] = useState('during');
   const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
   const [tagBuilder, setTagBuilder] = useState({ isOpen: false, name: '', color: '#ef4444' });
+  const [fieldUpdateBuilder, setFieldUpdateBuilder] = useState({ isOpen: false, field: '', value: '' });
   const tagColors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#0ea5e9', '#8b5cf6', '#ec4899', '#64748b', '#84cc16'];
   // selectedRule schema: { id, name, toStageId, fromStageIds: [], isGlobal: boolean, requiredFields: [], necessaryFields: [] }
 
@@ -758,6 +759,8 @@ export default function SettingsPage() {
                         <button onClick={() => {
                           if (actionDef.id === 'tags') {
                             setTagBuilder({ isOpen: true, name: '', color: tagColors[0] });
+                          } else if (actionDef.id === 'fieldUpdates') {
+                            setFieldUpdateBuilder({ isOpen: true, field: 'firstName', value: '' });
                           } else {
                             const newActions = { ...selectedRule.afterActions };
                             newActions[actionDef.id] = [...(newActions[actionDef.id] || []), `New ${actionDef.label} Action`];
@@ -775,6 +778,8 @@ export default function SettingsPage() {
                             <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 1rem', background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '6px' }}>
                               {actionDef.id === 'tags' ? (
                                 <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'white', background: item.color, padding: '0.25rem 0.75rem', borderRadius: '12px' }}>{item.name}</span>
+                              ) : actionDef.id === 'fieldUpdates' ? (
+                                <span style={{ fontSize: '0.875rem', color: '#334155' }}>Update <strong>{item.field}</strong> to <strong>{item.value}</strong></span>
                               ) : (
                                 <span style={{ fontSize: '0.875rem', color: '#334155' }}>{item} {idx + 1}</span>
                               )}
@@ -839,6 +844,59 @@ export default function SettingsPage() {
                         setSelectedRule({ ...selectedRule, afterActions: newActions });
                         setTagBuilder({ ...tagBuilder, isOpen: false });
                       }}>Save Tag</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* FIELD UPDATE BUILDER MODAL */}
+              {fieldUpdateBuilder.isOpen && (
+                <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)' }} onClick={() => setFieldUpdateBuilder({ ...fieldUpdateBuilder, isOpen: false })}></div>
+                  <div style={{ background: 'white', padding: '2rem', borderRadius: '12px', width: '100%', maxWidth: '400px', position: 'relative', zIndex: 10 }}>
+                    <h3 style={{ marginTop: 0, fontSize: '1.25rem', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between' }}>
+                      Configure Field Update
+                      <button onClick={() => setFieldUpdateBuilder({ ...fieldUpdateBuilder, isOpen: false })} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: '#94a3b8' }}>✕</button>
+                    </h3>
+
+                    <div style={{ marginBottom: '1.5rem' }}>
+                      <label style={{ display: 'block', fontSize: '0.875rem', color: '#64748b', marginBottom: '0.5rem' }}>Select Field to Update</label>
+                      <select 
+                        value={fieldUpdateBuilder.field} 
+                        onChange={(e) => setFieldUpdateBuilder({ ...fieldUpdateBuilder, field: e.target.value })}
+                        style={{ width: '100%', padding: '0.75rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '1rem', outline: 'none' }}
+                      >
+                        <option value="firstName">First Name</option>
+                        <option value="lastName">Last Name</option>
+                        <option value="email">Email</option>
+                        <option value="phone">Phone</option>
+                        <option value="owner">Owner</option>
+                        {blueprint?.fields?.map(f => (
+                          <option key={f.name} value={f.name}>{f.label} (Custom)</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div style={{ marginBottom: '2rem' }}>
+                      <label style={{ display: 'block', fontSize: '0.875rem', color: '#64748b', marginBottom: '0.5rem' }}>New Value</label>
+                      <input
+                        type="text"
+                        value={fieldUpdateBuilder.value}
+                        onChange={(e) => setFieldUpdateBuilder({ ...fieldUpdateBuilder, value: e.target.value })}
+                        placeholder="e.g. Qualified, High, 1000"
+                        style={{ width: '100%', padding: '0.75rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '1rem', outline: 'none' }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                      <button className="btn-outline" onClick={() => setFieldUpdateBuilder({ ...fieldUpdateBuilder, isOpen: false })}>Cancel</button>
+                      <button className="btn-primary" onClick={() => {
+                        if (!fieldUpdateBuilder.field || !fieldUpdateBuilder.value.trim()) return;
+                        const newActions = { ...selectedRule.afterActions };
+                        newActions.fieldUpdates = [...(newActions.fieldUpdates || []), { field: fieldUpdateBuilder.field, value: fieldUpdateBuilder.value.trim() }];
+                        setSelectedRule({ ...selectedRule, afterActions: newActions });
+                        setFieldUpdateBuilder({ ...fieldUpdateBuilder, isOpen: false });
+                      }}>Save Field Update</button>
                     </div>
                   </div>
                 </div>
