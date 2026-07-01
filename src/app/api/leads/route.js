@@ -126,6 +126,29 @@ export async function PATCH(request) {
           
           updateData.customData = mergedCustomData;
         }
+
+        // --- AFTER ACTIONS: TAGS ---
+        const actionTags = transition.afterActions.tags;
+        if (Array.isArray(actionTags) && actionTags.length > 0) {
+          let currentTags = [];
+          if (updateData.tags !== undefined) {
+            currentTags = updateData.tags;
+          } else {
+            try { 
+              currentTags = typeof existingLead.tags === 'string' ? JSON.parse(existingLead.tags || "[]") : (existingLead.tags || []); 
+            } catch(e) { currentTags = []; }
+          }
+          if (!Array.isArray(currentTags)) currentTags = [];
+          
+          const newTags = [...currentTags];
+          actionTags.forEach(t => {
+            if (!newTags.some(existing => existing.name === t.name)) {
+              newTags.push(t);
+            }
+          });
+          
+          updateData.tags = newTags;
+        }
       }
     }
 
