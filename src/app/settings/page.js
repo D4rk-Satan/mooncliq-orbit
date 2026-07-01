@@ -511,19 +511,49 @@ export default function SettingsPage() {
       {/* RULE MODAL */}
       {selectedRule && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div style={{ background: 'white', padding: '2rem', borderRadius: '12px', width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div style={{ background: 'white', padding: '2.5rem', borderRadius: '12px', width: '100%', maxWidth: '800px', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
               <h2 style={{ margin: 0 }}>{selectedRule.id ? 'Edit Rule' : 'Create New Rule'}</h2>
               <button onClick={() => setSelectedRule(null)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#94a3b8' }}>✕</button>
             </div>
 
-            <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '1rem' }}>
+            <div style={{ marginBottom: '2rem', display: 'flex', gap: '1.5rem', alignItems: 'flex-start' }}>
               <div style={{ flex: 1 }}>
-                <label className="form-label">Button Name (Action)</label>
+                <label className="form-label" style={{ marginBottom: '0.5rem', display: 'block', fontWeight: 600 }}>Button Name</label>
                 <input type="text" className="form-input" placeholder="e.g. Qualify Lead" value={selectedRule.name} onChange={e => setSelectedRule({ ...selectedRule, name: e.target.value })} />
               </div>
+
+              <div style={{ flex: 1.5, background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem', fontWeight: 600 }}>
+                  <span>From Stage(s)</span>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 500, color: 'var(--primary)' }}>
+                    <input type="checkbox" checked={selectedRule.isGlobal} onChange={e => setSelectedRule({ ...selectedRule, isGlobal: e.target.checked })} />
+                    Global (All)
+                  </label>
+                </label>
+
+                {!selectedRule.isGlobal && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+                    {blueprint.stages.map(stage => {
+                      const isDisabled = stage.id === selectedRule.toStageId;
+                      return (
+                        <label key={stage.id} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: isDisabled ? 'not-allowed' : 'pointer', opacity: isDisabled ? 0.5 : 1, fontSize: '0.85rem' }}>
+                          <input
+                            type="checkbox"
+                            disabled={isDisabled}
+                            checked={selectedRule.fromStageIds.includes(stage.id)}
+                            onChange={() => setSelectedRule({ ...selectedRule, fromStageIds: toggleArrayItem(selectedRule.fromStageIds, stage.id) })}
+                          />
+                          {stage.name}
+                        </label>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+
               <div style={{ flex: 1 }}>
-                <label className="form-label">Destination Stage (To)</label>
+                <label className="form-label" style={{ marginBottom: '0.5rem', display: 'block', fontWeight: 600 }}>Destination Stage (To)</label>
                 <select className="form-input" value={selectedRule.toStageId} onChange={e => {
                   const newToId = e.target.value;
                   const newFromIds = selectedRule.fromStageIds.filter(id => id !== newToId);
@@ -560,34 +590,7 @@ export default function SettingsPage() {
               {activeRuleTab === 'before' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
-                  <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                    <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>Allowed Starting Stages (From)</span>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 500, color: 'var(--primary)' }}>
-                        <input type="checkbox" checked={selectedRule.isGlobal} onChange={e => setSelectedRule({ ...selectedRule, isGlobal: e.target.checked })} />
-                        Global (All Stages)
-                      </label>
-                    </label>
 
-                    {!selectedRule.isGlobal && (
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '1rem' }}>
-                        {blueprint.stages.map(stage => {
-                          const isDisabled = stage.id === selectedRule.toStageId;
-                          return (
-                            <label key={stage.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: isDisabled ? 'not-allowed' : 'pointer', opacity: isDisabled ? 0.5 : 1 }}>
-                              <input
-                                type="checkbox"
-                                disabled={isDisabled}
-                                checked={selectedRule.fromStageIds.includes(stage.id)}
-                                onChange={() => setSelectedRule({ ...selectedRule, fromStageIds: toggleArrayItem(selectedRule.fromStageIds, stage.id) })}
-                              />
-                              {stage.name}
-                            </label>
-                          )
-                        })}
-                      </div>
-                    )}
-                  </div>
 
                   <div style={{ padding: '1.5rem', border: '1px solid #e2e8f0', borderRadius: '8px', background: 'white' }}>
                     <h4 style={{ margin: '0 0 1rem 0', color: '#0f172a' }}>Execution Criteria</h4>
