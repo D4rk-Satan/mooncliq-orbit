@@ -142,7 +142,7 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, onTra
 
   const handleConfirmSubmit = () => {
     const finalData = { ...lead.customData, ...formData };
-    executeTransition(activeTransition, finalData);
+    onTransition(lead.id, activeTransition.toStageId, finalData, activeTransition.id);
   };
 
   return (

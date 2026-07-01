@@ -113,10 +113,10 @@ export default function LeadModule() {
     }
 
     // 3. Perform the transition
-    handleTransition(lead.id, targetStageId, lead.customData);
+    handleTransition(lead.id, targetStageId, lead.customData, validTransition.id);
   };
 
-  const handleTransition = async (leadId, toStageId, updatedCustomData) => {
+  const handleTransition = async (leadId, toStageId, updatedCustomData, transitionId) => {
     const targetStage = blueprint?.stages?.find(s => s.id === toStageId);
 
     // Optimistic UI update
@@ -135,7 +135,7 @@ export default function LeadModule() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ leadId, stageId: toStageId, customData: updatedCustomData, transitionId: transition.id })
+        body: JSON.stringify({ leadId, stageId: toStageId, customData: updatedCustomData, transitionId })
       });
     } catch (err) {
       console.error("Failed to transition lead", err);
