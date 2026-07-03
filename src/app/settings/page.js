@@ -10,7 +10,7 @@ export default function SettingsPage() {
   const [currentView, setCurrentView] = useState("hub");
 
   // New Field State
-  const [newField, setNewField] = useState({ name: "", label: "", type: "text" });
+  const [newField, setNewField] = useState({ name: "", label: "", type: "text", options: "" });
   const [isAddingField, setIsAddingField] = useState(false);
 
   // New Stage State
@@ -24,10 +24,16 @@ export default function SettingsPage() {
   const [tagBuilder, setTagBuilder] = useState({ isOpen: false, name: '', color: '#ef4444' });
   const [fieldUpdateBuilder, setFieldUpdateBuilder] = useState({ isOpen: false, field: '', value: '' });
   const tagColors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#0ea5e9', '#8b5cf6', '#ec4899', '#64748b', '#84cc16'];
+
+  // Tag Manager State
+  const [tags, setTags] = useState([]);
+  const [isAddingTag, setIsAddingTag] = useState(false);
+  const [newTag, setNewTag] = useState({ name: "", color: "#ef4444", customColor: false });
   // selectedRule schema: { id, name, toStageId, fromStageIds: [], isGlobal: boolean, requiredFields: [], necessaryFields: [] }
 
   useEffect(() => {
     fetchBlueprint();
+    fetchTags();
   }, []);
 
   const getAuthToken = async () => {
@@ -56,15 +62,35 @@ export default function SettingsPage() {
     }
   };
 
+  const fetchTags = async () => {
+    try {
+      const token = await getAuthToken();
+      const res = await fetch('/api/tags?moduleType=Lead', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setTags(await res.json());
+      }
+    } catch (err) {
+      console.error("Failed to load tags", err);
+    }
+  };
+
   // --- Field Handlers ---
   const handleAddField = async (e) => {
     e.preventDefault();
+    if (!newField.label || !newField.type) return;
+
+    const name = newField.label.toLowerCase().replace(/[^a-z0-9]/g, ' ').split(' ').map((w, i) => i === 0 ? w : w.charAt(0).toUpperCase() + w.slice(1)).join('');
+
     try {
       const token = await getAuthToken();
       const payload = {
-        ...newField,
-        blueprintId: blueprint.id,
-        name: newField.label.toLowerCase().replace(/[^a-zA-Z0-9]+(.)/g, (m, chr) => chr.toUpperCase()).replace(/[^a-zA-Z0-9]/g, '')
+        name,
+        label: newField.label,
+        type: newField.type,
+        options: newField.type === 'select' && newField.options ? newField.options.split(',').map(s => s.trim()).filter(Boolean) : [],
+        blueprintId: blueprint.id
       };
 
       const res = await fetch('/api/fields', {
@@ -77,7 +103,7 @@ export default function SettingsPage() {
       });
 
       if (res.ok) {
-        setNewField({ name: "", label: "", type: "text" });
+        setNewField({ name: "", label: "", type: "text", options: "" });
         setIsAddingField(false);
         fetchBlueprint();
       }
@@ -130,6 +156,44 @@ export default function SettingsPage() {
         alert(data.error || "Failed to delete stage.");
       } else {
         fetchBlueprint();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleAddTag = async (e) => {
+    e.preventDefault();
+    try {
+      const token = await getAuthToken();
+      const res = await fetch('/api/tags', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(newTag)
+      });
+      if (res.ok) {
+        setNewTag({ name: "", color: "#ef4444", customColor: false });
+        setIsAddingTag(false);
+        fetchTags();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteTag = async (id) => {
+    if (!confirm("Are you sure you want to delete this tag?")) return;
+    try {
+      const token = await getAuthToken();
+      const res = await fetch(`/api/tags?id=${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        fetchTags();
       }
     } catch (err) {
       console.error(err);
@@ -290,6 +354,9 @@ export default function SettingsPage() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                     <button onClick={() => setCurrentView('fields')} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
                       Modules and Fields
+                    </button>
+                    <button onClick={() => setCurrentView('tags')} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
+                      Tag Definitions
                     </button>
                     <button onClick={() => setCurrentView('blueprint')} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
                       Workflow Engine
@@ -467,10 +534,28 @@ export default function SettingsPage() {
                           <div>
                             <label className="form-label">Field Type</label>
                             <select className="form-input bg-white" value={newField.type} onChange={e => setNewField({ ...newField, type: e.target.value })}>
-                              <option value="text">Text Input</option>
+                              <option value="text">Short Text</option>
+                              <option value="textarea">Long Text (Text area)</option>
                               <option value="number">Number</option>
+                              <option value="currency">Currency</option>
+                              <option value="date">Date</option>
+                              <option value="checkbox">Checkbox (True/False)</option>
+                              <option value="select">Dropdown (Select)</option>
                             </select>
                           </div>
+                          {newField.type === 'select' && (
+                            <div style={{ gridColumn: '1 / -1' }}>
+                              <label className="form-label">Dropdown Options (Comma Separated)</label>
+                              <input
+                                required
+                                type="text"
+                                className="form-input bg-white"
+                                placeholder="e.g. Enterprise, Mid-Market, Startup"
+                                value={newField.options || ''}
+                                onChange={e => setNewField({ ...newField, options: e.target.value })}
+                              />
+                            </div>
+                          )}
                         </div>
                         <button type="submit" className="btn-primary">Save Field</button>
                       </form>
@@ -500,6 +585,69 @@ export default function SettingsPage() {
                         ))}
                       </tbody>
                     </table>
+                  </div>
+                )}
+
+                {/* TAGS TAB */}
+                {currentView === 'tags' && (
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                      <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Tag Definitions</h2>
+                      <button className="btn-primary" onClick={() => setIsAddingTag(!isAddingTag)}>
+                        {isAddingTag ? 'Cancel' : '+ Add Tag'}
+                      </button>
+                    </div>
+
+                    {isAddingTag && (
+                      <form onSubmit={handleAddTag} style={{ padding: '1.5rem', backgroundColor: '#f8fafc', borderRadius: '8px', marginBottom: '1.5rem', border: '1px solid #e2e8f0' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                          <div>
+                            <label className="form-label">Tag Name (e.g. VIP)</label>
+                            <input required type="text" className="form-input bg-white" value={newTag.name} onChange={e => setNewTag({ ...newTag, name: e.target.value })} />
+                          </div>
+                          <div>
+                            <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <span>Tag Color</span>
+                              <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer', fontWeight: 'normal', fontSize: '0.85rem' }}>
+                                <input type="checkbox" checked={newTag.customColor} onChange={e => setNewTag({ ...newTag, customColor: e.target.checked })} />
+                                Use Custom Color
+                              </label>
+                            </label>
+                            {newTag.customColor ? (
+                              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                <input type="color" value={newTag.color} onChange={e => setNewTag({ ...newTag, color: e.target.value })} style={{ height: '42px', padding: '0', cursor: 'pointer' }} />
+                                <input type="text" className="form-input bg-white" value={newTag.color} onChange={e => setNewTag({ ...newTag, color: e.target.value })} style={{ flex: 1 }} />
+                              </div>
+                            ) : (
+                              <select className="form-input bg-white" value={newTag.color} onChange={e => setNewTag({ ...newTag, color: e.target.value })}>
+                                <option value="#ef4444">Red</option>
+                                <option value="#f97316">Orange</option>
+                                <option value="#eab308">Yellow</option>
+                                <option value="#22c55e">Green</option>
+                                <option value="#0ea5e9">Blue</option>
+                                <option value="#8b5cf6">Purple</option>
+                                <option value="#ec4899">Pink</option>
+                                <option value="#64748b">Slate</option>
+                              </select>
+                            )}
+                          </div>
+                        </div>
+                        <button type="submit" className="btn-primary">Save Tag</button>
+                      </form>
+                    )}
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
+                      {tags.length === 0 && <p style={{ color: '#64748b' }}>No tags defined yet.</p>}
+                      {tags.map(tag => (
+                        <div key={tag.id} style={{ padding: '1rem', background: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: tag.color }}></div>
+                            <span style={{ fontWeight: 500 }}>{tag.name}</span>
+                          </div>
+                          <button onClick={() => handleDeleteTag(tag.id)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
@@ -596,15 +744,35 @@ export default function SettingsPage() {
                     <h4 style={{ margin: '0 0 1rem 0', color: '#0f172a' }}>Execution Criteria</h4>
                     <div style={{ display: 'flex', gap: '1.5rem', marginBottom: '1.5rem' }}>
                       <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                        <input type="radio" name="criteriaType" checked={selectedRule.executionCriteria.type === 'all'} onChange={() => setSelectedRule({ ...selectedRule, executionCriteria: { ...selectedRule.executionCriteria, type: 'all' } })} /> All records
+                        <input type="radio" name="criteriaType" checked={selectedRule.executionCriteria.type === 'all' || !selectedRule.executionCriteria.conditions || selectedRule.executionCriteria.conditions.length === 0} onChange={() => setSelectedRule({ ...selectedRule, executionCriteria: { ...selectedRule.executionCriteria, type: 'all', conditions: [] } })} /> All records
                       </label>
                       <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                        <input type="radio" name="criteriaType" checked={selectedRule.executionCriteria.type === 'matching'} onChange={() => setSelectedRule({ ...selectedRule, executionCriteria: { ...selectedRule.executionCriteria, type: 'matching' } })} /> Records matching the conditions
+                        <input type="radio" name="criteriaType" checked={selectedRule.executionCriteria.type === 'matching' && selectedRule.executionCriteria.conditions && selectedRule.executionCriteria.conditions.length > 0} onChange={() => {
+                          if (!selectedRule.executionCriteria.conditions || selectedRule.executionCriteria.conditions.length === 0) {
+                            setSelectedRule({ ...selectedRule, executionCriteria: { ...selectedRule.executionCriteria, type: 'matching', matchType: 'AND', conditions: [{ field: '', operator: 'is', value: '' }] } });
+                          } else {
+                            setSelectedRule({ ...selectedRule, executionCriteria: { ...selectedRule.executionCriteria, type: 'matching' } });
+                          }
+                        }} /> Records matching the conditions
                       </label>
                     </div>
 
-                    {selectedRule.executionCriteria.type === 'matching' && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {selectedRule.executionCriteria.type === 'matching' && selectedRule.executionCriteria.conditions && selectedRule.executionCriteria.conditions.length > 0 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
+                          <span style={{ fontSize: '0.875rem', fontWeight: 500, color: '#64748b' }}>Match:</span>
+                          <select
+                            className="form-input"
+                            style={{ width: '120px', padding: '0.25rem 0.5rem' }}
+                            value={selectedRule.executionCriteria.matchType || 'AND'}
+                            onChange={e => setSelectedRule({ ...selectedRule, executionCriteria: { ...selectedRule.executionCriteria, matchType: e.target.value } })}
+                          >
+                            <option value="AND">ALL (AND)</option>
+                            <option value="OR">ANY (OR)</option>
+                          </select>
+                          <span style={{ fontSize: '0.875rem', color: '#64748b' }}>of the following conditions</span>
+                        </div>
+
                         {selectedRule.executionCriteria.conditions.map((cond, idx) => (
                           <div key={idx} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                             <select className="form-input" style={{ width: '200px' }} value={cond.field} onChange={e => {
@@ -613,7 +781,18 @@ export default function SettingsPage() {
                               setSelectedRule({ ...selectedRule, executionCriteria: { ...selectedRule.executionCriteria, conditions: newConds } });
                             }}>
                               <option value="">Select Field</option>
-                              {blueprint.fields.map(f => <option key={f.id} value={f.name}>{f.label}</option>)}
+                              <optgroup label="Standard Fields">
+                                <option value="firstName">First Name</option>
+                                <option value="lastName">Last Name</option>
+                                <option value="email">Email</option>
+                                <option value="phone">Phone</option>
+                                <option value="owner">Owner</option>
+                              </optgroup>
+                              {blueprint.fields.length > 0 && (
+                                <optgroup label="Custom Fields">
+                                  {blueprint.fields.map(f => <option key={f.id} value={f.name}>{f.label}</option>)}
+                                </optgroup>
+                              )}
                             </select>
                             <select className="form-input" style={{ width: '150px' }} value={cond.operator} onChange={e => {
                               const newConds = [...selectedRule.executionCriteria.conditions];
@@ -806,47 +985,45 @@ export default function SettingsPage() {
                   <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)' }} onClick={() => setTagBuilder({ ...tagBuilder, isOpen: false })}></div>
                   <div style={{ background: 'white', padding: '2rem', borderRadius: '12px', width: '100%', maxWidth: '400px', position: 'relative', zIndex: 10 }}>
                     <h3 style={{ marginTop: 0, fontSize: '1.25rem', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between' }}>
-                      Add Tags
+                      Select Tag
                       <button onClick={() => setTagBuilder({ ...tagBuilder, isOpen: false })} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: '#94a3b8' }}>✕</button>
                     </h3>
 
-                    <div style={{ marginBottom: '1.5rem' }}>
-                      <input
-                        type="text"
-                        value={tagBuilder.name}
-                        onChange={(e) => setTagBuilder({ ...tagBuilder, name: e.target.value })}
-                        placeholder="Tag Name (e.g. VIP)"
-                        style={{ width: '100%', padding: '0.75rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '1rem', outline: 'none' }}
-                        autoFocus
-                      />
-                    </div>
-
                     <div style={{ marginBottom: '2rem' }}>
-                      <p style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '0.75rem' }}>Select Color</p>
-                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                        {tagColors.map(color => (
-                          <div
-                            key={color}
-                            onClick={() => setTagBuilder({ ...tagBuilder, color })}
-                            style={{
-                              width: '24px', height: '24px', borderRadius: '50%', background: color, cursor: 'pointer',
-                              border: tagBuilder.color === color ? '2px solid #0f172a' : '2px solid transparent',
-                              boxShadow: tagBuilder.color === color ? '0 0 0 2px white inset' : 'none'
-                            }}
-                          />
-                        ))}
-                      </div>
+                      {tags.length === 0 ? (
+                        <p style={{ color: '#64748b', fontSize: '0.9rem' }}>No tags available. Create tags in the Tag Definitions menu first.</p>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                          {tags.map(tag => (
+                            <div
+                              key={tag.id}
+                              onClick={() => {
+                                const newActions = { ...selectedRule.afterActions };
+                                // Store the tag object (at least id, name, color)
+                                if (!newActions.tags?.find(t => t.id === tag.id)) {
+                                  newActions.tags = [...(newActions.tags || []), { id: tag.id, name: tag.name, color: tag.color }];
+                                  setSelectedRule({ ...selectedRule, afterActions: newActions });
+                                }
+                                setTagBuilder({ ...tagBuilder, isOpen: false });
+                              }}
+                              style={{
+                                display: 'flex', alignItems: 'center', gap: '0.75rem',
+                                padding: '0.75rem', background: '#f8fafc', border: '1px solid #e2e8f0',
+                                borderRadius: '6px', cursor: 'pointer', transition: 'all 0.2s'
+                              }}
+                              onMouseEnter={(e) => e.currentTarget.style.borderColor = tag.color}
+                              onMouseLeave={(e) => e.currentTarget.style.borderColor = '#e2e8f0'}
+                            >
+                              <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: tag.color }}></div>
+                              <span style={{ fontWeight: 500, color: '#334155' }}>{tag.name}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
                       <button className="btn-outline" onClick={() => setTagBuilder({ ...tagBuilder, isOpen: false })}>Cancel</button>
-                      <button className="btn-primary" onClick={() => {
-                        if (!tagBuilder.name.trim()) return;
-                        const newActions = { ...selectedRule.afterActions };
-                        newActions.tags = [...(newActions.tags || []), { name: tagBuilder.name.trim(), color: tagBuilder.color }];
-                        setSelectedRule({ ...selectedRule, afterActions: newActions });
-                        setTagBuilder({ ...tagBuilder, isOpen: false });
-                      }}>Save Tag</button>
                     </div>
                   </div>
                 </div>

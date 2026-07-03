@@ -1,17 +1,17 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import DynamicField from "./FieldRegistry";
 
-export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, onTransition }) {
+export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags = [], onTransition, onLeadUpdate }) {
   const [modalMode, setModalMode] = useState(null); // null | 'missing' | 'security' | 'confirm'
   const [activeTransition, setActiveTransition] = useState(null);
   const [formData, setFormData] = useState({});
   const [securityData, setSecurityData] = useState({});
   const [securityError, setSecurityError] = useState("");
   const [checklistState, setChecklistState] = useState({});
-  const [tagBuilder, setTagBuilder] = useState({ isOpen: false, name: '', color: '#ef4444' });
+  const [tagBuilder, setTagBuilder] = useState({ isOpen: false });
   const [localTags, setLocalTags] = useState([]);
-  const tagColors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#0ea5e9', '#8b5cf6', '#ec4899', '#64748b', '#84cc16'];
 
   useEffect(() => {
     if (isOpen) {
@@ -40,9 +40,10 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, onTra
 
     // 2. Execution Criteria Check
     if (t.executionCriteria && t.executionCriteria.conditions && t.executionCriteria.conditions.length > 0) {
-      const type = t.executionCriteria.type || 'all';
-      const criteriaMet = t.executionCriteria.conditions[type === 'all' ? 'every' : 'some'](cond => {
-        const leadValue = String(lead.customData?.[cond.field] || "").toLowerCase();
+      const matchType = t.executionCriteria.matchType || 'AND';
+      const criteriaMet = t.executionCriteria.conditions[matchType === 'AND' ? 'every' : 'some'](cond => {
+        const rawValue = lead[cond.field] !== undefined ? lead[cond.field] : lead.customData?.[cond.field];
+        const leadValue = String(rawValue || "").toLowerCase();
         const condValue = String(cond.value || "").toLowerCase();
         
         switch (cond.operator) {
@@ -160,59 +161,63 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, onTra
               <button onClick={() => setTagBuilder({ ...tagBuilder, isOpen: false })} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: '#94a3b8' }}>✕</button>
             </h3>
             
-            <div style={{ marginBottom: '1.5rem' }}>
-              <input 
-                type="text" 
-                value={tagBuilder.name} 
-                onChange={(e) => setTagBuilder({ ...tagBuilder, name: e.target.value })} 
-                placeholder="Tag Name (e.g. VIP)" 
-                style={{ width: '100%', padding: '0.75rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '1rem', outline: 'none' }}
-                autoFocus
-              />
-            </div>
-            
             <div style={{ marginBottom: '2rem' }}>
-              <p style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '0.75rem' }}>Select Color</p>
-              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                {tagColors.map(color => (
-                  <div 
-                    key={color}
-                    onClick={() => setTagBuilder({ ...tagBuilder, color })}
-                    style={{ 
-                      width: '24px', height: '24px', borderRadius: '50%', background: color, cursor: 'pointer',
-                      border: tagBuilder.color === color ? '2px solid #0f172a' : '2px solid transparent',
-                      boxShadow: tagBuilder.color === color ? '0 0 0 2px white inset' : 'none'
-                    }}
-                  />
-                ))}
-              </div>
+              {tags.length === 0 ? (
+                <p style={{ color: '#64748b', fontSize: '0.9rem' }}>No tags available. Please define tags in Settings Hub.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {tags.map(tag => (
+                    <div 
+                      key={tag.id}
+                      onClick={async () => {
+                        if (localTags.find(t => t.id === tag.id)) {
+                          setTagBuilder({ ...tagBuilder, isOpen: false });
+                          return;
+                        }
+                        const newTags = [...localTags, tag];
+                        setLocalTags(newTags);
+                        setTagBuilder({ ...tagBuilder, isOpen: false });
+                        
+                        try {
+                          const { fetchAuthSession } = await import('aws-amplify/auth');
+                          const session = await fetchAuthSession();
+                          const token = session.tokens?.idToken?.toString();
+                          
+                          const res = await fetch('/api/leads', {
+                            method: 'PATCH',
+                            headers: { 
+                              'Content-Type': 'application/json',
+                              'Authorization': token ? `Bearer ${token}` : ''
+                            },
+                            body: JSON.stringify({ leadId: lead.id, tags: newTags.map(t => t.id) })
+                          });
+                          
+                          if (res.ok && onLeadUpdate) {
+                            const updatedLead = await res.json();
+                            onLeadUpdate(updatedLead);
+                          }
+                        } catch (e) {
+                          console.error("Failed to save tag", e);
+                        }
+                      }}
+                      style={{ 
+                        display: 'flex', alignItems: 'center', gap: '0.75rem', 
+                        padding: '0.75rem', background: '#f8fafc', border: '1px solid #e2e8f0', 
+                        borderRadius: '6px', cursor: 'pointer', transition: 'all 0.2s' 
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.borderColor = tag.color}
+                      onMouseLeave={(e) => e.currentTarget.style.borderColor = '#e2e8f0'}
+                    >
+                      <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: tag.color }}></div>
+                      <span style={{ fontWeight: 500, color: '#334155' }}>{tag.name}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
               <button className="btn-outline" onClick={() => setTagBuilder({ ...tagBuilder, isOpen: false })}>Cancel</button>
-              <button className="btn-primary" onClick={async () => {
-                if (!tagBuilder.name.trim()) return;
-                const newTags = [...localTags, { name: tagBuilder.name.trim(), color: tagBuilder.color }];
-                setLocalTags(newTags);
-                setTagBuilder({ ...tagBuilder, isOpen: false });
-                
-                try {
-                  const { fetchAuthSession } = await import('aws-amplify/auth');
-                  const session = await fetchAuthSession();
-                  const token = session.tokens?.idToken?.toString();
-                  
-                  await fetch('/api/leads', {
-                    method: 'PATCH',
-                    headers: { 
-                      'Content-Type': 'application/json',
-                      'Authorization': token ? `Bearer ${token}` : ''
-                    },
-                    body: JSON.stringify({ leadId: lead.id, tags: newTags })
-                  });
-                } catch (e) {
-                  console.error("Failed to save tag", e);
-                }
-              }}>Save Tag</button>
             </div>
           </div>
         </div>
@@ -238,14 +243,19 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, onTra
                         const session = await fetchAuthSession();
                         const token = session.tokens?.idToken?.toString();
                         
-                        await fetch('/api/leads', {
+                        const res = await fetch('/api/leads', {
                           method: 'PATCH',
                           headers: { 
                             'Content-Type': 'application/json',
                             'Authorization': token ? `Bearer ${token}` : ''
                           },
-                          body: JSON.stringify({ leadId: lead.id, tags: newTags })
+                          body: JSON.stringify({ leadId: lead.id, tags: newTags.map(t => t.id) })
                         });
+                        
+                        if (res.ok && onLeadUpdate) {
+                          const updatedLead = await res.json();
+                          onLeadUpdate(updatedLead);
+                        }
                       } catch (err) {
                         console.error("Failed to remove tag", err);
                       }
@@ -255,7 +265,7 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, onTra
                   >✕</button>
                 </span>
               ))}
-              <button onClick={() => setTagBuilder({ isOpen: true, name: '', color: tagColors[0] })} style={{ background: 'none', border: '1px dashed #cbd5e1', color: '#64748b', fontSize: '0.75rem', fontWeight: 500, padding: '0.2rem 0.6rem', borderRadius: '12px', cursor: 'pointer' }}>+ Add Tag</button>
+              <button onClick={() => setTagBuilder({ isOpen: true })} style={{ background: 'none', border: '1px dashed #cbd5e1', color: '#64748b', fontSize: '0.75rem', fontWeight: 500, padding: '0.2rem 0.6rem', borderRadius: '12px', cursor: 'pointer' }}>+ Add Tag</button>
             </h2>
           </div>
           <button className="btn-close" onClick={onClose} aria-label="Close panel">✕</button>
@@ -349,13 +359,10 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, onTra
                 if (!fieldDef) return null;
                 return (
                   <div key={fieldName} style={{ marginBottom: '1rem' }}>
-                    <label className="form-label">{fieldDef.label} <span style={{ color: '#ef4444' }}>*</span></label>
-                    <input
-                      type={fieldDef.type === 'number' ? 'number' : 'text'}
-                      className="form-input"
-                      value={formData[fieldName] || ''}
-                      onChange={e => setFormData({ ...formData, [fieldName]: e.target.value })}
-                      required
+                    <DynamicField
+                      field={fieldDef}
+                      value={formData[fieldName]}
+                      onChange={(name, value) => setFormData({ ...formData, [name]: value })}
                     />
                   </div>
                 );
@@ -391,14 +398,10 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, onTra
                 if (!fieldDef) return null;
                 return (
                   <div key={fieldName} style={{ marginBottom: '1rem' }}>
-                    <label className="form-label" style={{ fontWeight: 600 }}>Verify {fieldDef.label}</label>
-                    <input
-                      type={fieldDef.type === 'number' ? 'number' : 'text'}
-                      className="form-input"
-                      placeholder={`Type the current ${fieldDef.label}...`}
-                      value={securityData[fieldName] || ''}
-                      onChange={e => setSecurityData({ ...securityData, [fieldName]: e.target.value })}
-                      required
+                    <DynamicField
+                      field={fieldDef}
+                      value={securityData[fieldName]}
+                      onChange={(name, value) => setSecurityData({ ...securityData, [name]: value })}
                     />
                   </div>
                 );

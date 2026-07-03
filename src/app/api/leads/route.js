@@ -16,7 +16,8 @@ export async function GET(request) {
         organizationId: user.organizationId
       },
       include: {
-        stage: true
+        stage: true,
+        tags: true
       },
       orderBy: { createdAt: 'desc' }
     });
@@ -50,7 +51,8 @@ export async function POST(request) {
         customData: customData || {}
       },
       include: {
-        stage: true
+        stage: true,
+        tags: true
       }
     });
 
@@ -97,7 +99,13 @@ export async function PATCH(request) {
     let updateData = {};
     if (stageId) updateData.stageId = stageId;
     if (customData) updateData.customData = customData;
-    if (tags !== undefined) updateData.tags = tags;
+    if (tags !== undefined) {
+      if (Array.isArray(tags)) {
+        updateData.tags = {
+          set: tags.map(tagId => ({ id: typeof tagId === 'object' ? tagId.id : tagId }))
+        };
+      }
+    }
 
     // --- AFTER ACTIONS: FIELD UPDATES ---
     if (transitionId) {
@@ -130,24 +138,18 @@ export async function PATCH(request) {
         // --- AFTER ACTIONS: TAGS ---
         const actionTags = transition.afterActions.tags;
         if (Array.isArray(actionTags) && actionTags.length > 0) {
-          let currentTags = [];
-          if (updateData.tags !== undefined) {
-            currentTags = updateData.tags;
-          } else {
-            try { 
-              currentTags = typeof existingLead.tags === 'string' ? JSON.parse(existingLead.tags || "[]") : (existingLead.tags || []); 
-            } catch(e) { currentTags = []; }
+          // actionTags are the tags to be assigned
+          const connectTags = actionTags.map(tag => ({ id: typeof tag === 'object' ? tag.id : tag }));
+          if (!updateData.tags) {
+            updateData.tags = {};
           }
-          if (!Array.isArray(currentTags)) currentTags = [];
-          
-          const newTags = [...currentTags];
-          actionTags.forEach(t => {
-            if (!newTags.some(existing => existing.name === t.name)) {
-              newTags.push(t);
-            }
-          });
-          
-          updateData.tags = newTags;
+          if (updateData.tags.set) {
+            // Merge with explicitly set tags (not realistic to happen simultaneously, but safe)
+            updateData.tags.set = [...updateData.tags.set, ...connectTags];
+          } else {
+            // Safely connect without overwriting existing tags
+            updateData.tags.connect = connectTags;
+          }
         }
       }
     }
@@ -155,7 +157,10 @@ export async function PATCH(request) {
     const updatedLead = await prisma.lead.update({
       where: { id: leadId },
       data: updateData,
-      include: { stage: true }
+      include: { 
+        stage: true,
+        tags: true
+      }
     });
 
     // Generate Audit Log

@@ -11,10 +11,15 @@ const getColumnColor = (color) => color || "#e2e8f0";
 export default function LeadModule() {
   const [leads, setLeads] = useState([]);
   const [blueprint, setBlueprint] = useState(null);
+  const [tags, setTags] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [viewMode, setViewMode] = useState("kanban"); // "kanban" or "list"
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState(null);
+
+  // Bulk Actions State
+  const [selectedLeadIds, setSelectedLeadIds] = useState([]);
+  const [isBulkTagPickerOpen, setIsBulkTagPickerOpen] = useState(false);
 
   const router = useRouter();
 
@@ -53,6 +58,12 @@ export default function LeadModule() {
       const leadsRes = await fetch('/api/leads', { headers });
       const leadsData = await leadsRes.json();
       setLeads(leadsData);
+
+      // Fetch organization tags
+      const tagsRes = await fetch('/api/tags?moduleType=Lead', { headers });
+      if (tagsRes.ok) {
+        setTags(await tagsRes.json());
+      }
     } catch (err) {
       console.error("Failed to load CRM data", err);
     } finally {
@@ -154,6 +165,57 @@ export default function LeadModule() {
     }
   };
 
+  const handleLeadUpdate = (updatedLeadFromServer) => {
+    setLeads(prevLeads => prevLeads.map(lead => 
+      lead.id === updatedLeadFromServer.id ? updatedLeadFromServer : lead
+    ));
+    if (selectedLead && selectedLead.id === updatedLeadFromServer.id) {
+      setSelectedLead(updatedLeadFromServer);
+    }
+  };
+
+  const toggleLeadSelection = (leadId, e) => {
+    e.stopPropagation();
+    setSelectedLeadIds(prev => {
+      if (prev.includes(leadId)) return prev.filter(id => id !== leadId);
+      return [...prev, leadId];
+    });
+  };
+
+  const selectAllLeads = (e) => {
+    if (e.target.checked) {
+      setSelectedLeadIds(leads.map(l => l.id));
+    } else {
+      setSelectedLeadIds([]);
+    }
+  };
+
+  const handleBulkTagApply = async (tag) => {
+    if (selectedLeadIds.length === 0) return;
+    try {
+      const token = await getAuthToken();
+      const res = await fetch('/api/leads/bulk-tag', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          leadIds: selectedLeadIds,
+          tagId: tag.id 
+        })
+      });
+      if (res.ok) {
+        // Refresh leads
+        fetchData();
+        setSelectedLeadIds([]);
+        setIsBulkTagPickerOpen(false);
+      }
+    } catch (err) {
+      console.error("Failed to apply bulk tag", err);
+    }
+  };
+
   const renderEmptyState = () => (
     <div className="empty-state" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '4rem 2rem', textAlign: 'center', height: '100%' }}>
       <div className="empty-state-content" style={{ maxWidth: '400px' }}>
@@ -231,11 +293,23 @@ export default function LeadModule() {
                 return (
                   <div
                     key={lead.id}
-                    className="kanban-card"
+                    className={`kanban-card ${selectedLeadIds.includes(lead.id) ? 'selected' : ''}`}
                     onClick={() => setSelectedLead(lead)}
+                    style={{
+                      border: selectedLeadIds.includes(lead.id) ? '2px solid var(--primary)' : '1px solid #e2e8f0'
+                    }}
                   >
                     <div className="card-header-top">
-                      <h4 className="card-title">{title}</h4>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <input 
+                          type="checkbox" 
+                          checked={selectedLeadIds.includes(lead.id)} 
+                          onChange={(e) => toggleLeadSelection(lead.id, e)} 
+                          onClick={(e) => e.stopPropagation()}
+                          style={{ cursor: 'pointer' }}
+                        />
+                        <h4 className="card-title" style={{ margin: 0 }}>{title}</h4>
+                      </div>
                       <button className="card-menu-btn" onClick={(e) => { e.stopPropagation(); }}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
                       </button>
@@ -305,6 +379,14 @@ export default function LeadModule() {
       <table className="data-table">
         <thead>
           <tr>
+            <th style={{ width: '40px', textAlign: 'center' }}>
+              <input 
+                type="checkbox" 
+                checked={leads.length > 0 && selectedLeadIds.length === leads.length}
+                onChange={selectAllLeads}
+                style={{ cursor: 'pointer' }}
+              />
+            </th>
             <th>Name</th>
             <th>Company</th>
             <th>Email</th>
@@ -315,8 +397,16 @@ export default function LeadModule() {
         </thead>
         <tbody>
           {leads.map((lead) => (
-            <tr key={lead.id}>
-              <td className="font-medium">{lead.firstName} {lead.lastName}</td>
+            <tr key={lead.id} style={{ background: selectedLeadIds.includes(lead.id) ? '#f1f5f9' : 'transparent' }}>
+              <td style={{ textAlign: 'center' }}>
+                <input 
+                  type="checkbox" 
+                  checked={selectedLeadIds.includes(lead.id)}
+                  onChange={(e) => toggleLeadSelection(lead.id, e)}
+                  style={{ cursor: 'pointer' }}
+                />
+              </td>
+              <td className="font-medium cursor-pointer" onClick={() => setSelectedLead(lead)}>{lead.firstName} {lead.lastName}</td>
               <td>{lead.customData?.companyName || '-'}</td>
               <td>{lead.email || '-'}</td>
               <td>{lead.owner || '-'}</td>
@@ -390,8 +480,137 @@ export default function LeadModule() {
         onClose={() => setSelectedLead(null)} 
         lead={selectedLead} 
         blueprint={blueprint}
+        tags={tags}
         onTransition={handleTransition}
+        onLeadUpdate={handleLeadUpdate}
       />
+
+      {/* FLOATING BULK ACTION BAR */}
+      {selectedLeadIds.length > 0 && (
+        <div style={{
+          position: 'fixed',
+          bottom: '2rem',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: '#0f172a',
+          color: 'white',
+          padding: '1rem 1.5rem',
+          borderRadius: '12px',
+          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.2)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '1.5rem',
+          zIndex: 100
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <span style={{ 
+              background: '#334155', 
+              color: 'white', 
+              width: '24px', 
+              height: '24px', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              borderRadius: '50%', 
+              fontSize: '0.85rem', 
+              fontWeight: 600 
+            }}>
+              {selectedLeadIds.length}
+            </span>
+            <span style={{ fontWeight: 500 }}>Leads Selected</span>
+          </div>
+
+          <div style={{ width: '1px', height: '24px', background: '#334155' }}></div>
+
+          <div style={{ display: 'flex', gap: '0.75rem', position: 'relative' }}>
+            <button 
+              onClick={() => setIsBulkTagPickerOpen(!isBulkTagPickerOpen)}
+              style={{
+                background: 'rgba(255,255,255,0.1)',
+                border: '1px solid rgba(255,255,255,0.2)',
+                color: 'white',
+                padding: '0.5rem 1rem',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                transition: 'all 0.2s',
+                fontWeight: 500
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+              Apply Tag
+            </button>
+
+            {isBulkTagPickerOpen && (
+              <div style={{
+                position: 'absolute',
+                bottom: 'calc(100% + 0.5rem)',
+                left: 0,
+                background: 'white',
+                borderRadius: '8px',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+                width: '240px',
+                maxHeight: '300px',
+                overflowY: 'auto',
+                border: '1px solid #e2e8f0',
+                color: '#0f172a'
+              }}>
+                <div style={{ padding: '0.75rem', borderBottom: '1px solid #f1f5f9', fontWeight: 600, fontSize: '0.85rem', color: '#64748b' }}>
+                  SELECT A TAG
+                </div>
+                {tags.length === 0 ? (
+                  <div style={{ padding: '1rem', fontSize: '0.85rem', color: '#64748b', textAlign: 'center' }}>
+                    No tags available
+                  </div>
+                ) : (
+                  tags.map(tag => (
+                    <div 
+                      key={tag.id}
+                      onClick={() => handleBulkTagApply(tag)}
+                      style={{ 
+                        padding: '0.75rem 1rem', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '0.75rem', 
+                        cursor: 'pointer',
+                        borderBottom: '1px solid #f8fafc'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
+                    >
+                      <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: tag.color }}></div>
+                      <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>{tag.name}</span>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+            
+            <button 
+              onClick={() => setSelectedLeadIds([])}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#94a3b8',
+                padding: '0.5rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'color 0.2s'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.color = 'white'}
+              onMouseLeave={(e) => e.currentTarget.style.color = '#94a3b8'}
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

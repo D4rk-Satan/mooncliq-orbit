@@ -62,12 +62,94 @@ const SelectInput = ({ field, value, onChange }) => (
   </div>
 );
 
+// Renders a date input
+const DateInput = ({ field, value, onChange }) => (
+  <div className="form-group">
+    <label className="form-label" htmlFor={field.name}>
+      {field.label} {field.isRequired && <span className="text-red-500">*</span>}
+    </label>
+    <input
+      type="date"
+      id={field.name}
+      name={field.name}
+      required={field.isRequired}
+      value={value || ''}
+      onChange={(e) => onChange(field.name, e.target.value)}
+      className="form-input"
+    />
+  </div>
+);
+
+// Renders a checkbox input
+const CheckboxInput = ({ field, value, onChange }) => (
+  <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+    <input
+      type="checkbox"
+      id={field.name}
+      name={field.name}
+      required={field.isRequired}
+      checked={!!value}
+      onChange={(e) => onChange(field.name, e.target.checked)}
+      style={{ cursor: 'pointer', width: '1.2rem', height: '1.2rem' }}
+    />
+    <label className="form-label" htmlFor={field.name} style={{ margin: 0, cursor: 'pointer' }}>
+      {field.label} {field.isRequired && <span className="text-red-500">*</span>}
+    </label>
+  </div>
+);
+
+// Renders a textarea
+const TextareaInput = ({ field, value, onChange }) => (
+  <div className="form-group">
+    <label className="form-label" htmlFor={field.name}>
+      {field.label} {field.isRequired && <span className="text-red-500">*</span>}
+    </label>
+    <textarea
+      id={field.name}
+      name={field.name}
+      required={field.isRequired}
+      value={value || ''}
+      onChange={(e) => onChange(field.name, e.target.value)}
+      className="form-input"
+      placeholder={`Enter ${field.label.toLowerCase()}`}
+      rows={3}
+    />
+  </div>
+);
+
+// Renders a currency input
+const CurrencyInput = ({ field, value, onChange }) => (
+  <div className="form-group">
+    <label className="form-label" htmlFor={field.name}>
+      {field.label} {field.isRequired && <span className="text-red-500">*</span>}
+    </label>
+    <div style={{ position: 'relative' }}>
+      <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }}>$</span>
+      <input
+        type="number"
+        id={field.name}
+        name={field.name}
+        required={field.isRequired}
+        value={value || ''}
+        onChange={(e) => onChange(field.name, Number(e.target.value))}
+        className="form-input"
+        style={{ paddingLeft: '1.75rem' }}
+        placeholder={`0.00`}
+        step="0.01"
+      />
+    </div>
+  </div>
+);
+
 // The Main Registry Mapping
 const registry = {
   text: TextInput,
   number: NumberInput,
-  currency: NumberInput, // Mapping currency to number for MVP
+  currency: CurrencyInput,
   select: SelectInput,
+  date: DateInput,
+  checkbox: CheckboxInput,
+  textarea: TextareaInput,
 };
 
 // The Component that dynamically renders the right input based on field type
