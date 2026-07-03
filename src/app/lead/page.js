@@ -76,7 +76,7 @@ export default function LeadModule() {
       const token = await getAuthToken();
       const res = await fetch('/api/leads', {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
@@ -96,13 +96,12 @@ export default function LeadModule() {
   const handleDrop = async (e, targetStageId) => {
     e.preventDefault();
     const leadId = e.dataTransfer.getData("leadId");
-    if (!leadId) return;
 
     const lead = leads.find(l => l.id === leadId);
     if (!lead || lead.stageId === targetStageId) return;
 
     // 1. Find valid transition
-    const validTransition = blueprint.transitions.find(t => 
+    const validTransition = blueprint.transitions.find(t =>
       (t.isGlobal || (t.fromStages && t.fromStages.some(s => s.id === lead.stageId))) && t.toStageId === targetStageId
     );
 
@@ -118,7 +117,6 @@ export default function LeadModule() {
     });
 
     if (missingFields.length > 0) {
-      alert(`Action Blocked: To move this lead, you must provide: ${missingFields.join(", ")}. Please click the lead card to fill out these fields.`);
       setSelectedLead(lead); // Open the side panel for them
       return;
     }
@@ -142,19 +140,19 @@ export default function LeadModule() {
       const token = await getAuthToken();
       const res = await fetch('/api/leads', {
         method: 'PATCH',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ leadId, stageId: toStageId, customData: updatedCustomData, transitionId })
       });
-      
+
       if (res.ok) {
         const updatedLeadFromServer = await res.json();
-        setLeads(prevLeads => prevLeads.map(lead => 
+        setLeads(prevLeads => prevLeads.map(lead =>
           lead.id === leadId ? updatedLeadFromServer : lead
         ));
-        
+
         // Also update the selectedLead if it's currently open in the SlideOverPanel
         if (selectedLead && selectedLead.id === leadId) {
           setSelectedLead(updatedLeadFromServer);
@@ -166,7 +164,7 @@ export default function LeadModule() {
   };
 
   const handleLeadUpdate = (updatedLeadFromServer) => {
-    setLeads(prevLeads => prevLeads.map(lead => 
+    setLeads(prevLeads => prevLeads.map(lead =>
       lead.id === updatedLeadFromServer.id ? updatedLeadFromServer : lead
     ));
     if (selectedLead && selectedLead.id === updatedLeadFromServer.id) {
@@ -196,13 +194,13 @@ export default function LeadModule() {
       const token = await getAuthToken();
       const res = await fetch('/api/leads/bulk-tag', {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           leadIds: selectedLeadIds,
-          tagId: tag.id 
+          tagId: tag.id
         })
       });
       if (res.ok) {
@@ -268,6 +266,8 @@ export default function LeadModule() {
           <div
             key={col.stage.id}
             className="kanban-column"
+            onDrop={(e) => handleDrop(e, col.stage.id)}
+            onDragOver={(e) => e.preventDefault()}
           >
             <div className="kanban-column-header" style={{ backgroundColor: getColumnColor(col.stage.color) }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -284,27 +284,29 @@ export default function LeadModule() {
                 // Mock notification numbers for visual demonstration
                 const callCount = Math.floor(Math.random() * 4) + 1;
                 const attachCount = Math.floor(Math.random() * 3) + 1;
-                
+
                 let leadTags = [];
                 try {
                   leadTags = Array.isArray(lead.tags) ? lead.tags : JSON.parse(lead.tags || "[]");
-                } catch(e) {}
-                
+                } catch (e) { }
+
                 return (
                   <div
                     key={lead.id}
                     className={`kanban-card ${selectedLeadIds.includes(lead.id) ? 'selected' : ''}`}
                     onClick={() => setSelectedLead(lead)}
+                    draggable="true"
+                    onDragStart={(e) => handleDragStart(e, lead.id)}
                     style={{
                       border: selectedLeadIds.includes(lead.id) ? '2px solid var(--primary)' : '1px solid #e2e8f0'
                     }}
                   >
                     <div className="card-header-top">
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <input 
-                          type="checkbox" 
-                          checked={selectedLeadIds.includes(lead.id)} 
-                          onChange={(e) => toggleLeadSelection(lead.id, e)} 
+                        <input
+                          type="checkbox"
+                          checked={selectedLeadIds.includes(lead.id)}
+                          onChange={(e) => toggleLeadSelection(lead.id, e)}
                           onClick={(e) => e.stopPropagation()}
                           style={{ cursor: 'pointer' }}
                         />
@@ -314,11 +316,11 @@ export default function LeadModule() {
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
                       </button>
                     </div>
-                    
+
                     <div className="card-subtitle">
                       {subtitle}
                     </div>
-                    
+
                     {leadTags.length > 0 && (
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', marginTop: '0.5rem', marginBottom: '0.5rem' }}>
                         {leadTags.map((t, i) => (
@@ -334,7 +336,7 @@ export default function LeadModule() {
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
                         {formattedDate}
                       </div>
-                      
+
                       <div className="card-icons">
                         <div className="card-icon-item">
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
@@ -380,8 +382,8 @@ export default function LeadModule() {
         <thead>
           <tr>
             <th style={{ width: '40px', textAlign: 'center' }}>
-              <input 
-                type="checkbox" 
+              <input
+                type="checkbox"
                 checked={leads.length > 0 && selectedLeadIds.length === leads.length}
                 onChange={selectAllLeads}
                 style={{ cursor: 'pointer' }}
@@ -399,8 +401,8 @@ export default function LeadModule() {
           {leads.map((lead) => (
             <tr key={lead.id} style={{ background: selectedLeadIds.includes(lead.id) ? '#f1f5f9' : 'transparent' }}>
               <td style={{ textAlign: 'center' }}>
-                <input 
-                  type="checkbox" 
+                <input
+                  type="checkbox"
                   checked={selectedLeadIds.includes(lead.id)}
                   onChange={(e) => toggleLeadSelection(lead.id, e)}
                   style={{ cursor: 'pointer' }}
@@ -475,10 +477,10 @@ export default function LeadModule() {
         onSave={handleAddLead}
       />
 
-      <SlideOverPanel 
-        isOpen={!!selectedLead} 
-        onClose={() => setSelectedLead(null)} 
-        lead={selectedLead} 
+      <SlideOverPanel
+        isOpen={!!selectedLead}
+        onClose={() => setSelectedLead(null)}
+        lead={selectedLead}
         blueprint={blueprint}
         tags={tags}
         onTransition={handleTransition}
@@ -503,17 +505,17 @@ export default function LeadModule() {
           zIndex: 100
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <span style={{ 
-              background: '#334155', 
-              color: 'white', 
-              width: '24px', 
-              height: '24px', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center', 
-              borderRadius: '50%', 
-              fontSize: '0.85rem', 
-              fontWeight: 600 
+            <span style={{
+              background: '#334155',
+              color: 'white',
+              width: '24px',
+              height: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: '50%',
+              fontSize: '0.85rem',
+              fontWeight: 600
             }}>
               {selectedLeadIds.length}
             </span>
@@ -523,7 +525,7 @@ export default function LeadModule() {
           <div style={{ width: '1px', height: '24px', background: '#334155' }}></div>
 
           <div style={{ display: 'flex', gap: '0.75rem', position: 'relative' }}>
-            <button 
+            <button
               onClick={() => setIsBulkTagPickerOpen(!isBulkTagPickerOpen)}
               style={{
                 background: 'rgba(255,255,255,0.1)',
@@ -568,14 +570,14 @@ export default function LeadModule() {
                   </div>
                 ) : (
                   tags.map(tag => (
-                    <div 
+                    <div
                       key={tag.id}
                       onClick={() => handleBulkTagApply(tag)}
-                      style={{ 
-                        padding: '0.75rem 1rem', 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: '0.75rem', 
+                      style={{
+                        padding: '0.75rem 1rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.75rem',
                         cursor: 'pointer',
                         borderBottom: '1px solid #f8fafc'
                       }}
@@ -589,8 +591,8 @@ export default function LeadModule() {
                 )}
               </div>
             )}
-            
-            <button 
+
+            <button
               onClick={() => setSelectedLeadIds([])}
               style={{
                 background: 'transparent',

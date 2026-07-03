@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import DynamicField from "./FieldRegistry";
+import { evaluateExecutionCriteria } from "../utils/ruleEngine";
 
 export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags = [], onTransition, onLeadUpdate }) {
   const [modalMode, setModalMode] = useState(null); // null | 'missing' | 'security' | 'confirm'
@@ -9,6 +10,7 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
   const [formData, setFormData] = useState({});
   const [securityData, setSecurityData] = useState({});
   const [securityError, setSecurityError] = useState("");
+  const [confirmError, setConfirmError] = useState("");
   const [checklistState, setChecklistState] = useState({});
   const [tagBuilder, setTagBuilder] = useState({ isOpen: false });
   const [localTags, setLocalTags] = useState([]);
@@ -20,7 +22,7 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
       document.body.style.overflow = "auto";
       setModalMode(null);
     }
-    
+
     if (lead) {
       try {
         setLocalTags(Array.isArray(lead.tags) ? lead.tags : JSON.parse(lead.tags || "[]"));
@@ -40,27 +42,10 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
 
     // 2. Execution Criteria Check
     if (t.executionCriteria && t.executionCriteria.conditions && t.executionCriteria.conditions.length > 0) {
-      const matchType = t.executionCriteria.matchType || 'AND';
-      const criteriaMet = t.executionCriteria.conditions[matchType === 'AND' ? 'every' : 'some'](cond => {
-        const rawValue = lead[cond.field] !== undefined ? lead[cond.field] : lead.customData?.[cond.field];
-        const leadValue = String(rawValue || "").toLowerCase();
-        const condValue = String(cond.value || "").toLowerCase();
-        
-        switch (cond.operator) {
-          case 'is': return leadValue === condValue;
-          case 'is_not': return leadValue !== condValue;
-          case 'contains': return leadValue.includes(condValue);
-          case 'does_not_contain': return !leadValue.includes(condValue);
-          case 'starts_with': return leadValue.startsWith(condValue);
-          case 'ends_with': return leadValue.endsWith(condValue);
-          case 'is_empty': return leadValue === "";
-          case 'is_not_empty': return leadValue !== "";
-          default: return true;
-        }
-      });
-      return criteriaMet;
+      return evaluateExecutionCriteria(lead, t.executionCriteria);
     }
-    
+
+
     return true; // If no criteria, button is visible
   });
 
@@ -101,17 +86,20 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
 
   const handleMissingSubmit = (e) => {
     e.preventDefault();
-    for (let fieldName of activeTransition.requiredFields || []) {
-      if (!formData[fieldName] || String(formData[fieldName]).trim() === "") {
-        alert("Please fill all required fields");
-        return;
-      }
-    }
-    
+
     const checklists = activeTransition.checklists || [];
     for (let i = 0; i < checklists.length; i++) {
       if (!checklistState[i]) {
         alert("Please complete all checklist items before proceeding.");
+        return;
+      }
+    }
+
+    const requiredFields = activeTransition.requiredFields || [];
+    const currentData = { ...lead.customData, ...formData };
+    for (let fieldName of requiredFields) {
+      if (!currentData[fieldName] || String(currentData[fieldName]).trim() === "") {
+        alert(`Please fill out the required field: ${fieldName}`);
         return;
       }
     }
@@ -141,8 +129,11 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
     setModalMode('confirm');
   };
 
-  const handleConfirmSubmit = () => {
+  const handleConfirmSubmit = (e) => {
+    if (e) e.preventDefault();
+    setConfirmError("");
     const finalData = { ...lead.customData, ...formData };
+    
     onTransition(lead.id, activeTransition.toStageId, finalData, activeTransition.id);
     setModalMode(null);
   };
@@ -160,14 +151,14 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
               Add Tags
               <button onClick={() => setTagBuilder({ ...tagBuilder, isOpen: false })} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: '#94a3b8' }}>✕</button>
             </h3>
-            
+
             <div style={{ marginBottom: '2rem' }}>
               {tags.length === 0 ? (
                 <p style={{ color: '#64748b', fontSize: '0.9rem' }}>No tags available. Please define tags in Settings Hub.</p>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   {tags.map(tag => (
-                    <div 
+                    <div
                       key={tag.id}
                       onClick={async () => {
                         if (localTags.find(t => t.id === tag.id)) {
@@ -177,21 +168,21 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
                         const newTags = [...localTags, tag];
                         setLocalTags(newTags);
                         setTagBuilder({ ...tagBuilder, isOpen: false });
-                        
+
                         try {
                           const { fetchAuthSession } = await import('aws-amplify/auth');
                           const session = await fetchAuthSession();
                           const token = session.tokens?.idToken?.toString();
-                          
+
                           const res = await fetch('/api/leads', {
                             method: 'PATCH',
-                            headers: { 
+                            headers: {
                               'Content-Type': 'application/json',
                               'Authorization': token ? `Bearer ${token}` : ''
                             },
                             body: JSON.stringify({ leadId: lead.id, tags: newTags.map(t => t.id) })
                           });
-                          
+
                           if (res.ok && onLeadUpdate) {
                             const updatedLead = await res.json();
                             onLeadUpdate(updatedLead);
@@ -200,10 +191,10 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
                           console.error("Failed to save tag", e);
                         }
                       }}
-                      style={{ 
-                        display: 'flex', alignItems: 'center', gap: '0.75rem', 
-                        padding: '0.75rem', background: '#f8fafc', border: '1px solid #e2e8f0', 
-                        borderRadius: '6px', cursor: 'pointer', transition: 'all 0.2s' 
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '0.75rem',
+                        padding: '0.75rem', background: '#f8fafc', border: '1px solid #e2e8f0',
+                        borderRadius: '6px', cursor: 'pointer', transition: 'all 0.2s'
                       }}
                       onMouseEnter={(e) => e.currentTarget.style.borderColor = tag.color}
                       onMouseLeave={(e) => e.currentTarget.style.borderColor = '#e2e8f0'}
@@ -215,7 +206,7 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
                 </div>
               )}
             </div>
-            
+
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
               <button className="btn-outline" onClick={() => setTagBuilder({ ...tagBuilder, isOpen: false })}>Cancel</button>
             </div>
@@ -232,26 +223,26 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
               {localTags.map((t, idx) => (
                 <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', fontWeight: 600, color: 'white', background: t.color, padding: '0.2rem 0.6rem', borderRadius: '12px' }}>
                   {t.name}
-                  <button 
+                  <button
                     onClick={async (e) => {
                       e.stopPropagation();
                       const newTags = localTags.filter((_, i) => i !== idx);
                       setLocalTags(newTags);
-                      
+
                       try {
                         const { fetchAuthSession } = await import('aws-amplify/auth');
                         const session = await fetchAuthSession();
                         const token = session.tokens?.idToken?.toString();
-                        
+
                         const res = await fetch('/api/leads', {
                           method: 'PATCH',
-                          headers: { 
+                          headers: {
                             'Content-Type': 'application/json',
                             'Authorization': token ? `Bearer ${token}` : ''
                           },
                           body: JSON.stringify({ leadId: lead.id, tags: newTags.map(t => t.id) })
                         });
-                        
+
                         if (res.ok && onLeadUpdate) {
                           const updatedLead = await res.json();
                           onLeadUpdate(updatedLead);
@@ -259,7 +250,7 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
                       } catch (err) {
                         console.error("Failed to remove tag", err);
                       }
-                    }} 
+                    }}
                     style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.8)', cursor: 'pointer', padding: 0, fontSize: '0.8rem', display: 'flex', alignItems: 'center' }}
                     aria-label="Remove tag"
                   >✕</button>
@@ -334,7 +325,7 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
         <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)' }} onClick={() => setModalMode(null)}></div>
           <div style={{ background: 'white', padding: '2rem', borderRadius: '12px', width: '100%', maxWidth: '400px', position: 'relative', zIndex: 10 }}>
-            <h3 style={{ marginTop: 0, fontSize: '1.25rem', marginBottom: '1rem' }}>Review Requirements</h3>
+            <h3 style={{ marginTop: 0, fontSize: '1.25rem', marginBottom: '1rem' }}>Update Prompts</h3>
             <p className="text-muted" style={{ marginBottom: '1.5rem', fontSize: '0.875rem' }}>
               {activeTransition.customMessage ? activeTransition.customMessage : (
                 <>Please review and confirm the required data below to execute <strong>{activeTransition.name}</strong>.</>
@@ -426,6 +417,11 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
                 <>You are about to execute <strong>{activeTransition.name}</strong>. Do you want to proceed?</>
               )}
             </p>
+            {confirmError && (
+              <div style={{ padding: '0.75rem', background: '#fef2f2', color: '#b91c1c', borderRadius: '6px', marginBottom: '1rem', fontSize: '0.875rem', border: '1px solid #fecaca' }}>
+                {confirmError}
+              </div>
+            )}
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
               <button type="button" className="btn-outline" onClick={() => setModalMode(null)}>Cancel</button>
               <button type="button" className="btn-primary" onClick={handleConfirmSubmit}>Yes, Proceed</button>

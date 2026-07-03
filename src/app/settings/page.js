@@ -19,7 +19,7 @@ export default function SettingsPage() {
 
   // Rules Manager State
   const [selectedRule, setSelectedRule] = useState(null);
-  const [activeRuleTab, setActiveRuleTab] = useState('during');
+  const [activeRuleTab, setActiveRuleTab] = useState('before');
   const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
   const [tagBuilder, setTagBuilder] = useState({ isOpen: false, name: '', color: '#ef4444' });
   const [fieldUpdateBuilder, setFieldUpdateBuilder] = useState({ isOpen: false, field: '', value: '' });
@@ -29,6 +29,7 @@ export default function SettingsPage() {
   const [tags, setTags] = useState([]);
   const [isAddingTag, setIsAddingTag] = useState(false);
   const [newTag, setNewTag] = useState({ name: "", color: "#ef4444", customColor: false });
+  const [isStageDropdownOpen, setIsStageDropdownOpen] = useState(false);
   // selectedRule schema: { id, name, toStageId, fromStageIds: [], isGlobal: boolean, requiredFields: [], necessaryFields: [] }
 
   useEffect(() => {
@@ -232,7 +233,7 @@ export default function SettingsPage() {
 
   // --- Rule Handlers ---
   const openRuleModal = (existingRule = null) => {
-    setActiveRuleTab('during');
+    setActiveRuleTab('before');
     setIsAddMenuOpen(false);
     if (existingRule) {
       setSelectedRule({
@@ -670,9 +671,9 @@ export default function SettingsPage() {
                 <label className="form-label" style={{ marginBottom: '0.5rem', display: 'block', fontWeight: 600 }}>Button Name</label>
                 <input type="text" className="form-input" placeholder="e.g. Qualify Lead" value={selectedRule.name} onChange={e => setSelectedRule({ ...selectedRule, name: e.target.value })} />
               </div>
+              <div style={{ flex: 1 }}>
+                <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontWeight: 600 }}>
 
-              <div style={{ flex: 1.5, background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem', fontWeight: 600 }}>
                   <span>From Stage(s)</span>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 500, color: 'var(--primary)' }}>
                     <input type="checkbox" checked={selectedRule.isGlobal} onChange={e => setSelectedRule({ ...selectedRule, isGlobal: e.target.checked })} />
@@ -681,21 +682,63 @@ export default function SettingsPage() {
                 </label>
 
                 {!selectedRule.isGlobal && (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
-                    {blueprint.stages.map(stage => {
-                      const isDisabled = stage.id === selectedRule.toStageId;
-                      return (
-                        <label key={stage.id} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: isDisabled ? 'not-allowed' : 'pointer', opacity: isDisabled ? 0.5 : 1, fontSize: '0.85rem' }}>
-                          <input
-                            type="checkbox"
-                            disabled={isDisabled}
-                            checked={selectedRule.fromStageIds.includes(stage.id)}
-                            onChange={() => setSelectedRule({ ...selectedRule, fromStageIds: toggleArrayItem(selectedRule.fromStageIds, stage.id) })}
-                          />
-                          {stage.name}
-                        </label>
-                      )
-                    })}
+                  <div style={{ position: 'relative' }}>
+
+                    <div
+                      onClick={() => setIsStageDropdownOpen(!isStageDropdownOpen)}
+                      style={{
+                        border: '1px solid #e2e8f0', padding: '0.5rem 1rem', borderRadius: '8px',
+                        background: 'white', cursor: 'pointer', display: 'flex',
+                        justifyContent: 'space-between', alignItems: 'center', minHeight: '42px'
+                      }}
+                    >
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                        {selectedRule.fromStageIds.length === 0 ? (
+                          <span style={{ color: '#94a3b8' }}>Select stages...</span>
+                        ) : (
+                          selectedRule.fromStageIds.map(id => {
+                            const stage = blueprint.stages.find(s => s.id === id);
+                            return stage ? (
+                              <span key={id} style={{ background: '#f1f5f9', padding: '2px 8px', borderRadius: '4px', fontSize: '0.8rem', border: '1px solid #e2e8f0' }}>
+                                {stage.name}
+                              </span>
+                            ) : null;
+                          })
+                        )}
+                      </div>
+                      <span style={{ color: '#64748b', fontSize: '0.8rem' }}>▼</span>
+                    </div>
+
+                    {isStageDropdownOpen && (
+                      <>
+                        <div style={{ position: 'fixed', inset: 0, zIndex: 10 }} onClick={() => setIsStageDropdownOpen(false)}></div>
+                        <div style={{
+                          position: 'absolute', top: '100%', left: 0, right: 0, marginTop: '0.25rem',
+                          background: 'white', border: '1px solid #e2e8f0', borderRadius: '8px',
+                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', zIndex: 20,
+                          maxHeight: '200px', overflowY: 'auto', padding: '0.5rem'
+                        }}>
+                          {blueprint.stages.map(stage => {
+                            const isDisabled = stage.id === selectedRule.toStageId;
+                            return (
+                              <label key={stage.id} style={{
+                                display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem',
+                                cursor: isDisabled ? 'not-allowed' : 'pointer', opacity: isDisabled ? 0.5 : 1,
+                                borderRadius: '4px', transition: 'background 0.2s', margin: 0
+                              }} onMouseEnter={e => { if (!isDisabled) e.currentTarget.style.background = '#f8fafc' }} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                                <input
+                                  type="checkbox"
+                                  disabled={isDisabled}
+                                  checked={selectedRule.fromStageIds.includes(stage.id)}
+                                  onChange={() => setSelectedRule({ ...selectedRule, fromStageIds: toggleArrayItem(selectedRule.fromStageIds, stage.id) })}
+                                />
+                                <span style={{ fontSize: '0.875rem' }}>{stage.name}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
               </div>
@@ -742,41 +785,35 @@ export default function SettingsPage() {
 
                   <div style={{ padding: '1.5rem', border: '1px solid #e2e8f0', borderRadius: '8px', background: 'white' }}>
                     <h4 style={{ margin: '0 0 1rem 0', color: '#0f172a' }}>Execution Criteria</h4>
-                    <div style={{ display: 'flex', gap: '1.5rem', marginBottom: '1.5rem' }}>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                        <input type="radio" name="criteriaType" checked={selectedRule.executionCriteria.type === 'all' || !selectedRule.executionCriteria.conditions || selectedRule.executionCriteria.conditions.length === 0} onChange={() => setSelectedRule({ ...selectedRule, executionCriteria: { ...selectedRule.executionCriteria, type: 'all', conditions: [] } })} /> All records
-                      </label>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                        <input type="radio" name="criteriaType" checked={selectedRule.executionCriteria.type === 'matching' && selectedRule.executionCriteria.conditions && selectedRule.executionCriteria.conditions.length > 0} onChange={() => {
-                          if (!selectedRule.executionCriteria.conditions || selectedRule.executionCriteria.conditions.length === 0) {
-                            setSelectedRule({ ...selectedRule, executionCriteria: { ...selectedRule.executionCriteria, type: 'matching', matchType: 'AND', conditions: [{ field: '', operator: 'is', value: '' }] } });
-                          } else {
-                            setSelectedRule({ ...selectedRule, executionCriteria: { ...selectedRule.executionCriteria, type: 'matching' } });
-                          }
-                        }} /> Records matching the conditions
-                      </label>
-                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                      {(selectedRule.executionCriteria.conditions || []).length === 0 && (
+                        <p style={{ color: '#64748b', fontSize: '0.875rem', margin: 0, fontStyle: 'italic' }}>
+                          This rule currently applies to all records. Add a condition to restrict it.
+                        </p>
+                      )}
 
-                    {selectedRule.executionCriteria.type === 'matching' && selectedRule.executionCriteria.conditions && selectedRule.executionCriteria.conditions.length > 0 && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
-                          <span style={{ fontSize: '0.875rem', fontWeight: 500, color: '#64748b' }}>Match:</span>
-                          <select
-                            className="form-input"
-                            style={{ width: '120px', padding: '0.25rem 0.5rem' }}
-                            value={selectedRule.executionCriteria.matchType || 'AND'}
-                            onChange={e => setSelectedRule({ ...selectedRule, executionCriteria: { ...selectedRule.executionCriteria, matchType: e.target.value } })}
-                          >
-                            <option value="AND">ALL (AND)</option>
-                            <option value="OR">ANY (OR)</option>
-                          </select>
-                          <span style={{ fontSize: '0.875rem', color: '#64748b' }}>of the following conditions</span>
-                        </div>
-
-                        {selectedRule.executionCriteria.conditions.map((cond, idx) => (
-                          <div key={idx} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                      {(selectedRule.executionCriteria.conditions || []).map((cond, idx) => (
+                        <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                          {idx > 0 && (
+                            <div style={{ paddingLeft: '2rem' }}>
+                              <select
+                                className="form-input"
+                                style={{ width: '80px', padding: '0.1rem 0.5rem', fontSize: '0.8rem', background: '#f8fafc' }}
+                                value={cond.logical || 'AND'}
+                                onChange={e => {
+                                  const newConds = [...(selectedRule.executionCriteria.conditions || [])];
+                                  newConds[idx].logical = e.target.value;
+                                  setSelectedRule({ ...selectedRule, executionCriteria: { ...selectedRule.executionCriteria, conditions: newConds } });
+                                }}
+                              >
+                                <option value="AND">AND</option>
+                                <option value="OR">OR</option>
+                              </select>
+                            </div>
+                          )}
+                          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                             <select className="form-input" style={{ width: '200px' }} value={cond.field} onChange={e => {
-                              const newConds = [...selectedRule.executionCriteria.conditions];
+                              const newConds = [...(selectedRule.executionCriteria.conditions || [])];
                               newConds[idx].field = e.target.value;
                               setSelectedRule({ ...selectedRule, executionCriteria: { ...selectedRule.executionCriteria, conditions: newConds } });
                             }}>
@@ -795,7 +832,7 @@ export default function SettingsPage() {
                               )}
                             </select>
                             <select className="form-input" style={{ width: '150px' }} value={cond.operator} onChange={e => {
-                              const newConds = [...selectedRule.executionCriteria.conditions];
+                              const newConds = [...(selectedRule.executionCriteria.conditions || [])];
                               newConds[idx].operator = e.target.value;
                               setSelectedRule({ ...selectedRule, executionCriteria: { ...selectedRule.executionCriteria, conditions: newConds } });
                             }}>
@@ -810,23 +847,23 @@ export default function SettingsPage() {
                             </select>
                             {!['is empty', 'is not empty'].includes(cond.operator) && (
                               <input type="text" className="form-input" style={{ flex: 1 }} placeholder="Value" value={cond.value} onChange={e => {
-                                const newConds = [...selectedRule.executionCriteria.conditions];
+                                const newConds = [...(selectedRule.executionCriteria.conditions || [])];
                                 newConds[idx].value = e.target.value;
                                 setSelectedRule({ ...selectedRule, executionCriteria: { ...selectedRule.executionCriteria, conditions: newConds } });
                               }} />
                             )}
                             <button onClick={() => {
-                              const newConds = selectedRule.executionCriteria.conditions.filter((_, i) => i !== idx);
+                              const newConds = (selectedRule.executionCriteria.conditions || []).filter((_, i) => i !== idx);
                               setSelectedRule({ ...selectedRule, executionCriteria: { ...selectedRule.executionCriteria, conditions: newConds } });
                             }} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '1.25rem' }}>✕</button>
                           </div>
-                        ))}
-                        <button onClick={() => {
-                          const newConds = [...selectedRule.executionCriteria.conditions, { field: '', operator: 'is', value: '' }];
-                          setSelectedRule({ ...selectedRule, executionCriteria: { ...selectedRule.executionCriteria, conditions: newConds } });
-                        }} style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontWeight: 500, padding: 0 }}>+ Add Condition</button>
-                      </div>
-                    )}
+                        </div>
+                      ))}
+                      <button onClick={() => {
+                        const newConds = [...(selectedRule.executionCriteria.conditions || []), { field: '', operator: 'is', value: '' }];
+                        setSelectedRule({ ...selectedRule, executionCriteria: { ...selectedRule.executionCriteria, conditions: newConds } });
+                      }} style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontWeight: 500, padding: 0 }}>+ Add Condition</button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -891,7 +928,7 @@ export default function SettingsPage() {
                         <div key={field.id} style={{ display: 'flex', alignItems: 'center', gap: '2rem', background: '#f8fafc', padding: '0.75rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
                           <div style={{ width: '150px', fontWeight: 500 }}>{field.label}</div>
 
-                          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.875rem' }}>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer' }}>
                             <input
                               type="checkbox"
                               checked={isRequired}
@@ -905,7 +942,7 @@ export default function SettingsPage() {
                                 setSelectedRule({ ...selectedRule, requiredFields: newRequired, necessaryFields: newNecessary });
                               }}
                             />
-                            Required (Confirm)
+                            Show on Transition
                           </label>
 
                           <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: isRequired ? 'pointer' : 'not-allowed', fontSize: '0.875rem', opacity: isRequired ? 1 : 0.5 }}>
