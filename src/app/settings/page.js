@@ -254,7 +254,7 @@ export default function SettingsPage() {
       setSelectedRule({
         id: null,
         name: "",
-        toStageId: blueprint.stages[0]?.id || "",
+        toStageId: "",
         fromStageIds: [],
         isGlobal: false,
         requiredFields: [],
@@ -745,11 +745,12 @@ export default function SettingsPage() {
 
               <div style={{ flex: 1 }}>
                 <label className="form-label" style={{ marginBottom: '0.5rem', display: 'block', fontWeight: 600 }}>Destination Stage (To)</label>
-                <select className="form-input" value={selectedRule.toStageId} onChange={e => {
+                <select className="form-input" value={selectedRule.toStageId || ""} onChange={e => {
                   const newToId = e.target.value;
                   const newFromIds = selectedRule.fromStageIds.filter(id => id !== newToId);
                   setSelectedRule({ ...selectedRule, toStageId: newToId, fromStageIds: newFromIds });
                 }}>
+                  <option value="" disabled>Select Destination Stage</option>
                   {blueprint.stages.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
               </div>
