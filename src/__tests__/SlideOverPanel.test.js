@@ -62,7 +62,8 @@ describe('SlideOverPanel (Friction & Validation Logic)', () => {
         fromStages: [{ id: 'stage-1' }],
         toStageId: 'stage-2',
         isGlobal: false,
-        requiredFields: [],
+        visibleFields: ['email'],
+        requiredFields: [], 
         necessaryFields: [],
         executionCriteria: { type: 'all', conditions: [] }
       }]
@@ -81,7 +82,7 @@ describe('SlideOverPanel (Friction & Validation Logic)', () => {
     const transitionBtn = screen.getByText('Move to Contacted');
     fireEvent.click(transitionBtn);
 
-    expect(onTransitionMock).toHaveBeenCalledWith('lead-1', 'stage-2', undefined);
+    expect(onTransitionMock).toHaveBeenCalledWith('lead-1', 'stage-2', undefined, 'rule-1');
   });
 
   test('Opens SlideOverPanel if rule is triggered but needs user interaction (Show on Transition)', () => {
@@ -93,6 +94,7 @@ describe('SlideOverPanel (Friction & Validation Logic)', () => {
         fromStages: [{ id: 'stage-1' }],
         toStageId: 'stage-2',
         isGlobal: false,
+        visibleFields: ['email'],
         requiredFields: ['email'],
         necessaryFields: [], // Not strictly required
         executionCriteria: { type: 'all', conditions: [] }
@@ -128,6 +130,7 @@ describe('SlideOverPanel (Friction & Validation Logic)', () => {
         fromStages: [{ id: 'stage-1' }],
         toStageId: 'stage-2',
         isGlobal: false,
+        visibleFields: ['email'],
         requiredFields: ['email'],
         necessaryFields: [], // No security mode
         executionCriteria: { type: 'all', conditions: [] }
@@ -170,6 +173,7 @@ describe('SlideOverPanel (Friction & Validation Logic)', () => {
         fromStages: [{ id: 'stage-1' }],
         toStageId: 'stage-2',
         isGlobal: false,
+        visibleFields: ['email'],
         requiredFields: ['email'],
         necessaryFields: [], 
         executionCriteria: { type: 'all', conditions: [] }

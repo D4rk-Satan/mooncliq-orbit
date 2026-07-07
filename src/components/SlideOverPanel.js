@@ -50,7 +50,7 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
   });
 
   const executeTransition = (transition, finalData) => {
-    onTransition(lead.id, transition.toStageId, finalData);
+    onTransition(lead.id, transition.toStageId, finalData, transition.id);
     setModalMode(null);
     onClose();
   };
@@ -133,7 +133,7 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
     if (e) e.preventDefault();
     setConfirmError("");
     const finalData = { ...lead.customData, ...formData };
-    
+
     onTransition(lead.id, activeTransition.toStageId, finalData, activeTransition.id);
     setModalMode(null);
   };
@@ -345,7 +345,7 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
                   </div>
                 </div>
               )}
-              {(activeTransition.requiredFields || []).map(fieldName => {
+              {(activeTransition.visibleFields || []).map(fieldName => {
                 const fieldDef = blueprint.fields.find(f => f.name === fieldName);
                 if (!fieldDef) return null;
                 return (

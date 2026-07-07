@@ -86,7 +86,7 @@ model Transition {
   toStageId      String
   requiredFields String[]  // Fields required to execute this transition
   necessaryFields String[] // High-friction security checkpoint fields
-  
+  visibleFields String[]   //  Fields shown on transition, but not mandatory
   blueprint      Blueprint @relation(fields: [blueprintId], references: [id])
   toStage        Stage     @relation("ToStage", fields: [toStageId], references: [id], onDelete: Cascade)
   isGlobal       Boolean   @default(false)

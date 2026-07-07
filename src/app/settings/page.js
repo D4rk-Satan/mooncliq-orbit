@@ -244,6 +244,7 @@ export default function SettingsPage() {
         isGlobal: existingRule.isGlobal,
         requiredFields: existingRule.requiredFields || [],
         necessaryFields: existingRule.necessaryFields || [],
+        visibleFields: existingRule.visibleFields || [],
         executionCriteria: existingRule.executionCriteria || { type: 'all', conditions: [] },
         customMessage: existingRule.customMessage || "",
         hasCustomMessage: !!existingRule.customMessage,
@@ -259,6 +260,7 @@ export default function SettingsPage() {
         isGlobal: false,
         requiredFields: [],
         necessaryFields: [],
+        visibleFields: [],
         executionCriteria: { type: 'all', conditions: [] },
         customMessage: "",
         hasCustomMessage: false,
@@ -288,6 +290,7 @@ export default function SettingsPage() {
           toStageId: selectedRule.toStageId,
           fromStageIds: selectedRule.fromStageIds,
           isGlobal: selectedRule.isGlobal,
+          visibleFields: selectedRule.visibleFields,
           requiredFields: selectedRule.requiredFields,
           necessaryFields: selectedRule.necessaryFields,
           executionCriteria: selectedRule.executionCriteria,
@@ -751,7 +754,15 @@ export default function SettingsPage() {
                   setSelectedRule({ ...selectedRule, toStageId: newToId, fromStageIds: newFromIds });
                 }}>
                   <option value="" disabled>Select Destination Stage</option>
-                  {blueprint.stages.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  {blueprint.stages.map(s => (
+                    <option
+                      key={s.id}
+                      value={s.id}
+                      disabled={selectedRule.fromStageIds.includes(s.id)}
+                    >
+                      {s.name} {selectedRule.fromStageIds.includes(s.id) ? "(Selected in From)" : ""}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -923,29 +934,55 @@ export default function SettingsPage() {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.75rem' }}>
                     {blueprint.fields.length === 0 ? <span style={{ color: '#94a3b8', fontSize: '0.875rem' }}>No fields exist.</span> : null}
                     {blueprint.fields.map(field => {
-                      const isRequired = selectedRule.requiredFields.includes(field.name);
-                      const isNecessary = selectedRule.necessaryFields.includes(field.name);
+                      const isVisible = selectedRule.visibleFields?.includes(field.name) || false;
+                      const isRequired = selectedRule.requiredFields?.includes(field.name) || false;
+                      const isNecessary = selectedRule.necessaryFields?.includes(field.name) || false;
                       return (
                         <div key={field.id} style={{ display: 'flex', alignItems: 'center', gap: '2rem', background: '#f8fafc', padding: '0.75rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
                           <div style={{ width: '150px', fontWeight: 500 }}>{field.label}</div>
 
+                          {/* 1. VISIBLE CHECKBOX */}
                           <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer' }}>
                             <input
                               type="checkbox"
-                              checked={isRequired}
-                              onChange={() => {
-                                const newRequired = toggleArrayItem(selectedRule.requiredFields, field.name);
-                                // If unchecking required, also uncheck necessary
-                                let newNecessary = selectedRule.necessaryFields;
-                                if (!newRequired.includes(field.name) && newNecessary.includes(field.name)) {
-                                  newNecessary = newNecessary.filter(n => n !== field.name);
+                              checked={isVisible}
+                              onChange={(e) => {
+                                let newVisible = toggleArrayItem(selectedRule.visibleFields || [], field.name);
+                                let newMandatory = selectedRule.requiredFields;
+                                let newDoubleVerify = selectedRule.necessaryFields;
+
+                                // If unchecking Visible, force uncheck Mandatory & DoubleVerify
+                                if (!newVisible.includes(field.name)) {
+                                  newMandatory = newMandatory.filter(n => n !== field.name);
+                                  newDoubleVerify = newDoubleVerify.filter(n => n !== field.name);
                                 }
-                                setSelectedRule({ ...selectedRule, requiredFields: newRequired, necessaryFields: newNecessary });
+                                setSelectedRule({ ...selectedRule, visibleFields: newVisible, requiredFields: newMandatory, necessaryFields: newDoubleVerify });
                               }}
                             />
-                            Show on Transition
+                            Visible on Transition
                           </label>
 
+                          {/* 2. MANDATORY CHECKBOX */}
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: isVisible ? 'pointer' : 'not-allowed', opacity: isVisible ? 1 : 0.5 }}>
+                            <input
+                              type="checkbox"
+                              disabled={!isVisible}
+                              checked={isRequired}
+                              onChange={() => {
+                                let newMandatory = toggleArrayItem(selectedRule.requiredFields, field.name);
+                                let newDoubleVerify = selectedRule.necessaryFields;
+
+                                // If unchecking Mandatory, force uncheck DoubleVerify
+                                if (!newMandatory.includes(field.name)) {
+                                  newDoubleVerify = newDoubleVerify.filter(n => n !== field.name);
+                                }
+                                setSelectedRule({ ...selectedRule, requiredFields: newMandatory, necessaryFields: newDoubleVerify });
+                              }}
+                            />
+                            Mandatory
+                          </label>
+
+                          {/* 3. DOUBLE-VERIFY CHECKBOX */}
                           <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: isRequired ? 'pointer' : 'not-allowed', fontSize: '0.875rem', opacity: isRequired ? 1 : 0.5 }}>
                             <input
                               type="checkbox"
