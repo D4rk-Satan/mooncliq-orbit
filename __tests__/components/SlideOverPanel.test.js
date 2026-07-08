@@ -21,38 +21,42 @@ describe('SlideOverPanel Workflow Engine Logic', () => {
   };
 
   test('renders both global and stage-specific transitions', () => {
-    render(<SlideOverPanel isOpen={true} lead={mockLead} blueprint={mockBlueprint} onClose={() => {}} onTransition={() => {}} />);
-    
+    render(<SlideOverPanel isOpen={true} lead={mockLead} blueprint={mockBlueprint} onClose={() => { }} onTransition={() => { }} />);
+
     expect(screen.getByText('Qualify Deal')).toBeInTheDocument();
     expect(screen.getByText('Move to Trash')).toBeInTheDocument();
   });
 
   test('clicking transition with missing required fields opens validation modal', () => {
-    render(<SlideOverPanel isOpen={true} lead={mockLead} blueprint={mockBlueprint} onClose={() => {}} onTransition={() => {}} />);
-    
+    render(<SlideOverPanel isOpen={true} lead={mockLead} blueprint={mockBlueprint} onClose={() => { }} onTransition={() => { }} />);
+
     // Click Qualify Deal (requires budget)
     fireEvent.click(screen.getByText('Qualify Deal'));
 
     // Should open modal asking for Budget
-    expect(screen.getByText('Missing Required Fields')).toBeInTheDocument();
-    expect(screen.getByText(/please fill out the required fields/i)).toBeInTheDocument();
+    expect(screen.getByText('Update Prompts')).toBeInTheDocument();
+    expect(screen.getByText(/please review and confirm the required data/i)).toBeInTheDocument();
   });
 
-  test('clicking transition with NO required fields executes immediately', () => {
+  test('clicking transition with NO required fields opens confirmation modal', () => {
     const mockOnTransition = jest.fn();
-    render(<SlideOverPanel isOpen={true} lead={mockLead} blueprint={mockBlueprint} onClose={() => {}} onTransition={mockOnTransition} />);
-    
+    render(<SlideOverPanel isOpen={true} lead={mockLead} blueprint={mockBlueprint} onClose={() => { }} onTransition={mockOnTransition} />);
+
     fireEvent.click(screen.getByText('Move to Trash'));
 
     expect(screen.queryByText('Missing Required Fields')).not.toBeInTheDocument();
-    expect(mockOnTransition).toHaveBeenCalledWith('lead1', 's3', {});
+    expect(screen.getByText('Are you sure?')).toBeInTheDocument();
+    
+    // Now click proceed
+    fireEvent.click(screen.getByText('Yes, Proceed'));
+    expect(mockOnTransition).toHaveBeenCalledWith('lead1', 's3', {}, 't2');
   });
 
   test('does NOT render transition if lead is in a stage not listed in fromStages', () => {
     // Lead is in 's4' but Qualify Deal is only from 's1'
     const wrongStageLead = { ...mockLead, stageId: 's4' };
-    const { rerender } = render(<SlideOverPanel isOpen={true} lead={wrongStageLead} blueprint={mockBlueprint} onClose={() => {}} onTransition={() => {}} />);
-    
+    const { rerender } = render(<SlideOverPanel isOpen={true} lead={wrongStageLead} blueprint={mockBlueprint} onClose={() => { }} onTransition={() => { }} />);
+
     // Custom transition should be hidden
     expect(screen.queryByText('Qualify Deal')).not.toBeInTheDocument();
     // Global transition should still be visible

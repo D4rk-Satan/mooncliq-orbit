@@ -896,6 +896,55 @@ export default function SettingsPage() {
                           setSelectedRule({ ...selectedRule, checklists: [...selectedRule.checklists, ""] });
                           setIsAddMenuOpen(false);
                         }} style={{ padding: '0.5rem', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', borderRadius: '4px' }} onMouseEnter={e => e.target.style.background = '#f8fafc'} onMouseLeave={e => e.target.style.background = 'transparent'}>Checklists</button>
+
+                        {/* New Add Field Button */}
+                        <div style={{ position: 'relative' }}>
+                          <button
+                            className="field-add-btn"
+                            style={{ padding: '0.5rem', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', borderRadius: '4px', width: '100%' }}
+                            onMouseEnter={e => e.target.style.background = '#f8fafc'}
+                            onMouseLeave={e => e.target.style.background = 'transparent'}
+                          >
+                            Field Requirements
+                          </button>
+                          {/* Dropdown for fields not yet added */}
+                          <div className="field-add-dropdown" style={{ display: 'none', position: 'absolute', top: 0, right: '100%', marginRight: '0.5rem', background: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', zIndex: 11, padding: '0.5rem', width: '200px', flexDirection: 'column', maxHeight: '250px', overflowY: 'auto' }}>
+                            {blueprint.fields.length === 0 ? (
+                              <div style={{ padding: '0.5rem', color: '#94a3b8', fontSize: '0.875rem' }}>No fields available</div>
+                            ) : (
+                              blueprint.fields.map(f => {
+                                const isChecked = (selectedRule.visibleFields || []).includes(f.name);
+                                return (
+                                  <label key={f.name} style={{
+                                    display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem',
+                                    cursor: 'pointer', borderRadius: '4px', transition: 'background 0.2s', margin: 0
+                                  }} onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                                    <input
+                                      type="checkbox"
+                                      checked={isChecked}
+                                      onChange={() => {
+                                        let newVisible = toggleArrayItem(selectedRule.visibleFields || [], f.name);
+                                        let newMandatory = selectedRule.requiredFields || [];
+                                        let newDoubleVerify = selectedRule.necessaryFields || [];
+                                        if (!newVisible.includes(f.name)) {
+                                          newMandatory = newMandatory.filter(n => n !== f.name);
+                                          newDoubleVerify = newDoubleVerify.filter(n => n !== f.name);
+                                        }
+                                        setSelectedRule({ ...selectedRule, visibleFields: newVisible, requiredFields: newMandatory, necessaryFields: newDoubleVerify });
+                                      }}
+                                    />
+                                    <span style={{ fontSize: '0.875rem' }}>{f.label}</span>
+                                  </label>
+                                );
+                              })
+                            )}
+                          </div>
+                        </div>
+                        <style>{`
+                          .field-add-btn:hover + .field-add-dropdown, .field-add-dropdown:hover {
+                            display: flex !important;
+                          }
+                        `}</style>
                       </div>
                     )}
                   </div>
@@ -930,72 +979,63 @@ export default function SettingsPage() {
                     </div>
                   )}
 
-                  <label className="form-label">Field Requirements (High-Friction Engine)</label>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.75rem' }}>
-                    {blueprint.fields.length === 0 ? <span style={{ color: '#94a3b8', fontSize: '0.875rem' }}>No fields exist.</span> : null}
-                    {blueprint.fields.map(field => {
-                      const isVisible = selectedRule.visibleFields?.includes(field.name) || false;
-                      const isRequired = selectedRule.requiredFields?.includes(field.name) || false;
-                      const isNecessary = selectedRule.necessaryFields?.includes(field.name) || false;
-                      return (
-                        <div key={field.id} style={{ display: 'flex', alignItems: 'center', gap: '2rem', background: '#f8fafc', padding: '0.75rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                          <div style={{ width: '150px', fontWeight: 500 }}>{field.label}</div>
+                  {(selectedRule.visibleFields || []).length > 0 && (
+                    <div style={{ marginBottom: '1.5rem' }}>
+                      <label className="form-label">Field Requirements (High-Friction Engine)</label>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.75rem' }}>
+                        {(selectedRule.visibleFields || []).map(fieldName => {
+                          const field = blueprint.fields.find(f => f.name === fieldName);
+                          if (!field) return null;
+                          const isRequired = selectedRule.requiredFields?.includes(field.name) || false;
+                          const isNecessary = selectedRule.necessaryFields?.includes(field.name) || false;
+                          return (
+                            <div key={field.id} style={{ display: 'flex', alignItems: 'center', gap: '2rem', background: '#f8fafc', padding: '0.75rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                              <div style={{ width: '150px', fontWeight: 500 }}>{field.label}</div>
 
-                          {/* 1. VISIBLE CHECKBOX */}
-                          <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer' }}>
-                            <input
-                              type="checkbox"
-                              checked={isVisible}
-                              onChange={(e) => {
-                                let newVisible = toggleArrayItem(selectedRule.visibleFields || [], field.name);
-                                let newMandatory = selectedRule.requiredFields;
-                                let newDoubleVerify = selectedRule.necessaryFields;
+                              <span style={{ fontSize: '0.875rem', color: '#64748b' }}>Always Visible</span>
 
-                                // If unchecking Visible, force uncheck Mandatory & DoubleVerify
-                                if (!newVisible.includes(field.name)) {
-                                  newMandatory = newMandatory.filter(n => n !== field.name);
-                                  newDoubleVerify = newDoubleVerify.filter(n => n !== field.name);
-                                }
+                              {/* 2. MANDATORY CHECKBOX */}
+                              <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer' }}>
+                                <input
+                                  type="checkbox"
+                                  checked={isRequired}
+                                  onChange={() => {
+                                    let newMandatory = toggleArrayItem(selectedRule.requiredFields, field.name);
+                                    let newDoubleVerify = selectedRule.necessaryFields;
+
+                                    // If unchecking Mandatory, force uncheck DoubleVerify
+                                    if (!newMandatory.includes(field.name)) {
+                                      newDoubleVerify = newDoubleVerify.filter(n => n !== field.name);
+                                    }
+                                    setSelectedRule({ ...selectedRule, requiredFields: newMandatory, necessaryFields: newDoubleVerify });
+                                  }}
+                                />
+                                Mandatory
+                              </label>
+
+                              {/* 3. DOUBLE-VERIFY CHECKBOX */}
+                              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: isRequired ? 'pointer' : 'not-allowed', fontSize: '0.875rem', opacity: isRequired ? 1 : 0.5 }}>
+                                <input
+                                  type="checkbox"
+                                  disabled={!isRequired}
+                                  checked={isNecessary}
+                                  onChange={() => setSelectedRule({ ...selectedRule, necessaryFields: toggleArrayItem(selectedRule.necessaryFields, field.name) })}
+                                />
+                                Double-Verify
+                              </label>
+
+                              <button onClick={() => {
+                                let newVisible = (selectedRule.visibleFields || []).filter(n => n !== field.name);
+                                let newMandatory = (selectedRule.requiredFields || []).filter(n => n !== field.name);
+                                let newDoubleVerify = (selectedRule.necessaryFields || []).filter(n => n !== field.name);
                                 setSelectedRule({ ...selectedRule, visibleFields: newVisible, requiredFields: newMandatory, necessaryFields: newDoubleVerify });
-                              }}
-                            />
-                            Visible on Transition
-                          </label>
-
-                          {/* 2. MANDATORY CHECKBOX */}
-                          <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: isVisible ? 'pointer' : 'not-allowed', opacity: isVisible ? 1 : 0.5 }}>
-                            <input
-                              type="checkbox"
-                              disabled={!isVisible}
-                              checked={isRequired}
-                              onChange={() => {
-                                let newMandatory = toggleArrayItem(selectedRule.requiredFields, field.name);
-                                let newDoubleVerify = selectedRule.necessaryFields;
-
-                                // If unchecking Mandatory, force uncheck DoubleVerify
-                                if (!newMandatory.includes(field.name)) {
-                                  newDoubleVerify = newDoubleVerify.filter(n => n !== field.name);
-                                }
-                                setSelectedRule({ ...selectedRule, requiredFields: newMandatory, necessaryFields: newDoubleVerify });
-                              }}
-                            />
-                            Mandatory
-                          </label>
-
-                          {/* 3. DOUBLE-VERIFY CHECKBOX */}
-                          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: isRequired ? 'pointer' : 'not-allowed', fontSize: '0.875rem', opacity: isRequired ? 1 : 0.5 }}>
-                            <input
-                              type="checkbox"
-                              disabled={!isRequired}
-                              checked={isNecessary}
-                              onChange={() => setSelectedRule({ ...selectedRule, necessaryFields: toggleArrayItem(selectedRule.necessaryFields, field.name) })}
-                            />
-                            Double-Verify
-                          </label>
-                        </div>
-                      );
-                    })}
-                  </div>
+                              }} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '1.25rem' }}>✕</button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 

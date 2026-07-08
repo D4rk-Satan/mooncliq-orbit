@@ -82,7 +82,19 @@ describe('SlideOverPanel (Friction & Validation Logic)', () => {
     const transitionBtn = screen.getByText('Move to Contacted');
     fireEvent.click(transitionBtn);
 
-    expect(onTransitionMock).toHaveBeenCalledWith('lead-1', 'stage-2', undefined, 'rule-1');
+    // Should open the modal (either for missing fields or confirmation)
+    expect(screen.getByText('Update Prompts')).toBeInTheDocument();
+    
+    // Now click proceed (Save & Continue)
+    fireEvent.click(screen.getByText('Save & Continue'));
+    
+    // It should now open the final confirmation modal
+    expect(screen.getByText('Are you sure?')).toBeInTheDocument();
+
+    // Now click Yes, Proceed
+    fireEvent.click(screen.getByText('Yes, Proceed'));
+
+    expect(onTransitionMock).toHaveBeenCalledWith('lead-1', 'stage-2', {}, 'rule-1');
   });
 
   test('Opens SlideOverPanel if rule is triggered but needs user interaction (Show on Transition)', () => {
@@ -206,5 +218,147 @@ describe('SlideOverPanel (Friction & Validation Logic)', () => {
 
     // Should transition
     expect(onTransitionMock).toHaveBeenCalledWith('lead-1', 'stage-2', expect.objectContaining({ email: 'test@example.com' }), 'rule-full');
+  });
+
+  // EDGE CASE 1: Transition with no field rules should just show confirmation modal
+  test('Empty transition triggers confirmation modal immediately', () => {
+    const blueprintNoRules = {
+      ...mockBlueprint,
+      transitions: [{
+        id: 'rule-empty',
+        name: 'Empty Rule',
+        fromStages: [{ id: 'stage-1' }],
+        toStageId: 'stage-2',
+        isGlobal: false,
+        visibleFields: [],
+        requiredFields: [],
+        necessaryFields: []
+      }]
+    };
+
+    render(
+      <SlideOverPanel 
+        isOpen={true} 
+        lead={mockLead} 
+        blueprint={blueprintNoRules} 
+        onTransition={onTransitionMock}
+      />
+    );
+
+    const transitionBtn = screen.getByText('Empty Rule');
+    fireEvent.click(transitionBtn);
+
+    // Should show confirm mode immediately
+    expect(screen.getByText('Are you sure?')).toBeInTheDocument();
+    expect(screen.getByText(/You are about to execute/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Yes, Proceed'));
+    expect(onTransitionMock).toHaveBeenCalledWith('lead-1', 'stage-2', {}, 'rule-empty');
+  });
+
+  // EDGE CASE 2: Transition with a custom message in the confirmation modal
+  test('Shows custom message in confirmation modal', () => {
+    const blueprintCustomMessage = {
+      ...mockBlueprint,
+      transitions: [{
+        id: 'rule-custom-msg',
+        name: 'Special Transition',
+        fromStages: [{ id: 'stage-1' }],
+        toStageId: 'stage-2',
+        isGlobal: false,
+        visibleFields: [],
+        requiredFields: [],
+        necessaryFields: [],
+        customMessage: 'Did you check the VIP status?',
+        hasCustomMessage: true
+      }]
+    };
+
+    render(
+      <SlideOverPanel 
+        isOpen={true} 
+        lead={mockLead} 
+        blueprint={blueprintCustomMessage} 
+        onTransition={onTransitionMock}
+      />
+    );
+
+    const transitionBtn = screen.getByText('Special Transition');
+    fireEvent.click(transitionBtn);
+
+    // Because there are no visible fields, it skips "missing" mode. 
+    // It should go straight to "confirm" mode.
+    expect(screen.getByText('Are you sure?')).toBeInTheDocument();
+    expect(screen.getByText('Did you check the VIP status?')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Yes, Proceed'));
+    expect(onTransitionMock).toHaveBeenCalledWith('lead-1', 'stage-2', {}, 'rule-custom-msg');
+  });
+
+  // EDGE CASE 3: Security check fails when necessary data does not match the original lead data
+  test('Blocks transition if Double-Verify (security check) fails', () => {
+    const blueprintSecurity = {
+      ...mockBlueprint,
+      transitions: [{
+        id: 'rule-security',
+        name: 'Secure Transition',
+        fromStages: [{ id: 'stage-1' }],
+        toStageId: 'stage-2',
+        isGlobal: false,
+        visibleFields: ['email'],
+        requiredFields: ['email'],
+        necessaryFields: ['email'] // requires double verify
+      }]
+    };
+
+    // Original lead has specific data
+    const secureLead = {
+      ...mockLead,
+      email: 'original@example.com'
+    };
+
+    render(
+      <SlideOverPanel 
+        isOpen={true} 
+        lead={secureLead} 
+        blueprint={blueprintSecurity} 
+        onTransition={onTransitionMock}
+      />
+    );
+
+    const transitionBtn = screen.getByText('Secure Transition');
+    fireEvent.click(transitionBtn);
+
+    // 1. Missing Mode
+    let input = screen.getByLabelText('Email');
+    fireEvent.change(input, { target: { value: 'original@example.com' } });
+    fireEvent.click(screen.getByText('Save & Continue'));
+
+    // 2. Security Mode
+    expect(screen.getByText('Security Checkpoint', { exact: false })).toBeInTheDocument();
+    
+    // Type WRONG email in the security checkpoint
+    input = screen.getByLabelText('Email');
+    fireEvent.change(input, { target: { value: 'wrong@example.com' } });
+    
+    const alertMock = jest.spyOn(window, 'alert').mockImplementation(() => {});
+    
+    fireEvent.click(screen.getByText('Verify'));
+    
+    // It should block transition
+    expect(screen.getByText('Verification Failed: The value entered does not match the saved data.')).toBeInTheDocument();
+    expect(onTransitionMock).not.toHaveBeenCalled();
+
+    // Now type correct email
+    fireEvent.change(input, { target: { value: 'original@example.com' } });
+    fireEvent.click(screen.getByText('Verify'));
+
+    // Should proceed to confirm
+    expect(screen.getByText('Are you sure?')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Yes, Proceed'));
+
+    expect(onTransitionMock).toHaveBeenCalledWith('lead-1', 'stage-2', expect.objectContaining({ email: 'original@example.com' }), 'rule-security');
+
+    alertMock.mockRestore();
   });
 });

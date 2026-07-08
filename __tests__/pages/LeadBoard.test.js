@@ -1,6 +1,16 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import LeadModule from '../../src/app/lead/page';
 
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({ push: jest.fn() }),
+  usePathname: () => '/'
+}));
+
+jest.mock('aws-amplify/auth', () => ({
+  getCurrentUser: jest.fn().mockResolvedValue({ username: 'testuser' }),
+  fetchAuthSession: jest.fn().mockResolvedValue({ tokens: { idToken: { toString: () => 'token' } } })
+}));
+
 describe('LeadBoard Kanban Drag & Drop Engine', () => {
   const mockBlueprint = {
     stages: [
@@ -80,11 +90,10 @@ describe('LeadBoard Kanban Drag & Drop Engine', () => {
     // Simulate drop onto Negotiation (valid transition, but missing budget)
     fireEvent.drop(negColumn, { dataTransfer: mockDataTransfer });
 
-    // Should alert about missing fields
-    expect(window.alert).toHaveBeenCalledWith(expect.stringContaining('To move this lead, you must provide: budget'));
-    
-    // The Slide-Over panel should open (we can check if Qualify button is visible or "John Doe" is in a header)
-    // Since SlideOverPanel opens for selectedLead, 'Qualify' button should render
-    expect(screen.getByText('Qualify')).toBeInTheDocument();
+    // The Slide-Over panel should open and since it enforces confirmation, we should see the missing fields or confirm modal
+    // However, wait for it
+    await waitFor(() => {
+      expect(screen.getByText('Update Prompts')).toBeInTheDocument();
+    });
   });
 });

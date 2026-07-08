@@ -16,6 +16,7 @@ export default function LeadModule() {
   const [viewMode, setViewMode] = useState("kanban"); // "kanban" or "list"
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState(null);
+  const [pendingTransition, setPendingTransition] = useState(null);
 
   // Bulk Actions State
   const [selectedLeadIds, setSelectedLeadIds] = useState([]);
@@ -110,19 +111,9 @@ export default function LeadModule() {
       return;
     }
 
-    // 2. Check required fields
-    const missingFields = validTransition.requiredFields.filter(fieldName => {
-      const val = lead.customData?.[fieldName];
-      return val === undefined || val === null || val === "";
-    });
-
-    if (missingFields.length > 0) {
-      setSelectedLead(lead); // Open the side panel for them
-      return;
-    }
-
-    // 3. Perform the transition
-    handleTransition(lead.id, targetStageId, lead.customData, validTransition.id);
+    // 2. Open panel to enforce confirmation for all transitions
+    setPendingTransition(validTransition);
+    setSelectedLead(lead);
   };
 
   const handleTransition = async (leadId, toStageId, updatedCustomData, transitionId) => {
@@ -479,12 +470,16 @@ export default function LeadModule() {
 
       <SlideOverPanel
         isOpen={!!selectedLead}
-        onClose={() => setSelectedLead(null)}
+        onClose={() => {
+          setSelectedLead(null);
+          setPendingTransition(null);
+        }}
         lead={selectedLead}
         blueprint={blueprint}
         tags={tags}
         onTransition={handleTransition}
         onLeadUpdate={handleLeadUpdate}
+        pendingTransition={pendingTransition}
       />
 
       {/* FLOATING BULK ACTION BAR */}

@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import DynamicField from "./FieldRegistry";
 import { evaluateExecutionCriteria } from "../utils/ruleEngine";
 
-export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags = [], onTransition, onLeadUpdate }) {
+export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags = [], onTransition, onLeadUpdate, pendingTransition }) {
   const [modalMode, setModalMode] = useState(null); // null | 'missing' | 'security' | 'confirm'
   const [activeTransition, setActiveTransition] = useState(null);
   const [formData, setFormData] = useState({});
@@ -21,6 +21,7 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
     } else {
       document.body.style.overflow = "auto";
       setModalMode(null);
+      setActiveTransition(null);
     }
 
     if (lead) {
@@ -31,6 +32,12 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
       }
     }
   }, [isOpen, lead]);
+
+  useEffect(() => {
+    if (isOpen && lead && pendingTransition && pendingTransition.id !== activeTransition?.id) {
+      handleTransitionClick(pendingTransition);
+    }
+  }, [isOpen, lead, pendingTransition]);
 
   if (!isOpen || !lead || !blueprint) return null;
 
@@ -64,9 +71,11 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
 
     const requiredFields = transition.requiredFields || [];
     const necessaryFields = transition.necessaryFields || [];
+    const visibleFields = transition.visibleFields || [];
     const checklists = transition.checklists || [];
+    const customMessage = transition.customMessage;
 
-    if (requiredFields.length > 0 || checklists.length > 0) {
+    if (requiredFields.length > 0 || visibleFields.length > 0 || checklists.length > 0) {
       setModalMode('missing');
       return;
     }
@@ -76,12 +85,7 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
       return;
     }
 
-    if (requiredFields.length > 0) {
-      setModalMode('confirm');
-      return;
-    }
-
-    executeTransition(transition, lead.customData);
+    setModalMode('confirm');
   };
 
   const handleMissingSubmit = (e) => {
