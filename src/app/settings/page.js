@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Sidebar from "../../components/Sidebar";
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 
@@ -21,6 +21,19 @@ export default function SettingsPage() {
   const [selectedRule, setSelectedRule] = useState(null);
   const [activeRuleTab, setActiveRuleTab] = useState('before');
   const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
+  const [isFieldMenuOpen, setIsFieldMenuOpen] = useState(false);
+  const addMenuRef = useRef(null);
+  
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (addMenuRef.current && !addMenuRef.current.contains(event.target)) {
+        setIsAddMenuOpen(false);
+        setIsFieldMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
   const [tagBuilder, setTagBuilder] = useState({ isOpen: false, name: '', color: '#ef4444' });
   const [fieldUpdateBuilder, setFieldUpdateBuilder] = useState({ isOpen: false, field: '', value: '' });
   const tagColors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#0ea5e9', '#8b5cf6', '#ec4899', '#64748b', '#84cc16'];
@@ -882,8 +895,8 @@ export default function SettingsPage() {
 
               {activeRuleTab === 'during' && (
                 <div>
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1.5rem', position: 'relative' }}>
-                    <button onClick={() => setIsAddMenuOpen(!isAddMenuOpen)} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1.5rem', position: 'relative' }} ref={addMenuRef}>
+                    <button onClick={() => { setIsAddMenuOpen(!isAddMenuOpen); setIsFieldMenuOpen(false); }} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <span>+</span> Add
                     </button>
                     {isAddMenuOpen && (
@@ -891,60 +904,59 @@ export default function SettingsPage() {
                         <button onClick={() => {
                           if (!selectedRule.hasCustomMessage) setSelectedRule({ ...selectedRule, hasCustomMessage: true });
                           setIsAddMenuOpen(false);
+                          setIsFieldMenuOpen(false);
                         }} style={{ padding: '0.5rem', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', borderRadius: '4px' }} onMouseEnter={e => e.target.style.background = '#f8fafc'} onMouseLeave={e => e.target.style.background = 'transparent'}>Message</button>
                         <button onClick={() => {
                           setSelectedRule({ ...selectedRule, checklists: [...selectedRule.checklists, ""] });
                           setIsAddMenuOpen(false);
+                          setIsFieldMenuOpen(false);
                         }} style={{ padding: '0.5rem', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', borderRadius: '4px' }} onMouseEnter={e => e.target.style.background = '#f8fafc'} onMouseLeave={e => e.target.style.background = 'transparent'}>Checklists</button>
 
                         {/* New Add Field Button */}
                         <div style={{ position: 'relative' }}>
                           <button
-                            className="field-add-btn"
-                            style={{ padding: '0.5rem', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', borderRadius: '4px', width: '100%' }}
+                            onClick={() => setIsFieldMenuOpen(!isFieldMenuOpen)}
+                            style={{ padding: '0.5rem', textAlign: 'left', background: isFieldMenuOpen ? '#f8fafc' : 'none', border: 'none', cursor: 'pointer', borderRadius: '4px', width: '100%' }}
                             onMouseEnter={e => e.target.style.background = '#f8fafc'}
-                            onMouseLeave={e => e.target.style.background = 'transparent'}
+                            onMouseLeave={e => e.target.style.background = isFieldMenuOpen ? '#f8fafc' : 'transparent'}
                           >
                             Field Requirements
                           </button>
                           {/* Dropdown for fields not yet added */}
-                          <div className="field-add-dropdown" style={{ display: 'none', position: 'absolute', top: 0, right: '100%', marginRight: '0.5rem', background: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', zIndex: 11, padding: '0.5rem', width: '200px', flexDirection: 'column', maxHeight: '250px', overflowY: 'auto' }}>
-                            {blueprint.fields.length === 0 ? (
-                              <div style={{ padding: '0.5rem', color: '#94a3b8', fontSize: '0.875rem' }}>No fields available</div>
-                            ) : (
-                              blueprint.fields.map(f => {
-                                const isChecked = (selectedRule.visibleFields || []).includes(f.name);
-                                return (
-                                  <label key={f.name} style={{
-                                    display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem',
-                                    cursor: 'pointer', borderRadius: '4px', transition: 'background 0.2s', margin: 0
-                                  }} onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                                    <input
-                                      type="checkbox"
-                                      checked={isChecked}
-                                      onChange={() => {
-                                        let newVisible = toggleArrayItem(selectedRule.visibleFields || [], f.name);
-                                        let newMandatory = selectedRule.requiredFields || [];
-                                        let newDoubleVerify = selectedRule.necessaryFields || [];
-                                        if (!newVisible.includes(f.name)) {
-                                          newMandatory = newMandatory.filter(n => n !== f.name);
-                                          newDoubleVerify = newDoubleVerify.filter(n => n !== f.name);
-                                        }
-                                        setSelectedRule({ ...selectedRule, visibleFields: newVisible, requiredFields: newMandatory, necessaryFields: newDoubleVerify });
-                                      }}
-                                    />
-                                    <span style={{ fontSize: '0.875rem' }}>{f.label}</span>
-                                  </label>
-                                );
-                              })
-                            )}
-                          </div>
+                          {isFieldMenuOpen && (
+                            <div style={{ position: 'absolute', top: 0, right: '100%', marginRight: '0.5rem', background: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', zIndex: 11, padding: '0.5rem', width: '200px', display: 'flex', flexDirection: 'column', maxHeight: '250px', overflowY: 'auto' }}>
+                              {blueprint.fields.length === 0 ? (
+                                <div style={{ padding: '0.5rem', color: '#94a3b8', fontSize: '0.875rem' }}>No fields available</div>
+                              ) : (
+                                blueprint.fields.map(f => {
+                                  const isChecked = (selectedRule.visibleFields || []).includes(f.name);
+                                  return (
+                                    <label key={f.name} style={{
+                                      display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem',
+                                      cursor: 'pointer', borderRadius: '4px', transition: 'background 0.2s', margin: 0
+                                    }} onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                                      <input
+                                        type="checkbox"
+                                        checked={isChecked}
+                                        onChange={() => {
+                                          let newVisible = toggleArrayItem(selectedRule.visibleFields || [], f.name);
+                                          let newMandatory = selectedRule.requiredFields || [];
+                                          let newDoubleVerify = selectedRule.necessaryFields || [];
+                                          if (!newVisible.includes(f.name)) {
+                                            newMandatory = newMandatory.filter(n => n !== f.name);
+                                            newDoubleVerify = newDoubleVerify.filter(n => n !== f.name);
+                                          }
+                                          setSelectedRule({ ...selectedRule, visibleFields: newVisible, requiredFields: newMandatory, necessaryFields: newDoubleVerify });
+                                        }}
+                                      />
+                                      <span style={{ userSelect: 'none' }}>{f.label}</span>
+                                    </label>
+                                  );
+                                })
+                              )}
+                            </div>
+                          )}
                         </div>
-                        <style>{`
-                          .field-add-btn:hover + .field-add-dropdown, .field-add-dropdown:hover {
-                            display: flex !important;
-                          }
-                        `}</style>
                       </div>
                     )}
                   </div>
