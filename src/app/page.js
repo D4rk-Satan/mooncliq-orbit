@@ -22,7 +22,7 @@ export default function Home() {
       <section className="hero-section">
         <h1 className="hero-title">Close Deals Faster,<br />Manage Leads Smarter</h1>
         <p className="hero-subtitle">The ultimate CRM to track pipelines, organize contacts, and drive revenue — powered by the Blueprint Engine.</p>
-        <Link href="/sign-up" className="btn-dark" style={{ fontSize: '1.1rem', padding: '1rem 2rem' }}>
+        <Link href="/sign-up" className="btn-dark" style={{ fontSize: '1.1rem', padding: '1rem 2rem', marginTop: '1.5rem', marginBottom: '1.5rem' }}>
           Get started for Free ➔
         </Link>
       </section>
@@ -33,10 +33,10 @@ export default function Home() {
         <div className="carousel-card card-1"><img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=400" alt="Team member" /></div>
         <div className="carousel-card card-2"><img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=400" alt="Team member" /></div>
         <div className="carousel-card card-3"><img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=400" alt="Team member" /></div>
-        
+
         {/* Center Card */}
         <div className="carousel-card card-4"><img src="https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&q=80&w=400" alt="Team member" /></div>
-        
+
         <div className="carousel-card card-5"><img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=400" alt="Team member" /></div>
         <div className="carousel-card card-6"><img src="https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&q=80&w=400" alt="Team member" /></div>
         <div className="carousel-card card-7"><img src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&q=80&w=400" alt="Team member" /></div>
@@ -88,17 +88,17 @@ export default function Home() {
             <h3>Visual Kanban Boards</h3>
             <p>Drag-and-drop your leads through custom stages instantly.</p>
           </div>
-          
+
           <div className="bento-card bento-assignment">
             <h3>Strict Data Governance</h3>
             <p>Ensure your team collects the right data before advancing a lead.</p>
           </div>
-          
+
           <div className="bento-card bento-scheduling">
             <h3>Custom Lead Fields</h3>
             <p>Capture the unique data that matters to your business.</p>
           </div>
-          
+
           <div className="bento-card bento-tracking">
             <h3>Audit Logs & History</h3>
             <p>Track exactly who moved what lead, and when, for total accountability.</p>
