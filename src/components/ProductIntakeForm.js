@@ -3,18 +3,14 @@
 import React, { useEffect, useState } from "react";
 import DynamicField from "./FieldRegistry";
 
-export default function LeadIntakeForm({ isOpen, onClose, onSave }) {
+export default function ProductIntakeForm({ isOpen, onClose, onSave }) {
   const [blueprint, setBlueprint] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Standard fields
   const [standardData, setStandardData] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    phone: "",
-    owner: "",
-    stageId: "" // We will set this based on the first stage
+    name: "",
+    sku: ""
   });
 
   // Dynamic fields
@@ -39,14 +35,11 @@ export default function LeadIntakeForm({ isOpen, onClose, onSave }) {
     setIsLoading(true);
     try {
       const token = await getAuthToken();
-      const res = await fetch('/api/blueprint?moduleType=Lead', {
+      const res = await fetch('/api/blueprint?moduleType=Product', {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
       setBlueprint(data);
-      if (data.stages && data.stages.length > 0) {
-        setStandardData(prev => ({ ...prev, stageId: data.stages[0].id })); // Default to first stage
-      }
     } catch (err) {
       console.error("Failed to load blueprint", err);
     } finally {
@@ -90,7 +83,7 @@ export default function LeadIntakeForm({ isOpen, onClose, onSave }) {
       blueprintId: blueprint?.id
     });
     // Reset
-    setStandardData({ firstName: "", lastName: "", email: "", phone: "", owner: "", stageId: blueprint?.stages?.[0]?.id || "" });
+    setStandardData({ name: "", sku: "" });
     setCustomData({});
     onClose();
   };
@@ -109,8 +102,8 @@ export default function LeadIntakeForm({ isOpen, onClose, onSave }) {
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
             <div className="slide-header" style={{ flexShrink: 0, backgroundColor: 'var(--card-bg)', zIndex: 10 }}>
               <div>
-                <span className="slide-eyebrow">NEW {blueprint?.moduleType?.toUpperCase() || 'LEAD'}</span>
-                <h2 className="slide-title">{blueprint?.name || 'Lead Intake Form'}</h2>
+                <span className="slide-eyebrow">NEW {blueprint?.moduleType?.toUpperCase() || 'PRODUCT'}</span>
+                <h2 className="slide-title">{blueprint?.name || 'Product Intake Form'}</h2>
               </div>
               <button type="button" className="btn-close" onClick={onClose}>✕</button>
             </div>
@@ -120,34 +113,12 @@ export default function LeadIntakeForm({ isOpen, onClose, onSave }) {
                 <h3 className="section-heading">Standard Information</h3>
                 <div className="data-grid-2col form-group-grid">
                   <div className="form-group">
-                    <label className="form-label">First Name *</label>
-                    <input required type="text" name="firstName" value={standardData.firstName} onChange={handleStandardChange} className="form-input" placeholder="e.g. John" />
+                    <label className="form-label">Product Name *</label>
+                    <input required type="text" name="name" value={standardData.name} onChange={handleStandardChange} className="form-input" placeholder="e.g. Enterprise License" />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Last Name *</label>
-                    <input required type="text" name="lastName" value={standardData.lastName} onChange={handleStandardChange} className="form-input" placeholder="e.g. Doe" />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Email Address</label>
-                    <input type="email" name="email" value={standardData.email} onChange={handleStandardChange} className="form-input" placeholder="e.g. john@example.com" />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Phone Number</label>
-                    <input type="tel" name="phone" value={standardData.phone} onChange={handleStandardChange} className="form-input" placeholder="e.g. +1 234 567 890" />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Lead Owner</label>
-                    <input type="text" name="owner" value={standardData.owner} onChange={handleStandardChange} className="form-input" placeholder="e.g. Jane Smith" />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                      Initial Stage 🔒
-                    </label>
-                    <select disabled name="stageId" value={standardData.stageId} className="form-input" style={{ backgroundColor: '#f1f5f9', color: '#64748b', cursor: 'not-allowed' }}>
-                      {blueprint?.stages?.map(stage => (
-                        <option key={stage.id} value={stage.id}>{stage.name}</option>
-                      ))}
-                    </select>
+                    <label className="form-label">SKU *</label>
+                    <input required type="text" name="sku" value={standardData.sku} onChange={handleStandardChange} className="form-input" placeholder="e.g. ENT-001" />
                   </div>
                 </div>
               </div>
@@ -171,7 +142,7 @@ export default function LeadIntakeForm({ isOpen, onClose, onSave }) {
 
             <div className="slide-footer" style={{ borderTop: '1px solid #e2e8f0', flexShrink: 0, backgroundColor: 'var(--card-bg)', zIndex: 10 }}>
               <button type="button" className="btn-outline" onClick={onClose}>Cancel</button>
-              <button type="submit" className="btn-primary" style={{ marginLeft: 'auto' }}>Save Lead</button>
+              <button type="submit" className="btn-primary" style={{ marginLeft: 'auto' }}>Save Product</button>
             </div>
           </form>
         )}

@@ -3,7 +3,7 @@ import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
 
 const prismaClientSingleton = () => {
-  const pool = new Pool({ 
+  const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false }
   });
@@ -11,10 +11,9 @@ const prismaClientSingleton = () => {
   return new PrismaClient({ adapter });
 };
 
-const prisma = prismaClientSingleton();
+const prisma = globalThis.prismaGlobal ?? prismaClientSingleton();
 
 if (process.env.NODE_ENV !== 'production') {
-  // Clear the old cache and set the new one
   globalThis.prismaGlobal = prisma;
 }
 

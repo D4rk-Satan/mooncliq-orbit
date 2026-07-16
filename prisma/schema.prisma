@@ -19,15 +19,41 @@ model Organization {
   leads      Lead[]
   auditLogs  AuditLog[]
   tags       Tag[]
+  accounts   Account[]
+  products   Product[]
+  tasks      Task[]
+  profiles   Profile[]
+}
+
+// ------------------------------------------------------------------
+// PHASE 0.5: RBAC (Role-Based Access Control)
+// ------------------------------------------------------------------
+model Profile {
+  id             String       @id @default(uuid())
+  organizationId String
+  name           String       // e.g. "Admin", "Sales Rep"
+  
+  // High-Level Toggles
+  canAccessSettings Boolean   @default(false)
+  canManageUsers    Boolean   @default(false)
+  canExportData     Boolean   @default(false)
+
+  // Module Level Permissions
+  permissions       Json      // e.g. { "Lead": { read: true, create: true, update: true, delete: false } }
+  
+  organization      Organization @relation(fields: [organizationId], references: [id])
+  users             User[]
 }
 
 model User {
-  id             String       @id // This will be the AWS Cognito User ID
+  id             String       @id // AWS Cognito User ID
   email          String       @unique
   organizationId String
+  profileId      String?
   createdAt      DateTime     @default(now())
   
   organization   Organization @relation(fields: [organizationId], references: [id])
+  profile        Profile?     @relation(fields: [profileId], references: [id])
 }
 
 // ------------------------------------------------------------------
@@ -44,6 +70,9 @@ model Blueprint {
   transitions    Transition[]
   fields         Field[]
   leads          Lead[]
+  accounts       Account[]
+  products       Product[]
+  tasks          Task[]
   
   organization   Organization @relation(fields: [organizationId], references: [id])
   
@@ -60,22 +89,32 @@ model Stage {
   
   blueprint      Blueprint @relation(fields: [blueprintId], references: [id])
   leads          Lead[]
+  accounts       Account[]
+  products       Product[]
+  tasks          Task[]
   
   outgoingTransitions Transition[] @relation("FromStages")
   incomingTransitions Transition[] @relation("ToStage")
 }
 
 model Field {
-  id          String    @id @default(uuid())
-  blueprintId String
-  name        String    // JSON key, e.g., "industry"
-  label       String    // Display name, e.g., "Industry"
-  type        String    // "text", "number", "select", "currency"
-  options     String[]  // Dropdown options
-  isRequired  Boolean   @default(false)
-  orderIndex  Int
+  id              String    @id @default(uuid())
+  blueprintId     String
+  name            String    // JSON key, e.g., "industry"
+  label           String    // Display name, e.g., "Industry"
+  type            String    // "text", "number", "select", "currency", "lookup"
+  options         String[]  // Dropdown options
+  isRequired      Boolean   @default(false)
+  orderIndex      Int
   
-  blueprint   Blueprint @relation(fields: [blueprintId], references: [id])
+  // Lookup specific fields
+  targetModule    String?
+  targetDisplayField String?
+  isMultiSelect   Boolean   @default(false)
+  isBiDirectional Boolean   @default(false)
+  mappings        Json?
+  
+  blueprint       Blueprint @relation(fields: [blueprintId], references: [id])
 }
 
 model Transition {
@@ -150,4 +189,79 @@ model Tag {
 
   organization   Organization @relation(fields: [organizationId], references: [id])
   leads          Lead[]
+}
+
+model Account {
+  id             String    @id @default(uuid())
+  organizationId String
+  blueprintId    String
+  stageId        String
+  
+  // Default/Standard Fields
+  companyName    String
+  email          String?
+  gstNo          String?
+  website        String?
+  address        String?
+  contactPerson  String?
+  
+  // Dynamic payload for custom fields
+  customData     Json      @default("{}")
+  
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relations
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  blueprint      Blueprint    @relation(fields: [blueprintId], references: [id])
+  stage          Stage        @relation(fields: [stageId], references: [id])
+}
+
+model Product {
+  id             String    @id @default(uuid())
+  organizationId String
+  blueprintId    String
+  stageId        String
+  
+  // Default/Standard Fields
+  name           String
+  sku            String
+  
+  // Dynamic payload for custom fields
+  customData     Json      @default("{}")
+  
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relations
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  blueprint      Blueprint    @relation(fields: [blueprintId], references: [id])
+  stage          Stage        @relation(fields: [stageId], references: [id])
+}
+
+model Task {
+  id             String    @id @default(uuid())
+  organizationId String
+  blueprintId    String
+  stageId        String
+  
+  // Default/Standard Fields
+  taskName       String
+  startDateTime  DateTime?
+  dueDateTime    DateTime?
+  endDateTime    DateTime?
+  repeat         String?
+  alert          String?
+  notes          String?
+  
+  // Dynamic payload for custom fields
+  customData     Json      @default("{}")
+  
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relations
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  blueprint      Blueprint    @relation(fields: [blueprintId], references: [id])
+  stage          Stage        @relation(fields: [stageId], references: [id])
 }

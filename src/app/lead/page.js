@@ -12,6 +12,7 @@ export default function LeadModule() {
   const [leads, setLeads] = useState([]);
   const [blueprint, setBlueprint] = useState(null);
   const [tags, setTags] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [viewMode, setViewMode] = useState("kanban"); // "kanban" or "list"
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -50,6 +51,11 @@ export default function LeadModule() {
       const token = await getAuthToken();
       const headers = { Authorization: `Bearer ${token}` };
 
+      // Fetch User Profile
+      const meRes = await fetch('/api/me', { headers });
+      const meData = await meRes.json();
+      setCurrentUser(meData);
+
       // Fetch Blueprint to get the dynamic stages
       const bpRes = await fetch('/api/blueprint?moduleType=Lead', { headers });
       const bpData = await bpRes.json();
@@ -57,8 +63,12 @@ export default function LeadModule() {
 
       // Fetch actual leads
       const leadsRes = await fetch('/api/leads', { headers });
-      const leadsData = await leadsRes.json();
-      setLeads(leadsData);
+      if (leadsRes.ok) {
+        const leadsData = await leadsRes.json();
+        setLeads(leadsData);
+      } else {
+        setLeads([]);
+      }
 
       // Fetch organization tags
       const tagsRes = await fetch('/api/tags?moduleType=Lead', { headers });
@@ -236,9 +246,11 @@ export default function LeadModule() {
         </div>
         <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#1e293b', marginBottom: '0.5rem' }}>There are no records in this view.</h3>
         <p className="text-muted" style={{ marginBottom: '1.5rem', color: '#64748b' }}>Get started by creating your first lead in the pipeline.</p>
-        <button className="btn-primary" onClick={() => setIsFormOpen(true)}>
-          + Add First Lead
-        </button>
+        {(currentUser?.profile?.canAccessSettings || currentUser?.profile?.permissions?.Lead?.create) && (
+          <button className="btn-primary" onClick={() => setIsFormOpen(true)}>
+            + Add First Lead
+          </button>
+        )}
       </div>
     </div>
   );
@@ -442,9 +454,11 @@ export default function LeadModule() {
                   List
                 </button>
               </div>
-              <button className="btn-primary" onClick={() => setIsFormOpen(true)}>
-                + Add Lead
-              </button>
+              {(currentUser?.profile?.canAccessSettings || currentUser?.profile?.permissions?.Lead?.create) && (
+                <button className="btn-primary" onClick={() => setIsFormOpen(true)}>
+                  + Add Lead
+                </button>
+              )}
             </div>
           )}
         </header>
@@ -477,6 +491,7 @@ export default function LeadModule() {
         lead={selectedLead}
         blueprint={blueprint}
         tags={tags}
+        currentUser={currentUser}
         onTransition={handleTransition}
         onLeadUpdate={handleLeadUpdate}
         pendingTransition={pendingTransition}

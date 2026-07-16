@@ -8,9 +8,10 @@ export default function SettingsPage() {
   const [blueprint, setBlueprint] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [currentView, setCurrentView] = useState("hub");
+  const [selectedModule, setSelectedModule] = useState("Lead");
 
   // New Field State
-  const [newField, setNewField] = useState({ name: "", label: "", type: "text", options: "" });
+  const [newField, setNewField] = useState({ name: "", label: "", type: "text", options: "", targetModule: "Account", isMultiSelect: false, isBiDirectional: false, targetDisplayField: "name" });
   const [isAddingField, setIsAddingField] = useState(false);
 
   // New Stage State
@@ -36,6 +37,7 @@ export default function SettingsPage() {
   }, []);
   const [tagBuilder, setTagBuilder] = useState({ isOpen: false, name: '', color: '#ef4444' });
   const [fieldUpdateBuilder, setFieldUpdateBuilder] = useState({ isOpen: false, field: '', value: '' });
+  const [createRecordBuilder, setCreateRecordBuilder] = useState({ isOpen: false, targetModule: 'Task', autoLink: true, mappings: [] });
   const tagColors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#0ea5e9', '#8b5cf6', '#ec4899', '#64748b', '#84cc16'];
 
   // Tag Manager State
@@ -48,7 +50,8 @@ export default function SettingsPage() {
   useEffect(() => {
     fetchBlueprint();
     fetchTags();
-  }, []);
+    fetchProfiles();
+  }, [selectedModule]);
 
   const getAuthToken = async () => {
     const { fetchAuthSession } = await import('aws-amplify/auth');
@@ -56,11 +59,15 @@ export default function SettingsPage() {
     return tokens.idToken.toString();
   };
 
+  const [profiles, setProfiles] = useState([]);
+  const [selectedProfile, setSelectedProfile] = useState(null);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+
   const fetchBlueprint = async () => {
     setIsLoading(true);
     try {
       const token = await getAuthToken();
-      const res = await fetch('/api/blueprint?moduleType=Lead', {
+      const res = await fetch(`/api/blueprint?moduleType=${selectedModule}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
@@ -76,10 +83,24 @@ export default function SettingsPage() {
     }
   };
 
+  const fetchProfiles = async () => {
+    try {
+      const token = await getAuthToken();
+      const res = await fetch('/api/profiles', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setProfiles(await res.json());
+      }
+    } catch (err) {
+      console.error("Failed to load profiles", err);
+    }
+  };
+
   const fetchTags = async () => {
     try {
       const token = await getAuthToken();
-      const res = await fetch('/api/tags?moduleType=Lead', {
+      const res = await fetch(`/api/tags?moduleType=${selectedModule}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -104,6 +125,11 @@ export default function SettingsPage() {
         label: newField.label,
         type: newField.type,
         options: newField.type === 'select' && newField.options ? newField.options.split(',').map(s => s.trim()).filter(Boolean) : [],
+        targetModule: newField.type === 'lookup' ? newField.targetModule : null,
+        targetDisplayField: newField.type === 'lookup' ? newField.targetDisplayField : null,
+        isMultiSelect: newField.type === 'lookup' ? newField.isMultiSelect : false,
+        isBiDirectional: newField.type === 'lookup' ? newField.isBiDirectional : false,
+        mappings: newField.type === 'lookup' ? (newField.mappings || []) : [],
         blueprintId: blueprint.id
       };
 
@@ -117,7 +143,7 @@ export default function SettingsPage() {
       });
 
       if (res.ok) {
-        setNewField({ name: "", label: "", type: "text", options: "" });
+        setNewField({ name: "", label: "", type: "text", options: "", targetModule: "Account", isMultiSelect: false, isBiDirectional: false });
         setIsAddingField(false);
         fetchBlueprint();
       }
@@ -186,7 +212,7 @@ export default function SettingsPage() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(newTag)
+        body: JSON.stringify({ ...newTag, moduleType: selectedModule })
       });
       if (res.ok) {
         setNewTag({ name: "", color: "#ef4444", customColor: false });
@@ -208,6 +234,52 @@ export default function SettingsPage() {
       });
       if (res.ok) {
         fetchTags();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    try {
+      const token = await getAuthToken();
+      const method = selectedProfile.id ? 'PUT' : 'POST';
+      const url = selectedProfile.id ? `/api/profiles?id=${selectedProfile.id}` : '/api/profiles';
+      
+      const res = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(selectedProfile)
+      });
+      
+      if (res.ok) {
+        setIsProfileModalOpen(false);
+        fetchProfiles();
+      } else {
+        const data = await res.json();
+        alert(data.error || "Failed to save profile");
+      }
+    } catch (err) {
+      console.error("Failed to save profile:", err);
+    }
+  };
+
+  const handleDeleteProfile = async (id) => {
+    if (!confirm("Are you sure you want to delete this profile?")) return;
+    try {
+      const token = await getAuthToken();
+      const res = await fetch(`/api/profiles?id=${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        fetchProfiles();
+      } else {
+        const data = await res.json();
+        alert(data.error || "Failed to delete profile");
       }
     } catch (err) {
       console.error(err);
@@ -346,9 +418,35 @@ export default function SettingsPage() {
     <div className="dashboard-layout">
       <Sidebar />
       <main className="dashboard-main" style={{ overflowY: 'auto' }}>
-        <header className="dashboard-header">
-          <h1>Admin Settings</h1>
-          <p className="text-muted" style={{ marginTop: '0.5rem' }}>Configure your dynamic CRM Blueprints</p>
+        <header className="dashboard-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h1>Admin Settings</h1>
+            <p className="text-muted" style={{ marginTop: '0.5rem' }}>Configure your dynamic CRM Blueprints</p>
+          </div>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <span style={{ fontSize: '0.875rem', fontWeight: 500, color: '#64748b' }}>Configure Module:</span>
+            <select 
+              value={selectedModule} 
+              onChange={(e) => setSelectedModule(e.target.value)}
+              style={{
+                padding: '0.5rem 1rem',
+                borderRadius: '8px',
+                border: '1px solid #e2e8f0',
+                backgroundColor: 'white',
+                fontWeight: 600,
+                color: 'var(--primary)',
+                fontSize: '1rem',
+                cursor: 'pointer',
+                outline: 'none'
+              }}
+            >
+              <option value="Lead">Lead</option>
+              <option value="Account">Account</option>
+              <option value="Product">Product</option>
+              <option value="Task">Task</option>
+            </select>
+          </div>
         </header>
 
         <div className="module-content" style={{ padding: '2rem', maxWidth: '1200px' }}>
@@ -366,7 +464,7 @@ export default function SettingsPage() {
                     <div style={{ background: '#f3f4f6', padding: '0.5rem', borderRadius: '8px', color: '#475569' }}>
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72Z" /><path d="m14 7 3 3" /><path d="M5 6v4" /><path d="M19 14v4" /><path d="M10 2v2" /><path d="M7 8H3" /><path d="M21 16h-4" /><path d="M11 3H9" /></svg>
                     </div>
-                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: '#0f172a' }}>Lead Customization</h3>
+                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: '#0f172a' }}>{selectedModule} Customization</h3>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                     <button onClick={() => setCurrentView('fields')} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
@@ -377,6 +475,27 @@ export default function SettingsPage() {
                     </button>
                     <button onClick={() => setCurrentView('blueprint')} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
                       Workflow Engine
+                    </button>
+                    <button onClick={() => setCurrentView('lookups')} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
+                      Relationships & Lookups
+                    </button>
+                  </div>
+                </div>
+
+                {/* Users and Control Card */}
+                <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '1.5rem', boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.05)', border: '1px solid #e2e8f0' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                    <div style={{ background: '#f3f4f6', padding: '0.5rem', borderRadius: '8px', color: '#475569' }}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    </div>
+                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: '#0f172a' }}>Users & Control</h3>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <button onClick={() => setCurrentView('profiles')} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
+                      Roles & Profiles
+                    </button>
+                    <button disabled style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'not-allowed', color: '#cbd5e1', fontSize: '0.95rem', borderRadius: '6px', fontWeight: 500 }}>
+                      Invite Users (Coming Soon)
                     </button>
                   </div>
                 </div>
@@ -397,6 +516,8 @@ export default function SettingsPage() {
                 <h2 style={{ fontSize: '1.15rem', fontWeight: 600, margin: 0, color: '#0f172a' }}>
                   {currentView === 'blueprint' && "Pipelines & Blueprint"}
                   {currentView === 'fields' && "Modules and Fields"}
+                  {currentView === 'tags' && "Tag Definitions"}
+                  {currentView === 'lookups' && "Relationships & Lookups"}
                 </h2>
               </div>
 
@@ -535,7 +656,7 @@ export default function SettingsPage() {
                 {currentView === 'fields' && (
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                      <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Lead Fields</h2>
+                      <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>{selectedModule} Fields</h2>
                       <button className="btn-primary" onClick={() => setIsAddingField(!isAddingField)}>
                         {isAddingField ? 'Cancel' : '+ Add Field'}
                       </button>
@@ -664,6 +785,161 @@ export default function SettingsPage() {
                           <button onClick={() => handleDeleteTag(tag.id)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
                         </div>
                       ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* LOOKUPS TAB */}
+                {currentView === 'lookups' && (
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                      <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Relationships & Lookups</h2>
+                      <button className="btn-primary" onClick={() => setIsAddingField(!isAddingField)}>
+                        {isAddingField ? 'Cancel' : '+ Add Relationship'}
+                      </button>
+                    </div>
+
+                    {isAddingField && (
+                      <form onSubmit={handleAddField} style={{ padding: '1.5rem', backgroundColor: '#f8fafc', borderRadius: '8px', marginBottom: '1.5rem', border: '1px solid #e2e8f0' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                          <div>
+                            <label className="form-label">Relationship Label (e.g. Related Account)</label>
+                            <input required type="text" className="form-input bg-white" placeholder="Related Account" value={newField.label} onChange={e => setNewField({ ...newField, label: e.target.value, type: 'lookup' })} />
+                          </div>
+                          <div>
+                            <label className="form-label">Target Module (Which module to link to?)</label>
+                            <select className="form-input bg-white" value={newField.targetModule} onChange={e => setNewField({ ...newField, targetModule: e.target.value, type: 'lookup' })}>
+                              {['Lead', 'Account', 'Product', 'Task'].filter(m => m !== selectedModule).map(m => (
+                                <option key={m} value={m}>{m}</option>
+                              ))}
+                              {['Lead', 'Account', 'Product', 'Task'].includes(selectedModule) && (
+                                 <option value={selectedModule}>{selectedModule} (Self Reference)</option>
+                              )}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="form-label">Target Display Field (Which field to show/search)</label>
+                            <select className="form-input bg-white" value={newField.targetDisplayField || 'name'} onChange={e => setNewField({ ...newField, targetDisplayField: e.target.value, type: 'lookup' })}>
+                              <option value="name">Name / Default</option>
+                              <option value="firstName">First Name</option>
+                              <option value="lastName">Last Name</option>
+                              <option value="email">Email</option>
+                              <option value="phone">Phone</option>
+                              <option value="companyName">Company Name</option>
+                              <option value="title">Title</option>
+                              <option value="owner">Owner</option>
+                            </select>
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', justifyContent: 'center', paddingTop: '1.5rem' }}>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 500, color: '#334155' }}>
+                              <input type="checkbox" checked={newField.isMultiSelect} onChange={e => setNewField({ ...newField, isMultiSelect: e.target.checked, type: 'lookup' })} />
+                              Allow Multiple Selections
+                            </label>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 500, color: '#334155' }}>
+                              <input type="checkbox" checked={newField.isBiDirectional} onChange={e => setNewField({ ...newField, isBiDirectional: e.target.checked, type: 'lookup' })} />
+                              Create Reverse Connection
+                            </label>
+                          </div>
+
+                          <div style={{ gridColumn: '1 / -1', padding: '1rem', backgroundColor: '#f1f5f9', borderRadius: '8px' }}>
+                            <h4 style={{ fontSize: '0.9rem', fontWeight: 600, marginBottom: '0.5rem' }}>Auto-Fill Mappings (Optional)</h4>
+                            <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '1rem' }}>When a record is selected, automatically copy its data into fields on this form.</p>
+                            
+                            {(newField.mappings || []).map((mapping, idx) => (
+                              <div key={idx} style={{ display: 'flex', gap: '1rem', marginBottom: '0.5rem' }}>
+                                <input type="text" placeholder="Source Field from Target (e.g. email)" className="form-input bg-white" value={mapping.sourceField} onChange={e => {
+                                  const m = [...(newField.mappings || [])];
+                                  m[idx].sourceField = e.target.value;
+                                  setNewField({...newField, mappings: m});
+                                }} />
+                                <span style={{ padding: '0.5rem', color: '#64748b' }}>➔ pastes to ➔</span>
+                                <input type="text" placeholder="Local Field (e.g. email)" className="form-input bg-white" value={mapping.targetField} onChange={e => {
+                                  const m = [...(newField.mappings || [])];
+                                  m[idx].targetField = e.target.value;
+                                  setNewField({...newField, mappings: m});
+                                }} />
+                                <button type="button" onClick={() => {
+                                  const m = [...(newField.mappings || [])];
+                                  m.splice(idx, 1);
+                                  setNewField({...newField, mappings: m});
+                                }} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
+                              </div>
+                            ))}
+                            <button type="button" onClick={() => setNewField({...newField, mappings: [...(newField.mappings || []), {sourceField: '', targetField: ''}]})} style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer', marginTop: '0.5rem' }}>+ Add Mapping</button>
+                          </div>
+                        </div>
+                        <button type="submit" className="btn-primary">Save Relationship</button>
+                      </form>
+                    )}
+
+                    <div style={{ overflowX: 'auto', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: 'white' }}>
+                        <thead>
+                          <tr style={{ borderBottom: '1px solid #e2e8f0', backgroundColor: '#f8fafc', textAlign: 'left' }}>
+                            <th style={{ padding: '1rem', fontWeight: 600, color: '#64748b', fontSize: '0.85rem' }}>LABEL</th>
+                            <th style={{ padding: '1rem', fontWeight: 600, color: '#64748b', fontSize: '0.85rem' }}>TARGET MODULE</th>
+                            <th style={{ padding: '1rem', fontWeight: 600, color: '#64748b', fontSize: '0.85rem' }}>DISPLAY FIELD</th>
+                            <th style={{ padding: '1rem', fontWeight: 600, color: '#64748b', fontSize: '0.85rem', textAlign: 'right' }}>ACTIONS</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {!blueprint?.fields?.filter(f => f.type === 'lookup').length && (
+                            <tr><td colSpan="4" style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>No relationships defined.</td></tr>
+                          )}
+                          {(blueprint?.fields || []).filter(f => f.type === 'lookup').map(field => (
+                            <tr key={field.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                              <td style={{ padding: '1rem', fontWeight: 500 }}>{field.label} {field.isMultiSelect && <span style={{fontSize:'0.75rem', background:'#e2e8f0', padding:'2px 6px', borderRadius:'4px', marginLeft:'0.5rem'}}>Multi</span>}</td>
+                              <td style={{ padding: '1rem' }}><span style={{ backgroundColor: '#f0f9ff', color: '#0369a1', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.875rem', fontWeight: 500 }}>{field.targetModule}</span></td>
+                              <td style={{ padding: '1rem', color: '#475569' }}>{field.targetDisplayField || 'name'}</td>
+                              <td style={{ padding: '1rem', textAlign: 'right' }}>
+                                <button onClick={() => handleDeleteField(field.id)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}>Delete</button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* PROFILES TAB */}
+                {currentView === 'profiles' && (
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                      <h2 style={{ fontSize: '1.25rem', fontWeight: 600, margin: 0 }}>Roles & Profiles</h2>
+                      <button className="btn-primary" onClick={() => {
+                        setSelectedProfile({
+                          name: '',
+                          canAccessSettings: false,
+                          canExportData: false,
+                          permissions: {
+                            Lead: { view: false, create: false, edit: false, delete: false },
+                            Account: { view: false, create: false, edit: false, delete: false },
+                            Task: { view: false, create: false, edit: false, delete: false },
+                            Product: { view: false, create: false, edit: false, delete: false }
+                          }
+                        });
+                        setIsProfileModalOpen(true);
+                      }}>+ New Profile</button>
+                    </div>
+
+                    <div style={{ display: 'grid', gap: '1rem' }}>
+                      {profiles.map(profile => (
+                        <div key={profile.id} style={{ padding: '1.5rem', background: 'white', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div>
+                            <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem', color: '#0f172a' }}>{profile.name}</h3>
+                            <div style={{ display: 'flex', gap: '1rem', fontSize: '0.85rem', color: '#64748b' }}>
+                              <span>Admin: {profile.canAccessSettings ? 'Yes' : 'No'}</span>
+                              <span>Export: {profile.canExportData ? 'Yes' : 'No'}</span>
+                            </div>
+                          </div>
+                          <button className="btn-outline" onClick={() => {
+                            setSelectedProfile(profile);
+                            setIsProfileModalOpen(true);
+                          }}>Edit Permissions</button>
+                        </div>
+                      ))}
+                      {profiles.length === 0 && <p>No profiles found.</p>}
                     </div>
                   </div>
                 )}
@@ -1070,6 +1346,8 @@ export default function SettingsPage() {
                             setTagBuilder({ isOpen: true, name: '', color: tagColors[0] });
                           } else if (actionDef.id === 'fieldUpdates') {
                             setFieldUpdateBuilder({ isOpen: true, field: 'firstName', value: '' });
+                          } else if (actionDef.id === 'createRecords') {
+                            setCreateRecordBuilder({ isOpen: true, targetModule: 'Task', autoLink: true, mappings: [{ targetField: 'name', sourceField: '' }] });
                           } else {
                             const newActions = { ...selectedRule.afterActions };
                             newActions[actionDef.id] = [...(newActions[actionDef.id] || []), `New ${actionDef.label} Action`];
@@ -1089,6 +1367,8 @@ export default function SettingsPage() {
                                 <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'white', background: item.color, padding: '0.25rem 0.75rem', borderRadius: '12px' }}>{item.name}</span>
                               ) : actionDef.id === 'fieldUpdates' ? (
                                 <span style={{ fontSize: '0.875rem', color: '#334155' }}>Update <strong>{item.field}</strong> to <strong>{item.value}</strong></span>
+                              ) : actionDef.id === 'createRecords' ? (
+                                <span style={{ fontSize: '0.875rem', color: '#334155' }}>Create <strong>{item.targetModule}</strong> {item.autoLink ? '(Auto-Linked)' : ''} with {item.mappings?.length || 0} mappings</span>
                               ) : (
                                 <span style={{ fontSize: '0.875rem', color: '#334155' }}>{item} {idx + 1}</span>
                               )}
@@ -1209,6 +1489,115 @@ export default function SettingsPage() {
                 </div>
               )}
 
+
+
+              {/* CREATE RECORD BUILDER MODAL */}
+              {createRecordBuilder.isOpen && (
+                <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)' }} onClick={() => setCreateRecordBuilder({ ...createRecordBuilder, isOpen: false })}></div>
+                  <div style={{ background: 'white', padding: '2rem', borderRadius: '12px', width: '100%', maxWidth: '600px', position: 'relative', zIndex: 10, maxHeight: '90vh', overflowY: 'auto' }}>
+                    <h3 style={{ marginTop: 0, fontSize: '1.25rem', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between' }}>
+                      Auto-Create Record
+                      <button onClick={() => setCreateRecordBuilder({ ...createRecordBuilder, isOpen: false })} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: '#94a3b8' }}>✕</button>
+                    </h3>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+                      <div>
+                        <label className="form-label">Target Module</label>
+                        <select
+                          className="form-input bg-white"
+                          value={createRecordBuilder.targetModule}
+                          onChange={e => setCreateRecordBuilder({ ...createRecordBuilder, targetModule: e.target.value })}
+                        >
+                          <option value="Lead">Lead</option>
+                          <option value="Account">Account</option>
+                          <option value="Product">Product</option>
+                          <option value="Task">Task</option>
+                        </select>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', paddingTop: '1.5rem' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 500, color: '#334155' }}>
+                          <input type="checkbox" checked={createRecordBuilder.autoLink} onChange={e => setCreateRecordBuilder({ ...createRecordBuilder, autoLink: e.target.checked })} />
+                          Auto-Link to Current {selectedModule}
+                        </label>
+                      </div>
+                    </div>
+
+                    <div style={{ marginBottom: '2rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                        <label className="form-label" style={{ margin: 0 }}>Field Mappings</label>
+                        <button onClick={() => {
+                          setCreateRecordBuilder({
+                            ...createRecordBuilder,
+                            mappings: [...createRecordBuilder.mappings, { targetField: '', sourceField: '' }]
+                          });
+                        }} style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontWeight: 500 }}>+ Add Mapping</button>
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        {createRecordBuilder.mappings.length === 0 && (
+                          <div style={{ padding: '1rem', background: '#f8fafc', color: '#64748b', textAlign: 'center', borderRadius: '6px' }}>No field mappings. Blank record will be created.</div>
+                        )}
+                        {createRecordBuilder.mappings.map((mapping, idx) => (
+                          <div key={idx} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', background: '#f8fafc', padding: '0.5rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                            <div style={{ flex: 1 }}>
+                              <input
+                                type="text"
+                                className="form-input bg-white"
+                                placeholder="Target Field (e.g. name)"
+                                value={mapping.targetField}
+                                onChange={e => {
+                                  const newMappings = [...createRecordBuilder.mappings];
+                                  newMappings[idx].targetField = e.target.value;
+                                  setCreateRecordBuilder({ ...createRecordBuilder, mappings: newMappings });
+                                }}
+                              />
+                            </div>
+                            <div style={{ color: '#94a3b8' }}>←</div>
+                            <div style={{ flex: 1 }}>
+                              <input
+                                type="text"
+                                className="form-input bg-white"
+                                placeholder={`Source Value (e.g. {{${selectedModule}.companyName}})`}
+                                value={mapping.sourceField}
+                                onChange={e => {
+                                  const newMappings = [...createRecordBuilder.mappings];
+                                  newMappings[idx].sourceField = e.target.value;
+                                  setCreateRecordBuilder({ ...createRecordBuilder, mappings: newMappings });
+                                }}
+                              />
+                            </div>
+                            <button onClick={() => {
+                              const newMappings = createRecordBuilder.mappings.filter((_, i) => i !== idx);
+                              setCreateRecordBuilder({ ...createRecordBuilder, mappings: newMappings });
+                            }} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '1.25rem', padding: '0 0.5rem' }}>✕</button>
+                          </div>
+                        ))}
+                      </div>
+                      <p style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.5rem' }}>
+                        Tip: You can use dynamic variables like {"{{"}{selectedModule}.firstName{"}}"} or static text.
+                      </p>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                      <button className="btn-outline" onClick={() => setCreateRecordBuilder({ ...createRecordBuilder, isOpen: false })}>Cancel</button>
+                      <button className="btn-primary" onClick={() => {
+                        if (!createRecordBuilder.targetModule) return;
+                        const newActions = { ...selectedRule.afterActions };
+                        const payload = {
+                          targetModule: createRecordBuilder.targetModule,
+                          autoLink: createRecordBuilder.autoLink,
+                          mappings: createRecordBuilder.mappings.filter(m => m.targetField && m.sourceField)
+                        };
+                        newActions.createRecords = [...(newActions.createRecords || []), payload];
+                        setSelectedRule({ ...selectedRule, afterActions: newActions });
+                        setCreateRecordBuilder({ ...createRecordBuilder, isOpen: false });
+                      }}>Save Auto-Create</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
             </div>
 
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
@@ -1221,6 +1610,111 @@ export default function SettingsPage() {
           </div>
         </div>
       )}
+
+      {/* PROFILE MODAL */}
+      {isProfileModalOpen && selectedProfile && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+          <div style={{ background: 'white', padding: '2.5rem', borderRadius: '12px', width: '100%', maxWidth: '800px', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h2 style={{ margin: 0 }}>{selectedProfile.id ? 'Edit Profile' : 'Create New Profile'}</h2>
+              <button onClick={() => setIsProfileModalOpen(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#94a3b8' }}>✕</button>
+            </div>
+
+            <div style={{ marginBottom: '2rem' }}>
+              <label className="form-label" style={{ marginBottom: '0.5rem', display: 'block', fontWeight: 600 }}>Profile Name</label>
+              <input type="text" className="form-input" placeholder="e.g. Sales Representative" value={selectedProfile.name} onChange={e => setSelectedProfile({ ...selectedProfile, name: e.target.value })} />
+            </div>
+
+            <div style={{ marginBottom: '2rem' }}>
+              <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem' }}>Global Permissions</h3>
+              <div style={{ display: 'flex', gap: '2rem' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 500 }}>
+                  <input type="checkbox" checked={selectedProfile.canAccessSettings} onChange={e => setSelectedProfile({ ...selectedProfile, canAccessSettings: e.target.checked })} />
+                  Administrator (Access to Setup & Settings)
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 500 }}>
+                  <input type="checkbox" checked={selectedProfile.canExportData} onChange={e => setSelectedProfile({ ...selectedProfile, canExportData: e.target.checked })} />
+                  Can Export Data
+                </label>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '2rem' }}>
+              <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem' }}>Module Permissions Matrix</h3>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                    <th style={{ padding: '0.75rem', textAlign: 'left', fontWeight: 600, color: '#64748b', fontSize: '0.85rem' }}>MODULE</th>
+                    <th style={{ padding: '0.75rem', textAlign: 'center', fontWeight: 600, color: '#64748b', fontSize: '0.85rem' }}>VIEW</th>
+                    <th style={{ padding: '0.75rem', textAlign: 'center', fontWeight: 600, color: '#64748b', fontSize: '0.85rem' }}>CREATE</th>
+                    <th style={{ padding: '0.75rem', textAlign: 'center', fontWeight: 600, color: '#64748b', fontSize: '0.85rem' }}>EDIT</th>
+                    <th style={{ padding: '0.75rem', textAlign: 'center', fontWeight: 600, color: '#64748b', fontSize: '0.85rem' }}>DELETE</th>
+                    <th style={{ padding: '0.75rem', textAlign: 'left', fontWeight: 600, color: '#64748b', fontSize: '0.85rem' }}>DATA ACCESS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {['Lead', 'Account', 'Task', 'Product'].map(mod => (
+                    <tr key={mod} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '0.75rem', fontWeight: 500 }}>{mod}</td>
+                      {['view', 'create', 'edit', 'delete'].map(action => (
+                        <td key={action} style={{ padding: '0.75rem', textAlign: 'center' }}>
+                          <input 
+                            type="checkbox" 
+                            checked={selectedProfile.permissions?.[mod]?.[action] || false}
+                            onChange={(e) => {
+                              const newPerms = { ...selectedProfile.permissions };
+                              if (!newPerms[mod]) newPerms[mod] = { view: false, create: false, edit: false, delete: false, visibility: 'public' };
+                              newPerms[mod][action] = e.target.checked;
+                              
+                              // Auto-check View if others are selected
+                              if (e.target.checked && action !== 'view') {
+                                newPerms[mod]['view'] = true;
+                              }
+                              // Auto-uncheck others if View is unchecked
+                              if (!e.target.checked && action === 'view') {
+                                newPerms[mod]['create'] = false;
+                                newPerms[mod]['edit'] = false;
+                                newPerms[mod]['delete'] = false;
+                              }
+                              
+                              setSelectedProfile({ ...selectedProfile, permissions: newPerms });
+                            }}
+                          />
+                        </td>
+                      ))}
+                      <td style={{ padding: '0.75rem' }}>
+                        <select 
+                          className="form-input"
+                          style={{ padding: '0.25rem 0.5rem', fontSize: '0.875rem' }}
+                          value={selectedProfile.permissions?.[mod]?.visibility || 'public'}
+                          onChange={(e) => {
+                            const newPerms = { ...selectedProfile.permissions };
+                            if (!newPerms[mod]) newPerms[mod] = { view: false, create: false, edit: false, delete: false, visibility: 'public' };
+                            newPerms[mod].visibility = e.target.value;
+                            setSelectedProfile({ ...selectedProfile, permissions: newPerms });
+                          }}
+                        >
+                          <option value="public">Public Read/Write</option>
+                          <option value="private">Private (Owner Only)</option>
+                        </select>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+              {selectedProfile.id && (
+                <button onClick={() => handleDeleteProfile(selectedProfile.id)} style={{ padding: '0.5rem 1rem', background: '#fef2f2', color: '#ef4444', border: '1px solid #fecaca', borderRadius: '6px', fontWeight: 500, marginRight: 'auto' }}>Delete Profile</button>
+              )}
+              <button onClick={() => setIsProfileModalOpen(false)} style={{ padding: '0.5rem 1rem', background: 'white', border: '1px solid #cbd5e1', borderRadius: '6px', fontWeight: 500 }}>Cancel</button>
+              <button onClick={handleSaveProfile} className="btn-primary">Save Profile</button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

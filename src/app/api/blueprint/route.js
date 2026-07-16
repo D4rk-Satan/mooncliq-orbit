@@ -12,7 +12,7 @@ export async function GET(request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const blueprint = await prisma.blueprint.findFirst({
+    let blueprint = await prisma.blueprint.findFirst({
       where: { 
         moduleType,
         organizationId: user.organizationId
@@ -31,7 +31,22 @@ export async function GET(request) {
     });
 
     if (!blueprint) {
-      return NextResponse.json({ error: 'Blueprint not found' }, { status: 404 });
+      // Auto-initialize default blueprint if it doesn't exist
+      blueprint = await prisma.blueprint.create({
+        data: {
+          organizationId: user.organizationId,
+          moduleType,
+          name: `Default ${moduleType} Pipeline`,
+          version: 1
+        },
+        include: {
+          fields: true,
+          stages: true,
+          transitions: {
+            include: { fromStages: true }
+          }
+        }
+      });
     }
 
     return NextResponse.json(blueprint);

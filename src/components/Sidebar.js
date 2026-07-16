@@ -28,12 +28,21 @@ export default function Sidebar() {
         <Link href="/lead" className={`nav-item ${pathname === "/lead" ? "active" : ""}`} style={{ display: 'block', textDecoration: 'none' }}>
           Lead
         </Link>
-        <div className="nav-item">Deal</div>
-        <div className="nav-item">Project</div>
-        <div className="nav-item">Task</div>
-        <div className="nav-item">Customer</div>
-        <div className="nav-item">Customer Contact</div>
-        <div className="nav-item">Products</div>
+        <Link href="/deal" className={`nav-item ${pathname === "/deal" ? "active" : ""}`} style={{ display: 'block', textDecoration: 'none' }}>
+          Deal
+        </Link>
+        <Link href="/project" className={`nav-item ${pathname === "/project" ? "active" : ""}`} style={{ display: 'block', textDecoration: 'none' }}>
+          Project
+        </Link>
+        <Link href="/task" className={`nav-item ${pathname === "/task" ? "active" : ""}`} style={{ display: 'block', textDecoration: 'none' }}>
+          Task
+        </Link>
+        <Link href="/account" className={`nav-item ${pathname === "/account" ? "active" : ""}`} style={{ display: 'block', textDecoration: 'none' }}>
+          Account
+        </Link>
+        <Link href="/products" className={`nav-item ${pathname === "/products" ? "active" : ""}`} style={{ display: 'block', textDecoration: 'none' }}>
+          Products
+        </Link>
       </nav>
       <div style={{ marginTop: 'auto', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
         <button

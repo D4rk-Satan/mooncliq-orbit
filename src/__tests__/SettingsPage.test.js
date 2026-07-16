@@ -138,4 +138,65 @@ describe('SettingsPage (Settings Builder)', () => {
       expect(screen.getAllByText('Contacted').length).toBeGreaterThan(0);
     });
   });
+
+  test('Auto-Create Record UI Flow', async () => {
+    render(<SettingsPage />);
+    
+    await waitFor(() => {
+      expect(screen.queryByText(/Loading Settings/i)).not.toBeInTheDocument();
+    });
+
+    // Navigate to Workflow
+    const bpBtns = await screen.findAllByText(/Workflow Engine/i);
+    fireEvent.click(bpBtns[bpBtns.length - 1]);
+
+    // Click on the Rule "Contact Lead" to edit it
+    const ruleItem = await screen.findByText('Contact Lead');
+    fireEvent.click(ruleItem);
+
+    // Click on the "After" tab inside Rule Editor
+    const afterTab = await screen.findByText('After');
+    fireEvent.click(afterTab);
+
+    // Open "Auto-Create Record" builder
+    const createRecordsSpan = await screen.findByText('Create Records');
+    const autoCreateBtn = createRecordsSpan.nextElementSibling;
+    fireEvent.click(autoCreateBtn);
+
+    // Ensure Modal Opens
+    const modalTitle = await screen.findByText('Auto-Create Record', { selector: 'h3' });
+    expect(modalTitle).toBeInTheDocument();
+
+    // Select Target Module
+    const moduleSelectLabel = await screen.findByText('Target Module');
+    const moduleSelect = moduleSelectLabel.nextElementSibling;
+    fireEvent.change(moduleSelect, { target: { value: 'Task' } });
+    
+    // Check Auto-Link
+    const autoLinkCheckbox = await screen.findByLabelText(/Auto-Link to Current Lead/i);
+    // By default, autoLink is true when modal opens for a new action
+    expect(autoLinkCheckbox).toBeChecked();
+    
+    // Toggle it off and on to ensure it works
+    fireEvent.click(autoLinkCheckbox);
+    expect(autoLinkCheckbox).not.toBeChecked();
+    fireEvent.click(autoLinkCheckbox);
+    expect(autoLinkCheckbox).toBeChecked();
+
+    // Edit Field Mapping (there is 1 default mapping)
+    const targetInputs = await screen.findAllByPlaceholderText('Target Field (e.g. name)');
+    fireEvent.change(targetInputs[0], { target: { value: 'taskName' } });
+
+    const sourceInputs = await screen.findAllByPlaceholderText(/Source Value/i);
+    fireEvent.change(sourceInputs[0], { target: { value: 'Call Lead' } });
+
+    // Save mapping
+    const saveMappingBtn = await screen.findByText('Save Auto-Create');
+    fireEvent.click(saveMappingBtn);
+
+    // The modal should close and the action should be in the list
+    await waitFor(() => {
+      expect(screen.queryByText('Auto-Create Record', { selector: 'h3' })).not.toBeInTheDocument();
+    });
+  });
 });

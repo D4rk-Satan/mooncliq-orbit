@@ -141,6 +141,8 @@ const CurrencyInput = ({ field, value, onChange }) => (
   </div>
 );
 
+import LookupInput from './LookupInput';
+
 // The Main Registry Mapping
 const registry = {
   text: TextInput,
@@ -150,6 +152,7 @@ const registry = {
   date: DateInput,
   checkbox: CheckboxInput,
   textarea: TextareaInput,
+  lookup: LookupInput,
 };
 
 // The Component that dynamically renders the right input based on field type
@@ -164,5 +167,5 @@ export default function DynamicField({ field, value, onChange }) {
     );
   }
 
-  return <Component field={field} value={value} onChange={onChange} />;
+  return <Component field={field} value={value} onChange={(name, val, record, mappings) => onChange(name, val, record, mappings)} />;
 }

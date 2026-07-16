@@ -10,11 +10,26 @@ export async function GET(request) {
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    
+    console.log("USER PROFILE CHECK:", {
+      canAccessSettings: user.profile?.canAccessSettings,
+      LeadView: user.profile?.permissions?.Lead?.view,
+      rawProfile: user.profile
+    });
+
+    if (!user.profile?.canAccessSettings && !user.profile?.permissions?.Lead?.view) {
+      return NextResponse.json({ error: "Forbidden: You do not have permission to view Leads" }, { status: 403 });
+    }
+
+    const whereClause = { organizationId: user.organizationId };
+    
+    // Apply Data Visibility Rules
+    if (!user.profile?.canAccessSettings && user.profile?.permissions?.Lead?.visibility === 'private') {
+      whereClause.owner = user.email; // Assuming owner field holds email
+    }
 
     const leads = await prisma.lead.findMany({
-      where: {
-        organizationId: user.organizationId
-      },
+      where: whereClause,
       include: {
         stage: true,
         tags: true
@@ -33,6 +48,9 @@ export async function POST(request) {
     const user = await getAuthUser(request);
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (!user.profile?.canAccessSettings && !user.profile?.permissions?.Lead?.create) {
+      return NextResponse.json({ error: "Forbidden: You do not have permission to create Leads" }, { status: 403 });
     }
 
     const data = await request.json();
@@ -79,6 +97,9 @@ export async function PATCH(request) {
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    if (!user.profile?.canAccessSettings && !user.profile?.permissions?.Lead?.edit) {
+      return NextResponse.json({ error: "Forbidden: You do not have permission to edit Leads" }, { status: 403 });
+    }
 
     const data = await request.json();
     const { leadId, stageId, customData, tags, transitionId } = data;
@@ -88,12 +109,19 @@ export async function PATCH(request) {
     }
 
     // Verify lead belongs to user's org
+    const whereClause = { id: leadId, organizationId: user.organizationId };
+    
+    // Apply Data Visibility Rules
+    if (!user.profile?.canAccessSettings && user.profile?.permissions?.Lead?.visibility === 'private') {
+      whereClause.owner = user.email;
+    }
+
     const existingLead = await prisma.lead.findFirst({
-      where: { id: leadId, organizationId: user.organizationId }
+      where: whereClause
     });
 
     if (!existingLead) {
-      return NextResponse.json({ error: "Lead not found" }, { status: 404 });
+      return NextResponse.json({ error: "Lead not found or you do not have permission to edit it" }, { status: 404 });
     }
 
     let updateData = {};
@@ -149,6 +177,109 @@ export async function PATCH(request) {
           } else {
             // Safely connect without overwriting existing tags
             updateData.tags.connect = connectTags;
+          }
+        }
+
+        // --- AFTER ACTIONS: CREATE RECORDS ---
+        const createRecords = transition.afterActions.createRecords;
+        if (Array.isArray(createRecords) && createRecords.length > 0) {
+          for (const action of createRecords) {
+            // Find target blueprint
+            const targetBlueprint = await prisma.blueprint.findFirst({
+              where: { organizationId: user.organizationId, moduleType: action.targetModule },
+              include: { fields: true, stages: { orderBy: { orderIndex: 'asc' } } }
+            });
+            if (!targetBlueprint) {
+              return NextResponse.json({ error: `Strict Data Integrity Error: Target module blueprint not found for ${action.targetModule}` }, { status: 400 });
+            }
+
+            const requiredFields = targetBlueprint.fields.filter(f => f.isRequired).map(f => f.name);
+            const standardRequired = action.targetModule === 'Account' ? ['companyName'] : action.targetModule === 'Task' ? ['taskName'] : action.targetModule === 'Product' ? ['name', 'sku'] : [];
+
+            // Compile the mapping data
+            const mappedData = {};
+            for (const map of (action.mappings || [])) {
+               let val = map.sourceField;
+               // parse dynamic variables e.g. {{Lead.firstName}}
+               val = val.replace(/\{\{[^}]+\}\}/g, (match) => {
+                 const matchContent = match.slice(2, -2).trim(); // Remove {{ and }}
+                 const parts = matchContent.split('.');
+                 const fieldName = parts.length > 1 ? parts[1] : parts[0];
+                 
+                 if (['firstName', 'lastName', 'email', 'phone', 'owner'].includes(fieldName)) {
+                   return existingLead[fieldName] || updateData[fieldName] || '';
+                 }
+                 const cData = updateData.customData || (typeof existingLead.customData === 'string' ? JSON.parse(existingLead.customData || "{}") : existingLead.customData) || {};
+                 return cData[fieldName] || '';
+               });
+               mappedData[map.targetField] = val;
+            }
+
+            // Verify integrity
+            for (const req of [...requiredFields, ...standardRequired]) {
+              if (!mappedData[req]) {
+                return NextResponse.json({ error: `Strict Data Integrity Error: Auto-Create failed. Target module '${action.targetModule}' requires field '${req}' but it was not mapped.` }, { status: 400 });
+              }
+            }
+            
+            let targetStageId = targetBlueprint.stages[0]?.id;
+            if (!targetStageId) {
+               const defaultStage = await prisma.stage.create({
+                 data: { blueprintId: targetBlueprint.id, name: 'New', orderIndex: 0 }
+               });
+               targetStageId = defaultStage.id;
+            }
+
+            // Build Prisma payload
+            const createPayload = {
+              organizationId: user.organizationId,
+              blueprintId: targetBlueprint.id,
+              stageId: targetStageId, // Safely grabbed or created
+              customData: {}
+            };
+
+            for (const key of Object.keys(mappedData)) {
+              if (standardRequired.includes(key)) {
+                createPayload[key] = mappedData[key];
+              } else {
+                createPayload.customData[key] = mappedData[key];
+              }
+            }
+
+            // Execute Create
+            let createdRecord;
+            if (action.targetModule === 'Account') {
+               createdRecord = await prisma.account.create({ data: createPayload });
+            } else if (action.targetModule === 'Task') {
+               createdRecord = await prisma.task.create({ data: createPayload });
+            } else if (action.targetModule === 'Product') {
+               createdRecord = await prisma.product.create({ data: createPayload });
+            }
+
+            // Handle Auto Link
+            if (action.autoLink && createdRecord) {
+               // Find if there is a Lookup field in Lead pointing to targetModule
+               const leadBlueprint = await prisma.blueprint.findFirst({
+                 where: { organizationId: user.organizationId, moduleType: 'Lead' },
+                 include: { fields: true }
+               });
+               
+               if (leadBlueprint) {
+                 const lookupField = leadBlueprint.fields.find(f => f.type === 'lookup' && f.targetModule === action.targetModule);
+                 if (lookupField) {
+                   let mergedCustomData = updateData.customData || (typeof existingLead.customData === 'string' ? JSON.parse(existingLead.customData || "{}") : existingLead.customData);
+                   if (lookupField.isMultiSelect) {
+                     const existing = Array.isArray(mergedCustomData[lookupField.name]) ? mergedCustomData[lookupField.name] : [];
+                     if (!existing.includes(createdRecord.id)) {
+                       mergedCustomData[lookupField.name] = [...existing, createdRecord.id];
+                     }
+                   } else {
+                     mergedCustomData[lookupField.name] = createdRecord.id;
+                   }
+                   updateData.customData = mergedCustomData;
+                 }
+               }
+            }
           }
         }
       }

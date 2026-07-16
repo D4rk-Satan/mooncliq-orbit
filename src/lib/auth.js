@@ -28,7 +28,7 @@ export async function getAuthUser(request) {
     // Check if user exists in database
     let user = await prisma.user.findUnique({
       where: { id: userId },
-      include: { organization: true }
+      include: { organization: true, profile: true }
     });
 
     if (!user) {
@@ -42,14 +42,32 @@ export async function getAuthUser(request) {
         }
       });
 
+      // 1.5 Create Admin Profile
+      const adminProfile = await prisma.profile.create({
+        data: {
+          organizationId: newOrg.id,
+          name: "Administrator",
+          canAccessSettings: true,
+          canManageUsers: true,
+          canExportData: true,
+          permissions: {
+            "Lead": { "view": true, "create": true, "edit": true, "delete": true, "visibility": "public" },
+            "Account": { "view": true, "create": true, "edit": true, "delete": true, "visibility": "public" },
+            "Task": { "view": true, "create": true, "edit": true, "delete": true, "visibility": "public" },
+            "Product": { "view": true, "create": true, "edit": true, "delete": true, "visibility": "public" }
+          }
+        }
+      });
+
       // 2. Create User
       user = await prisma.user.create({
         data: {
           id: userId,
           email: email || '',
-          organizationId: newOrg.id
+          organizationId: newOrg.id,
+          profileId: adminProfile.id
         },
-        include: { organization: true }
+        include: { organization: true, profile: true }
       });
 
       // 3. Create Default Blueprint & Stages for their Kanban board
