@@ -621,12 +621,11 @@ body {
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
-/* Kanban Board */
 .kanban-board {
   display: flex;
   flex: 1;
   overflow-x: auto;
-  padding: 1.5rem;
+  padding: 0 1.5rem 1.5rem 1.5rem;
   gap: 1.5rem;
   align-items: flex-start;
   background-color: transparent;
