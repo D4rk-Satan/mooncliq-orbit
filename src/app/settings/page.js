@@ -840,10 +840,10 @@ export default function SettingsPage() {
                           <div>
                             <label className="form-label">Target Module (Which module to link to?)</label>
                             <select className="form-input bg-white" value={newField.targetModule} onChange={e => setNewField({ ...newField, targetModule: e.target.value, type: 'lookup' })}>
-                              {['Lead', 'Account', 'Product', 'Task'].filter(m => m !== selectedModule).map(m => (
+                              {['Lead', 'Deal', 'Account', 'Product', 'Task'].filter(m => m !== selectedModule).map(m => (
                                 <option key={m} value={m}>{m}</option>
                               ))}
-                              {['Lead', 'Account', 'Product', 'Task'].includes(selectedModule) && (
+                              {['Lead', 'Deal', 'Account', 'Product', 'Task'].includes(selectedModule) && (
                                  <option value={selectedModule}>{selectedModule} (Self Reference)</option>
                               )}
                             </select>
@@ -1691,7 +1691,7 @@ export default function SettingsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {['Lead', 'Account', 'Task', 'Product'].map(mod => (
+                  {['Lead', 'Deal', 'Account', 'Task', 'Product'].map(mod => (
                     <tr key={mod} style={{ borderBottom: '1px solid #f1f5f9' }}>
                       <td style={{ padding: '0.75rem', fontWeight: 500 }}>{mod}</td>
                       {['view', 'create', 'edit', 'delete'].map(action => (

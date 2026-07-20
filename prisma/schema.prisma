@@ -22,6 +22,7 @@ model Organization {
   accounts   Account[]
   products   Product[]
   tasks      Task[]
+  deals      Deal[]
   profiles   Profile[]
 }
 
@@ -73,6 +74,7 @@ model Blueprint {
   accounts       Account[]
   products       Product[]
   tasks          Task[]
+  deals          Deal[]
   
   organization   Organization @relation(fields: [organizationId], references: [id])
   
@@ -92,6 +94,7 @@ model Stage {
   accounts       Account[]
   products       Product[]
   tasks          Task[]
+  deals          Deal[]
   
   outgoingTransitions Transition[] @relation("FromStages")
   incomingTransitions Transition[] @relation("ToStage")
@@ -189,6 +192,7 @@ model Tag {
 
   organization   Organization @relation(fields: [organizationId], references: [id])
   leads          Lead[]
+  deals          Deal[]
 }
 
 model Account {
@@ -261,6 +265,31 @@ model Task {
   updatedAt      DateTime  @updatedAt
 
   // Relations
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  blueprint      Blueprint    @relation(fields: [blueprintId], references: [id])
+  stage          Stage        @relation(fields: [stageId], references: [id])
+}
+
+model Deal {
+  id             String    @id @default(uuid())
+  organizationId String
+  blueprintId    String
+  stageId        String
+  
+  // Standard indexed fields
+  firstName      String
+  lastName       String
+  email          String?
+  phone          String?
+  owner          String?
+  
+  // Dynamic payload
+  customData     Json      @default("{}")
+  tags           Tag[]
+  
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
   organization   Organization @relation(fields: [organizationId], references: [id])
   blueprint      Blueprint    @relation(fields: [blueprintId], references: [id])
   stage          Stage        @relation(fields: [stageId], references: [id])
