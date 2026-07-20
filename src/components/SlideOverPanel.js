@@ -147,6 +147,24 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
     setModalMode(null);
   };
 
+  const handleTransitionFieldChange = (name, value, record = null, mappings = [], isSecurity = false) => {
+    const targetData = isSecurity ? securityData : formData;
+    const setTargetData = isSecurity ? setSecurityData : setFormData;
+    
+    let newData = { ...targetData, [name]: value };
+
+    if (record && mappings && mappings.length > 0) {
+      mappings.forEach(mapping => {
+        if (!mapping.sourceField || !mapping.targetField) return;
+        const sourceVal = record[mapping.sourceField] || (record.customData && record.customData[mapping.sourceField]);
+        if (sourceVal !== undefined) {
+          newData[mapping.targetField] = sourceVal;
+        }
+      });
+    }
+    setTargetData(newData);
+  };
+
   return (
     <>
       <div className={`slide-backdrop ${isOpen ? 'open' : ''}`} onClick={onClose}></div>
@@ -366,7 +384,7 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
                     <DynamicField
                       field={fieldDef}
                       value={formData[fieldName]}
-                      onChange={(name, value) => setFormData({ ...formData, [name]: value })}
+                      onChange={(name, value, record, mappings) => handleTransitionFieldChange(name, value, record, mappings, false)}
                     />
                   </div>
                 );
@@ -405,7 +423,7 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
                     <DynamicField
                       field={fieldDef}
                       value={securityData[fieldName]}
-                      onChange={(name, value) => setSecurityData({ ...securityData, [name]: value })}
+                      onChange={(name, value, record, mappings) => handleTransitionFieldChange(name, value, record, mappings, true)}
                     />
                   </div>
                 );

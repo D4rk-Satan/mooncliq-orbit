@@ -59,6 +59,37 @@ export default function SettingsPage() {
     return tokens.idToken.toString();
   };
 
+  const [targetBlueprint, setTargetBlueprint] = useState(null);
+
+  useEffect(() => {
+    if (newField.targetModule && newField.targetModule !== selectedModule) {
+      const fetchTarget = async () => {
+        try {
+          const token = await getAuthToken();
+          const res = await fetch(`/api/blueprint?moduleType=${newField.targetModule}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          const data = await res.json();
+          if (res.ok) setTargetBlueprint(data);
+        } catch (e) {
+          console.error(e);
+        }
+      };
+      fetchTarget();
+    } else {
+      setTargetBlueprint(blueprint);
+    }
+  }, [newField.targetModule, selectedModule, blueprint]);
+
+  const getNativeFields = (moduleType) => {
+    if (moduleType === 'Lead') return [{ name: 'firstName', label: 'First Name' }, { name: 'lastName', label: 'Last Name' }, { name: 'email', label: 'Email' }, { name: 'phone', label: 'Phone' }];
+    if (moduleType === 'Account') return [{ name: 'companyName', label: 'Company Name' }, { name: 'website', label: 'Website' }, { name: 'phone', label: 'Phone' }];
+    if (moduleType === 'Task') return [{ name: 'taskName', label: 'Task Name' }, { name: 'dueDate', label: 'Due Date' }];
+    if (moduleType === 'Product') return [{ name: 'name', label: 'Product Name' }, { name: 'sku', label: 'SKU' }, { name: 'price', label: 'Price' }];
+    return [{ name: 'name', label: 'Name / Default' }];
+  };
+
+
   const [profiles, setProfiles] = useState([]);
   const [selectedProfile, setSelectedProfile] = useState(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -821,13 +852,12 @@ export default function SettingsPage() {
                             <label className="form-label">Target Display Field (Which field to show/search)</label>
                             <select className="form-input bg-white" value={newField.targetDisplayField || 'name'} onChange={e => setNewField({ ...newField, targetDisplayField: e.target.value, type: 'lookup' })}>
                               <option value="name">Name / Default</option>
-                              <option value="firstName">First Name</option>
-                              <option value="lastName">Last Name</option>
-                              <option value="email">Email</option>
-                              <option value="phone">Phone</option>
-                              <option value="companyName">Company Name</option>
-                              <option value="title">Title</option>
-                              <option value="owner">Owner</option>
+                              {getNativeFields(newField.targetModule).map(f => (
+                                <option key={f.name} value={f.name}>{f.label} (Native)</option>
+                              ))}
+                              {(targetBlueprint?.fields || []).map(f => (
+                                <option key={f.name} value={f.name}>{f.label} (Custom)</option>
+                              ))}
                             </select>
                           </div>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', justifyContent: 'center', paddingTop: '1.5rem' }}>
@@ -847,17 +877,25 @@ export default function SettingsPage() {
                             
                             {(newField.mappings || []).map((mapping, idx) => (
                               <div key={idx} style={{ display: 'flex', gap: '1rem', marginBottom: '0.5rem' }}>
-                                <input type="text" placeholder="Source Field from Target (e.g. email)" className="form-input bg-white" value={mapping.sourceField} onChange={e => {
+                                <select className="form-input bg-white" value={mapping.sourceField} onChange={e => {
                                   const m = [...(newField.mappings || [])];
                                   m[idx].sourceField = e.target.value;
                                   setNewField({...newField, mappings: m});
-                                }} />
+                                }}>
+                                  <option value="">Select Target Field...</option>
+                                  {getNativeFields(newField.targetModule).map(f => <option key={f.name} value={f.name}>{f.label} (Native)</option>)}
+                                  {(targetBlueprint?.fields || []).map(f => <option key={f.name} value={f.name}>{f.label} (Custom)</option>)}
+                                </select>
                                 <span style={{ padding: '0.5rem', color: '#64748b' }}>➔ pastes to ➔</span>
-                                <input type="text" placeholder="Local Field (e.g. email)" className="form-input bg-white" value={mapping.targetField} onChange={e => {
+                                <select className="form-input bg-white" value={mapping.targetField} onChange={e => {
                                   const m = [...(newField.mappings || [])];
                                   m[idx].targetField = e.target.value;
                                   setNewField({...newField, mappings: m});
-                                }} />
+                                }}>
+                                  <option value="">Select Local Field...</option>
+                                  {getNativeFields(selectedModule).map(f => <option key={f.name} value={f.name}>{f.label} (Native)</option>)}
+                                  {(blueprint?.fields || []).map(f => <option key={f.name} value={f.name}>{f.label} (Custom)</option>)}
+                                </select>
                                 <button type="button" onClick={() => {
                                   const m = [...(newField.mappings || [])];
                                   m.splice(idx, 1);
