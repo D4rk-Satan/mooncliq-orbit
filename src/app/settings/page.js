@@ -542,7 +542,7 @@ export default function SettingsPage() {
                   onClick={() => setCurrentView('hub')}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.95rem' }}
                 >
-                  ← Back to Setup
+                  â† Back to Setup
                 </button>
                 <div style={{ width: '1px', height: '24px', backgroundColor: '#cbd5e1', margin: '0 1.5rem' }}></div>
                 <h2 style={{ fontSize: '1.15rem', fontWeight: 600, margin: 0, color: '#0f172a' }}>
@@ -632,11 +632,11 @@ export default function SettingsPage() {
                                         }}
                                       >
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                          <div style={{ cursor: 'grab', color: '#cbd5e1' }}>⋮⋮</div>
+                                          <div style={{ cursor: 'grab', color: '#cbd5e1' }}>â‹®â‹®</div>
                                           <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: stage.color }}></div>
                                           <span style={{ fontWeight: 500 }}>{stage.name}</span>
                                         </div>
-                                        <button onClick={() => handleDeleteStage(stage.id)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
+                                        <button onClick={() => handleDeleteStage(stage.id)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}>âœ•</button>
                                       </div>
                                     )}
                                   </Draggable>
@@ -670,10 +670,10 @@ export default function SettingsPage() {
                                 <div>
                                   <div style={{ fontWeight: 600, color: 'var(--primary)', marginBottom: '0.25rem' }}>{t.name}</div>
                                   <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                                    {t.isGlobal ? "From Any Stage" : `From ${t.fromStages?.length || 0} Stage(s)`} ➔ To {destStage?.name || "Unknown"}
+                                    {t.isGlobal ? "From Any Stage" : `From ${t.fromStages?.length || 0} Stage(s)`} âž” To {destStage?.name || "Unknown"}
                                   </div>
                                 </div>
-                                <div style={{ color: '#cbd5e1' }}>➔</div>
+                                <div style={{ color: '#cbd5e1' }}>âž”</div>
                               </div>
                             )
                           })}
@@ -814,7 +814,7 @@ export default function SettingsPage() {
                             <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: tag.color }}></div>
                             <span style={{ fontWeight: 500 }}>{tag.name}</span>
                           </div>
-                          <button onClick={() => handleDeleteTag(tag.id)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
+                          <button onClick={() => handleDeleteTag(tag.id)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem' }}>âœ•</button>
                         </div>
                       ))}
                     </div>
@@ -887,7 +887,7 @@ export default function SettingsPage() {
                                   {getNativeFields(newField.targetModule).map(f => <option key={f.name} value={f.name}>{f.label} (Native)</option>)}
                                   {(targetBlueprint?.fields || []).map(f => <option key={f.name} value={f.name}>{f.label} (Custom)</option>)}
                                 </select>
-                                <span style={{ padding: '0.5rem', color: '#64748b' }}>➔ pastes to ➔</span>
+                                <span style={{ padding: '0.5rem', color: '#64748b' }}>âž” pastes to âž”</span>
                                 <select className="form-input bg-white" value={mapping.targetField} onChange={e => {
                                   const m = [...(newField.mappings || [])];
                                   m[idx].targetField = e.target.value;
@@ -901,7 +901,7 @@ export default function SettingsPage() {
                                   const m = [...(newField.mappings || [])];
                                   m.splice(idx, 1);
                                   setNewField({...newField, mappings: m});
-                                }} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
+                                }} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem' }}>âœ•</button>
                               </div>
                             ))}
                             <button type="button" onClick={() => setNewField({...newField, mappings: [...(newField.mappings || []), {sourceField: '', targetField: ''}]})} style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer', marginTop: '0.5rem' }}>+ Add Mapping</button>
@@ -994,7 +994,7 @@ export default function SettingsPage() {
           <div style={{ background: 'white', padding: '2.5rem', borderRadius: '12px', width: '100%', maxWidth: '800px', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
               <h2 style={{ margin: 0 }}>{selectedRule.id ? 'Edit Rule' : 'Create New Rule'}</h2>
-              <button onClick={() => setSelectedRule(null)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#94a3b8' }}>✕</button>
+              <button onClick={() => setSelectedRule(null)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#94a3b8' }}>âœ•</button>
             </div>
 
             <div style={{ marginBottom: '2rem', display: 'flex', gap: '1.5rem', alignItems: 'flex-start' }}>
@@ -1037,7 +1037,7 @@ export default function SettingsPage() {
                           })
                         )}
                       </div>
-                      <span style={{ color: '#64748b', fontSize: '0.8rem' }}>▼</span>
+                      <span style={{ color: '#64748b', fontSize: '0.8rem' }}>â–¼</span>
                     </div>
 
                     {isStageDropdownOpen && (
@@ -1195,7 +1195,7 @@ export default function SettingsPage() {
                             <button onClick={() => {
                               const newConds = (selectedRule.executionCriteria.conditions || []).filter((_, i) => i !== idx);
                               setSelectedRule({ ...selectedRule, executionCriteria: { ...selectedRule.executionCriteria, conditions: newConds } });
-                            }} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '1.25rem' }}>✕</button>
+                            }} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '1.25rem' }}>âœ•</button>
                           </div>
                         </div>
                       ))}
@@ -1278,7 +1278,7 @@ export default function SettingsPage() {
 
                   {selectedRule.hasCustomMessage && (
                     <div style={{ marginBottom: '1.5rem', background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0', position: 'relative' }}>
-                      <button onClick={() => setSelectedRule({ ...selectedRule, hasCustomMessage: false, customMessage: "" })} style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}>✕</button>
+                      <button onClick={() => setSelectedRule({ ...selectedRule, hasCustomMessage: false, customMessage: "" })} style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}>âœ•</button>
                       <label className="form-label">Custom Message</label>
                       <input type="text" className="form-input bg-white" placeholder="e.g. Please verify the following details before proceeding." value={selectedRule.customMessage} onChange={e => setSelectedRule({ ...selectedRule, customMessage: e.target.value })} />
                     </div>
@@ -1290,7 +1290,7 @@ export default function SettingsPage() {
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                         {selectedRule.checklists.map((item, idx) => (
                           <div key={idx} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                            <div style={{ color: '#cbd5e1' }}>⋮⋮</div>
+                            <div style={{ color: '#cbd5e1' }}>â‹®â‹®</div>
                             <input type="text" className="form-input bg-white" style={{ flex: 1 }} placeholder="Checklist item (e.g. Verify ID)" value={item} onChange={e => {
                               const newLists = [...selectedRule.checklists];
                               newLists[idx] = e.target.value;
@@ -1299,7 +1299,7 @@ export default function SettingsPage() {
                             <button onClick={() => {
                               const newLists = selectedRule.checklists.filter((_, i) => i !== idx);
                               setSelectedRule({ ...selectedRule, checklists: newLists });
-                            }} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '1.25rem' }}>✕</button>
+                            }} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '1.25rem' }}>âœ•</button>
                           </div>
                         ))}
                       </div>
@@ -1356,7 +1356,7 @@ export default function SettingsPage() {
                                 let newMandatory = (selectedRule.requiredFields || []).filter(n => n !== field.name);
                                 let newDoubleVerify = (selectedRule.necessaryFields || []).filter(n => n !== field.name);
                                 setSelectedRule({ ...selectedRule, visibleFields: newVisible, requiredFields: newMandatory, necessaryFields: newDoubleVerify });
-                              }} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '1.25rem' }}>✕</button>
+                              }} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '1.25rem' }}>âœ•</button>
                             </div>
                           );
                         })}
@@ -1415,7 +1415,7 @@ export default function SettingsPage() {
                                 const newActions = { ...selectedRule.afterActions };
                                 newActions[actionDef.id] = newActions[actionDef.id].filter((_, i) => i !== idx);
                                 setSelectedRule({ ...selectedRule, afterActions: newActions });
-                              }} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}>✕</button>
+                              }} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}>âœ•</button>
                             </div>
                           ))}
                         </div>
@@ -1432,7 +1432,7 @@ export default function SettingsPage() {
                   <div style={{ background: 'white', padding: '2rem', borderRadius: '12px', width: '100%', maxWidth: '400px', position: 'relative', zIndex: 10 }}>
                     <h3 style={{ marginTop: 0, fontSize: '1.25rem', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between' }}>
                       Select Tag
-                      <button onClick={() => setTagBuilder({ ...tagBuilder, isOpen: false })} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: '#94a3b8' }}>✕</button>
+                      <button onClick={() => setTagBuilder({ ...tagBuilder, isOpen: false })} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: '#94a3b8' }}>âœ•</button>
                     </h3>
 
                     <div style={{ marginBottom: '2rem' }}>
@@ -1482,7 +1482,7 @@ export default function SettingsPage() {
                   <div style={{ background: 'white', padding: '2rem', borderRadius: '12px', width: '100%', maxWidth: '400px', position: 'relative', zIndex: 10 }}>
                     <h3 style={{ marginTop: 0, fontSize: '1.25rem', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between' }}>
                       Configure Field Update
-                      <button onClick={() => setFieldUpdateBuilder({ ...fieldUpdateBuilder, isOpen: false })} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: '#94a3b8' }}>✕</button>
+                      <button onClick={() => setFieldUpdateBuilder({ ...fieldUpdateBuilder, isOpen: false })} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: '#94a3b8' }}>âœ•</button>
                     </h3>
 
                     <div style={{ marginBottom: '1.5rem' }}>
@@ -1537,7 +1537,7 @@ export default function SettingsPage() {
                   <div style={{ background: 'white', padding: '2rem', borderRadius: '12px', width: '100%', maxWidth: '600px', position: 'relative', zIndex: 10, maxHeight: '90vh', overflowY: 'auto' }}>
                     <h3 style={{ marginTop: 0, fontSize: '1.25rem', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between' }}>
                       Auto-Create Record
-                      <button onClick={() => setCreateRecordBuilder({ ...createRecordBuilder, isOpen: false })} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: '#94a3b8' }}>✕</button>
+                      <button onClick={() => setCreateRecordBuilder({ ...createRecordBuilder, isOpen: false })} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: '#94a3b8' }}>âœ•</button>
                     </h3>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
@@ -1549,6 +1549,7 @@ export default function SettingsPage() {
                           onChange={e => setCreateRecordBuilder({ ...createRecordBuilder, targetModule: e.target.value })}
                         >
                           <option value="Lead">Lead</option>
+                          <option value="Deal">Deal</option>
                           <option value="Account">Account</option>
                           <option value="Product">Product</option>
                           <option value="Task">Task</option>
@@ -1592,7 +1593,7 @@ export default function SettingsPage() {
                                 }}
                               />
                             </div>
-                            <div style={{ color: '#94a3b8' }}>←</div>
+                            <div style={{ color: '#94a3b8' }}>â†</div>
                             <div style={{ flex: 1 }}>
                               <input
                                 type="text"
@@ -1609,7 +1610,7 @@ export default function SettingsPage() {
                             <button onClick={() => {
                               const newMappings = createRecordBuilder.mappings.filter((_, i) => i !== idx);
                               setCreateRecordBuilder({ ...createRecordBuilder, mappings: newMappings });
-                            }} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '1.25rem', padding: '0 0.5rem' }}>✕</button>
+                            }} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '1.25rem', padding: '0 0.5rem' }}>âœ•</button>
                           </div>
                         ))}
                       </div>
@@ -1656,7 +1657,7 @@ export default function SettingsPage() {
           <div style={{ background: 'white', padding: '2.5rem', borderRadius: '12px', width: '100%', maxWidth: '800px', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
               <h2 style={{ margin: 0 }}>{selectedProfile.id ? 'Edit Profile' : 'Create New Profile'}</h2>
-              <button onClick={() => setIsProfileModalOpen(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#94a3b8' }}>✕</button>
+              <button onClick={() => setIsProfileModalOpen(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#94a3b8' }}>âœ•</button>
             </div>
 
             <div style={{ marginBottom: '2rem' }}>
