@@ -473,6 +473,7 @@ export default function SettingsPage() {
               }}
             >
               <option value="Lead">Lead</option>
+              <option value="Deal">Deal</option>
               <option value="Account">Account</option>
               <option value="Product">Product</option>
               <option value="Task">Task</option>
