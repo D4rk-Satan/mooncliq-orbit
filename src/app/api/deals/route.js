@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '../../../lib/prisma';
 import { getAuthUser } from '../../../lib/auth';
+import { executeBiDirectionalSync } from '../../../lib/syncLookups';
 
 export async function GET(request) {
   console.log("PRISMA KEYS:", Object.keys(prisma));
@@ -28,7 +29,7 @@ export async function GET(request) {
       whereClause.owner = user.email; // Assuming owner field holds email
     }
 
-    const Deals = await prisma.Deal.findMany({
+    const Deals = await prisma.deal.findMany({
       where: whereClause,
       include: {
         stage: true,
@@ -56,7 +57,7 @@ export async function POST(request) {
     const data = await request.json();
     const { firstName, lastName, email, phone, owner, stageId, customData, blueprintId } = data;
 
-    const newDeal = await prisma.Deal.create({
+    const newDeal = await prisma.deal.create({
       data: {
         organizationId: user.organizationId,
         blueprintId,
@@ -116,7 +117,7 @@ export async function PATCH(request) {
       whereClause.owner = user.email;
     }
 
-    const existingDeal = await prisma.Deal.findFirst({
+    const existingDeal = await prisma.deal.findFirst({
       where: whereClause
     });
 
@@ -285,7 +286,7 @@ export async function PATCH(request) {
       }
     }
 
-    const updatedDeal = await prisma.Deal.update({
+    const updatedDeal = await prisma.deal.update({
       where: { id: DealId },
       data: updateData,
       include: { 

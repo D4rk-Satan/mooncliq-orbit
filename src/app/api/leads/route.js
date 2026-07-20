@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '../../../lib/prisma';
 import { getAuthUser } from '../../../lib/auth';
+import { executeBiDirectionalSync } from '../../../lib/syncLookups';
 
 export async function GET(request) {
   console.log("PRISMA KEYS:", Object.keys(prisma));

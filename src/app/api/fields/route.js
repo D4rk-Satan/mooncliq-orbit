@@ -27,9 +27,52 @@ export async function POST(request) {
         targetDisplayField: targetDisplayField || null,
         isMultiSelect: isMultiSelect || false,
         isBiDirectional: isBiDirectional || false,
+        isBiDirectional: isBiDirectional || false,
         mappings: mappings || null
       }
     });
+
+    if (isBiDirectional && targetModule) {
+      const currentBlueprint = await prisma.blueprint.findUnique({ where: { id: blueprintId } });
+      const targetBp = await prisma.blueprint.findFirst({
+        where: {
+          organizationId: currentBlueprint.organizationId,
+          moduleType: targetModule
+        }
+      });
+
+      if (targetBp) {
+        const reverseName = `related_${currentBlueprint.moduleType.toLowerCase()}s_${Date.now()}`;
+        const reverseLabel = `Related ${currentBlueprint.moduleType}s`;
+        
+        const lastReverseField = await prisma.field.findFirst({
+          where: { blueprintId: targetBp.id },
+          orderBy: { orderIndex: 'desc' }
+        });
+        const nextReverseOrder = lastReverseField ? lastReverseField.orderIndex + 1 : 1;
+
+        const reverseField = await prisma.field.create({
+          data: {
+            blueprintId: targetBp.id,
+            name: reverseName,
+            label: reverseLabel,
+            type: 'lookup',
+            targetModule: currentBlueprint.moduleType,
+            targetDisplayField: 'name',
+            isMultiSelect: true,
+            isBiDirectional: true,
+            options: [{ reverseOf: newField.id }]
+          }
+        });
+
+        await prisma.field.update({
+          where: { id: newField.id },
+          data: {
+            options: [...(options || []), { reverseOf: reverseField.id }]
+          }
+        });
+      }
+    }
 
     return NextResponse.json(newField);
   } catch (error) {

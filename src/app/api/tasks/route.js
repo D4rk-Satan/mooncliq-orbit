@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '../../../lib/prisma';
 import { getAuthUser } from '../../../lib/auth';
+import { executeBiDirectionalSync } from '../../../lib/syncLookups';
 
 export async function POST(req) {
   try {
@@ -45,9 +46,11 @@ export async function POST(req) {
         repeat,
         alert,
         notes,
-        customData
+        customData: customData || {}
       }
     });
+
+    await executeBiDirectionalSync(user.organizationId, 'Task', task, blueprintId);
 
     return NextResponse.json(task);
   } catch (error) {
