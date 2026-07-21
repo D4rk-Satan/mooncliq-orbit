@@ -143,10 +143,10 @@ export default function SettingsPage() {
   }, [newField.targetModule, selectedModule, blueprint]);
 
   const getNativeFields = (moduleType) => {
-    if (moduleType === 'Lead') return [{ name: 'firstName', label: 'First Name' }, { name: 'lastName', label: 'Last Name' }, { name: 'email', label: 'Email' }, { name: 'phone', label: 'Phone' }];
-    if (moduleType === 'Account') return [{ name: 'companyName', label: 'Company Name' }, { name: 'website', label: 'Website' }, { name: 'phone', label: 'Phone' }];
-    if (moduleType === 'Task') return [{ name: 'taskName', label: 'Task Name' }, { name: 'dueDate', label: 'Due Date' }];
-    if (moduleType === 'Product') return [{ name: 'name', label: 'Product Name' }, { name: 'sku', label: 'SKU' }, { name: 'price', label: 'Price' }];
+    if (moduleType === 'Lead' || moduleType === 'Deal') return [{ name: 'firstName', label: 'First Name' }, { name: 'lastName', label: 'Last Name' }, { name: 'email', label: 'Email' }, { name: 'phone', label: 'Phone' }, { name: 'owner', label: 'Owner' }];
+    if (moduleType === 'Account') return [{ name: 'companyName', label: 'Company Name' }, { name: 'email', label: 'Email' }, { name: 'gstNo', label: 'GST No' }, { name: 'website', label: 'Website' }, { name: 'address', label: 'Address' }, { name: 'contactPerson', label: 'Contact Person' }];
+    if (moduleType === 'Task') return [{ name: 'taskName', label: 'Task Name' }, { name: 'startDateTime', label: 'Start Date/Time' }, { name: 'dueDateTime', label: 'Due Date/Time' }, { name: 'endDateTime', label: 'End Date/Time' }];
+    if (moduleType === 'Product') return [{ name: 'name', label: 'Product Name' }, { name: 'sku', label: 'SKU' }];
     return [{ name: 'name', label: 'Name / Default' }];
   };
 
