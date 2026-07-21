@@ -184,6 +184,13 @@ export async function PATCH(request) {
         // --- AFTER ACTIONS: CREATE RECORDS ---
         const createRecords = transition.afterActions.createRecords;
         if (Array.isArray(createRecords) && createRecords.length > 0) {
+          const standardFieldsMap = {
+            Account: ['companyName', 'email', 'gstNo', 'website', 'address', 'contactPerson'],
+            Task: ['taskName', 'startDateTime', 'dueDateTime', 'endDateTime', 'repeat', 'alert', 'notes'],
+            Product: ['name', 'sku'],
+            Deal: ['firstName', 'lastName', 'email', 'phone', 'owner'],
+            Lead: ['firstName', 'lastName', 'email', 'phone', 'owner']
+          };
           for (const action of createRecords) {
             // Find target blueprint
             const targetBlueprint = await prisma.blueprint.findFirst({
@@ -195,7 +202,8 @@ export async function PATCH(request) {
             }
 
             const requiredFields = targetBlueprint.fields.filter(f => f.isRequired).map(f => f.name);
-            const standardRequired = action.targetModule === 'Account' ? ['companyName'] : action.targetModule === 'Task' ? ['taskName'] : action.targetModule === 'Product' ? ['name', 'sku'] : [];
+            const standardRequired = action.targetModule === 'Account' ? ['companyName'] : action.targetModule === 'Task' ? ['taskName'] : action.targetModule === 'Product' ? ['name', 'sku'] : action.targetModule === 'Deal' ? ['firstName', 'lastName'] : action.targetModule === 'Lead' ? ['firstName', 'lastName'] : [];
+            const standardFields = standardFieldsMap[action.targetModule] || [];
 
             // Compile the mapping data
             const mappedData = {};
@@ -219,6 +227,8 @@ export async function PATCH(request) {
             // Verify integrity
             for (const req of [...requiredFields, ...standardRequired]) {
               if (!mappedData[req]) {
+                console.error('Data Integrity Error: Target module', action.targetModule, 'requires field', req, 'but it was not mapped');
+                console.error('Data Integrity Error: Target module', action.targetModule, 'requires field', req, 'but it was not mapped');
                 return NextResponse.json({ error: `Strict Data Integrity Error: Auto-Create failed. Target module '${action.targetModule}' requires field '${req}' but it was not mapped.` }, { status: 400 });
               }
             }
@@ -226,7 +236,7 @@ export async function PATCH(request) {
             let targetStageId = targetBlueprint.stages[0]?.id;
             if (!targetStageId) {
                const defaultStage = await prisma.stage.create({
-                 data: { blueprintId: targetBlueprint.id, name: 'New', orderIndex: 0 }
+                 data: { blueprintId: targetBlueprint.id, name: 'New', orderIndex: 0, requiredFields: [] }
                });
                targetStageId = defaultStage.id;
             }
@@ -240,7 +250,7 @@ export async function PATCH(request) {
             };
 
             for (const key of Object.keys(mappedData)) {
-              if (standardRequired.includes(key)) {
+              if (standardFields.includes(key)) {
                 createPayload[key] = mappedData[key];
               } else {
                 createPayload.customData[key] = mappedData[key];
@@ -255,6 +265,10 @@ export async function PATCH(request) {
                createdRecord = await prisma.task.create({ data: createPayload });
             } else if (action.targetModule === 'Product') {
                createdRecord = await prisma.product.create({ data: createPayload });
+            } else if (action.targetModule === 'Deal') {
+               createdRecord = await prisma.deal.create({ data: createPayload });
+            } else if (action.targetModule === 'Lead') {
+               createdRecord = await prisma.lead.create({ data: createPayload });
             }
 
             // Handle Auto Link
@@ -269,13 +283,14 @@ export async function PATCH(request) {
                  const lookupField = leadBlueprint.fields.find(f => f.type === 'lookup' && f.targetModule === action.targetModule);
                  if (lookupField) {
                    let mergedCustomData = updateData.customData || (typeof existingLead.customData === 'string' ? JSON.parse(existingLead.customData || "{}") : existingLead.customData);
+                   const displayName = createdRecord.firstName ? `${createdRecord.firstName} ${createdRecord.lastName || ''}`.trim() : createdRecord.taskName || createdRecord.name || createdRecord.companyName || createdRecord.id;
                    if (lookupField.isMultiSelect) {
                      const existing = Array.isArray(mergedCustomData[lookupField.name]) ? mergedCustomData[lookupField.name] : [];
-                     if (!existing.includes(createdRecord.id)) {
-                       mergedCustomData[lookupField.name] = [...existing, createdRecord.id];
+                     if (!existing.some(e => e.id === createdRecord.id)) {
+                       mergedCustomData[lookupField.name] = [...existing, { id: createdRecord.id, name: displayName }];
                      }
                    } else {
-                     mergedCustomData[lookupField.name] = createdRecord.id;
+                     mergedCustomData[lookupField.name] = { id: createdRecord.id, name: displayName };
                    }
                    updateData.customData = mergedCustomData;
                  }

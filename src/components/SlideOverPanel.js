@@ -153,10 +153,14 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
     
     let newData = { ...targetData, [name]: value };
 
-    if (record && mappings && mappings.length > 0) {
+    console.log('SlideOverPanel handleTransitionFieldChange:', {name, value, record, mappings}); if (record && mappings && mappings.length > 0) {
       mappings.forEach(mapping => {
         if (!mapping.sourceField || !mapping.targetField) return;
-        const sourceVal = record[mapping.sourceField] || (record.customData && record.customData[mapping.sourceField]);
+        let cData = {};
+        try {
+          cData = typeof record.customData === 'string' ? JSON.parse(record.customData || '{}') : (record.customData || {});
+        } catch(e) {}
+        const sourceVal = record[mapping.sourceField] || cData[mapping.sourceField];
         if (sourceVal !== undefined) {
           newData[mapping.targetField] = sourceVal;
         }

@@ -4,9 +4,49 @@ import React, { useState, useEffect, useRef } from "react";
 import Sidebar from "../../components/Sidebar";
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 
+
+const DEFAULT_MODULE_FIELDS = {
+  Lead: [
+    { id: 'def_firstName', name: 'firstName', label: 'First Name' },
+    { id: 'def_lastName', name: 'lastName', label: 'Last Name' },
+    { id: 'def_email', name: 'email', label: 'Email' },
+    { id: 'def_phone', name: 'phone', label: 'Phone' },
+    { id: 'def_owner', name: 'owner', label: 'Owner' }
+  ],
+  Deal: [
+    { id: 'def_firstName', name: 'firstName', label: 'First Name' },
+    { id: 'def_lastName', name: 'lastName', label: 'Last Name' },
+    { id: 'def_email', name: 'email', label: 'Email' },
+    { id: 'def_phone', name: 'phone', label: 'Phone' },
+    { id: 'def_amount', name: 'amount', label: 'Amount' }
+  ],
+  Account: [
+    { id: 'def_companyName', name: 'companyName', label: 'Company Name' },
+    { id: 'def_email', name: 'email', label: 'Email' },
+    { id: 'def_gstNo', name: 'gstNo', label: 'GST No' },
+    { id: 'def_website', name: 'website', label: 'Website' },
+    { id: 'def_address', name: 'address', label: 'Address' },
+    { id: 'def_contactPerson', name: 'contactPerson', label: 'Contact Person' }
+  ],
+  Product: [
+    { id: 'def_name', name: 'name', label: 'Product Name' },
+    { id: 'def_sku', name: 'sku', label: 'SKU' }
+  ],
+  Task: [
+    { id: 'def_taskName', name: 'taskName', label: 'Task Name' },
+    { id: 'def_startDateTime', name: 'startDateTime', label: 'Start Date & Time' },
+    { id: 'def_dueDateTime', name: 'dueDateTime', label: 'Due Date & Time' },
+    { id: 'def_endDateTime', name: 'endDateTime', label: 'End Date & Time' },
+    { id: 'def_repeat', name: 'repeat', label: 'Repeat' },
+    { id: 'def_alert', name: 'alert', label: 'Alert' },
+    { id: 'def_notes', name: 'notes', label: 'Notes' }
+  ]
+};
+
 export default function SettingsPage() {
   const [blueprint, setBlueprint] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [targetBlueprintFields, setTargetBlueprintFields] = useState([]);
   const [currentView, setCurrentView] = useState("hub");
   const [selectedModule, setSelectedModule] = useState("Lead");
 
@@ -25,6 +65,7 @@ export default function SettingsPage() {
   const [isFieldMenuOpen, setIsFieldMenuOpen] = useState(false);
   const addMenuRef = useRef(null);
   
+  
   useEffect(() => {
     function handleClickOutside(event) {
       if (addMenuRef.current && !addMenuRef.current.contains(event.target)) {
@@ -38,6 +79,26 @@ export default function SettingsPage() {
   const [tagBuilder, setTagBuilder] = useState({ isOpen: false, name: '', color: '#ef4444' });
   const [fieldUpdateBuilder, setFieldUpdateBuilder] = useState({ isOpen: false, field: '', value: '' });
   const [createRecordBuilder, setCreateRecordBuilder] = useState({ isOpen: false, targetModule: 'Task', autoLink: true, mappings: [] });
+  useEffect(() => {
+    if (createRecordBuilder.isOpen && createRecordBuilder.targetModule) {
+      const fetchTargetBlueprint = async () => {
+        try {
+          const token = await getAuthToken();
+          const res = await fetch(`/api/blueprint?moduleType=${createRecordBuilder.targetModule}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            setTargetBlueprintFields(data.fields || []);
+          }
+        } catch(err) {
+          console.error(err);
+        }
+      };
+      fetchTargetBlueprint();
+    }
+  }, [createRecordBuilder.isOpen, createRecordBuilder.targetModule]);
+
   const tagColors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#0ea5e9', '#8b5cf6', '#ec4899', '#64748b', '#84cc16'];
 
   // Tag Manager State
@@ -93,6 +154,9 @@ export default function SettingsPage() {
   const [profiles, setProfiles] = useState([]);
   const [selectedProfile, setSelectedProfile] = useState(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [inviteData, setInviteData] = useState({ email: '', profileId: '' });
+  const [inviteStatus, setInviteStatus] = useState(null);
 
   const fetchBlueprint = async () => {
     setIsLoading(true);
@@ -139,6 +203,34 @@ export default function SettingsPage() {
       }
     } catch (err) {
       console.error("Failed to load tags", err);
+    }
+  };
+
+
+  const handleInviteUser = async (e) => {
+    e.preventDefault();
+    if (!inviteData.email || !inviteData.profileId) return;
+    setInviteStatus('sending');
+    try {
+      const token = await getAuthToken();
+      const res = await fetch('/api/invitations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ email: inviteData.email, profileId: inviteData.profileId })
+      });
+      if (res.ok) {
+        setInviteStatus('success');
+        setTimeout(() => {
+          setIsInviteModalOpen(false);
+          setInviteData({ email: '', profileId: '' });
+          setInviteStatus(null);
+        }, 2000);
+      } else {
+        const data = await res.json();
+        setInviteStatus(`Error: ${data.error || 'Failed to send invite'}`);
+      }
+    } catch (err) {
+      setInviteStatus(`Error: ${err.message}`);
     }
   };
 
@@ -526,8 +618,8 @@ export default function SettingsPage() {
                     <button onClick={() => setCurrentView('profiles')} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
                       Roles & Profiles
                     </button>
-                    <button disabled style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'not-allowed', color: '#cbd5e1', fontSize: '0.95rem', borderRadius: '6px', fontWeight: 500 }}>
-                      Invite Users (Coming Soon)
+                    <button onClick={() => setCurrentView('users')} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
+                      Users & Invites
                     </button>
                   </div>
                 </div>
@@ -550,10 +642,50 @@ export default function SettingsPage() {
                   {currentView === 'fields' && "Modules and Fields"}
                   {currentView === 'tags' && "Tag Definitions"}
                   {currentView === 'lookups' && "Relationships & Lookups"}
+                  {currentView === 'users' && "Users & Invitations"}
                 </h2>
               </div>
 
               <div style={{ padding: '2rem' }}>
+
+                {/* USERS TAB */}
+                {currentView === 'users' && (
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                      <div>
+                        <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.25rem' }}>Users in Organization</h2>
+                        <p className="text-muted" style={{ margin: 0, fontSize: '0.9rem' }}>Manage active members and pending AWS SES invitations.</p>
+                      </div>
+                      <button onClick={() => setIsInviteModalOpen(true)} style={{ padding: '0.5rem 1rem', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                        Invite User
+                      </button>
+                    </div>
+
+                    <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                        <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                          <tr>
+                            <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Email Address</th>
+                            <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>RBAC Profile</th>
+                            <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Status</th>
+                            <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                            <td style={{ padding: '1rem', color: '#0f172a', fontWeight: 500 }}>gaurav.test@gmail.com</td>
+                            <td style={{ padding: '1rem' }}><span style={{ backgroundColor: '#f1f5f9', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem', color: '#475569', fontWeight: 600 }}>Admin</span></td>
+                            <td style={{ padding: '1rem' }}><span style={{ color: '#10b981', fontWeight: 600, fontSize: '0.85rem' }}>● Active</span></td>
+                            <td style={{ padding: '1rem' }}>
+                              <button style={{ background: 'none', border: '1px solid #ef4444', color: '#ef4444', padding: '0.25rem 0.75rem', borderRadius: '4px', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600 }}>Revoke Access</button>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
 
                 {/* BLUEPRINT TAB */}
                 {currentView === 'blueprint' && (
@@ -1581,31 +1713,37 @@ export default function SettingsPage() {
                         {createRecordBuilder.mappings.map((mapping, idx) => (
                           <div key={idx} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', background: '#f8fafc', padding: '0.5rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
                             <div style={{ flex: 1 }}>
-                              <input
-                                type="text"
+                              <select
                                 className="form-input bg-white"
-                                placeholder="Target Field (e.g. name)"
                                 value={mapping.targetField}
                                 onChange={e => {
                                   const newMappings = [...createRecordBuilder.mappings];
                                   newMappings[idx].targetField = e.target.value;
                                   setCreateRecordBuilder({ ...createRecordBuilder, mappings: newMappings });
                                 }}
-                              />
+                              >
+                                <option value="">Select Target Field...</option>
+                                {[...(DEFAULT_MODULE_FIELDS[createRecordBuilder.targetModule] || []), ...targetBlueprintFields].map(f => (
+                                  <option key={f.id} value={f.name}>{f.label || f.name} {f.isRequired ? '*' : ''}</option>
+                                ))}
+                              </select>
                             </div>
                             <div style={{ color: '#94a3b8' }}>←</div>
                             <div style={{ flex: 1 }}>
-                              <input
-                                type="text"
+                              <select
                                 className="form-input bg-white"
-                                placeholder={`Source Value (e.g. {{${selectedModule}.companyName}})`}
-                                value={mapping.sourceField}
+                                value={mapping.sourceField.replace(`{{${selectedModule}.`, '').replace('}}', '')}
                                 onChange={e => {
                                   const newMappings = [...createRecordBuilder.mappings];
-                                  newMappings[idx].sourceField = e.target.value;
+                                  newMappings[idx].sourceField = `{{${selectedModule}.${e.target.value}}}`;
                                   setCreateRecordBuilder({ ...createRecordBuilder, mappings: newMappings });
                                 }}
-                              />
+                              >
+                                <option value="">Select Source Field...</option>
+                                {[...(DEFAULT_MODULE_FIELDS[selectedModule] || []), ...blueprint.fields].map(f => (
+                                  <option key={f.id} value={f.name}>{f.label || f.name}</option>
+                                ))}
+                              </select>
                             </div>
                             <button onClick={() => {
                               const newMappings = createRecordBuilder.mappings.filter((_, i) => i !== idx);
@@ -1751,6 +1889,64 @@ export default function SettingsPage() {
               <button onClick={() => setIsProfileModalOpen(false)} style={{ padding: '0.5rem 1rem', background: 'white', border: '1px solid #cbd5e1', borderRadius: '6px', fontWeight: 500 }}>Cancel</button>
               <button onClick={handleSaveProfile} className="btn-primary">Save Profile</button>
             </div>
+          </div>
+        </div>
+      )}
+
+    
+      {/* INVITE USER MODAL */}
+      {isInviteModalOpen && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)' }} onClick={() => setIsInviteModalOpen(false)}></div>
+          <div style={{ background: 'white', padding: '2rem', borderRadius: '12px', width: '100%', maxWidth: '400px', position: 'relative', zIndex: 10 }}>
+            <h3 style={{ marginTop: 0, fontSize: '1.25rem', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              Invite User
+              <button onClick={() => setIsInviteModalOpen(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#94a3b8' }}>✕</button>
+            </h3>
+            <form onSubmit={handleInviteUser}>
+              <div style={{ marginBottom: '1rem' }}>
+                <label className="form-label">Email Address</label>
+                <input 
+                  type="email" 
+                  className="form-input bg-white" 
+                  placeholder="colleague@company.com"
+                  value={inviteData.email} 
+                  onChange={e => setInviteData({...inviteData, email: e.target.value})} 
+                  required 
+                />
+              </div>
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label className="form-label">Assign Profile (Role)</label>
+                <select 
+                  className="form-input bg-white" 
+                  value={inviteData.profileId} 
+                  onChange={e => setInviteData({...inviteData, profileId: e.target.value})}
+                  required
+                >
+                  <option value="">Select a Profile...</option>
+                  {profiles.map(p => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {inviteStatus === 'success' ? (
+                <div style={{ padding: '1rem', background: '#dcfce3', color: '#166534', borderRadius: '8px', textAlign: 'center', fontWeight: 500, marginBottom: '1rem' }}>
+                  ✓ Invitation Sent Successfully!
+                </div>
+              ) : inviteStatus && inviteStatus.startsWith('Error') ? (
+                <div style={{ padding: '1rem', background: '#fee2e2', color: '#991b1b', borderRadius: '8px', textAlign: 'center', fontWeight: 500, marginBottom: '1rem' }}>
+                  {inviteStatus}
+                </div>
+              ) : null}
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+                <button type="button" onClick={() => setIsInviteModalOpen(false)} style={{ padding: '0.5rem 1rem', background: 'white', border: '1px solid #cbd5e1', borderRadius: '6px', fontWeight: 500, cursor: 'pointer' }}>Cancel</button>
+                <button type="submit" disabled={inviteStatus === 'sending'} className="btn-primary" style={{ cursor: inviteStatus === 'sending' ? 'not-allowed' : 'pointer' }}>
+                  {inviteStatus === 'sending' ? 'Sending...' : 'Send Invite'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

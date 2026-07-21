@@ -10,287 +10,305 @@ datasource db {
 // PHASE 0: Multi-Tenant Foundation
 // ------------------------------------------------------------------
 model Organization {
-  id         String      @id @default(uuid())
-  name       String
-  createdAt  DateTime    @default(now())
-  
-  users      User[]
-  blueprints Blueprint[]
-  leads      Lead[]
-  auditLogs  AuditLog[]
-  tags       Tag[]
-  accounts   Account[]
-  products   Product[]
-  tasks      Task[]
-  deals      Deal[]
-  profiles   Profile[]
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+
+  users       User[]
+  blueprints  Blueprint[]
+  leads       Lead[]
+  auditLogs   AuditLog[]
+  tags        Tag[]
+  accounts    Account[]
+  products    Product[]
+  tasks       Task[]
+  deals       Deal[]
+  profiles    Profile[]
+  invitations Invitation[]
 }
 
 // ------------------------------------------------------------------
 // PHASE 0.5: RBAC (Role-Based Access Control)
 // ------------------------------------------------------------------
 model Profile {
-  id             String       @id @default(uuid())
+  id             String @id @default(uuid())
   organizationId String
-  name           String       // e.g. "Admin", "Sales Rep"
-  
+  name           String // e.g. "Admin", "Sales Rep"
+
   // High-Level Toggles
-  canAccessSettings Boolean   @default(false)
-  canManageUsers    Boolean   @default(false)
-  canExportData     Boolean   @default(false)
+  canAccessSettings Boolean @default(false)
+  canManageUsers    Boolean @default(false)
+  canExportData     Boolean @default(false)
 
   // Module Level Permissions
-  permissions       Json      // e.g. { "Lead": { read: true, create: true, update: true, delete: false } }
-  
-  organization      Organization @relation(fields: [organizationId], references: [id])
-  users             User[]
+  permissions Json // e.g. { "Lead": { read: true, create: true, update: true, delete: false } }
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  users        User[]
+  invitations  Invitation[]
 }
 
 model User {
-  id             String       @id // AWS Cognito User ID
-  email          String       @unique
+  id             String   @id // AWS Cognito User ID
+  email          String   @unique
   organizationId String
   profileId      String?
-  createdAt      DateTime     @default(now())
-  
-  organization   Organization @relation(fields: [organizationId], references: [id])
-  profile        Profile?     @relation(fields: [profileId], references: [id])
+  isActive       Boolean  @default(true) // For revoking access
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  profile      Profile?     @relation(fields: [profileId], references: [id])
+}
+
+model Invitation {
+  id             String   @id @default(uuid())
+  email          String
+  token          String   @unique
+  organizationId String
+  profileId      String // The RBAC role they will get
+  status         String   @default("PENDING") // PENDING, ACCEPTED, EXPIRED
+  expiresAt      DateTime
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  profile      Profile      @relation(fields: [profileId], references: [id])
+
+  @@unique([email, organizationId])
 }
 
 // ------------------------------------------------------------------
 // PHASE 1: The Blueprint Contract (Config)
 // ------------------------------------------------------------------
 model Blueprint {
-  id             String       @id @default(uuid())
+  id             String @id @default(uuid())
   organizationId String
-  moduleType     String       // e.g., "Lead", "Deal", "Ticket"
-  version        Int          @default(1)
-  name           String       @default("Default Pipeline")
-  
-  stages         Stage[]
-  transitions    Transition[]
-  fields         Field[]
-  leads          Lead[]
-  accounts       Account[]
-  products       Product[]
-  tasks          Task[]
-  deals          Deal[]
-  
-  organization   Organization @relation(fields: [organizationId], references: [id])
-  
+  moduleType     String // e.g., "Lead", "Deal", "Ticket"
+  version        Int    @default(1)
+  name           String @default("Default Pipeline")
+
+  stages      Stage[]
+  transitions Transition[]
+  fields      Field[]
+  leads       Lead[]
+  accounts    Account[]
+  products    Product[]
+  tasks       Task[]
+  deals       Deal[]
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+
   @@unique([organizationId, moduleType, version])
 }
 
 model Stage {
-  id             String    @id @default(uuid())
+  id             String   @id @default(uuid())
   blueprintId    String
-  name           String    // e.g., "New", "Contacted"
+  name           String // e.g., "New", "Contacted"
   orderIndex     Int
-  requiredFields String[]  // Array of field names required to enter this stage
+  requiredFields String[] // Array of field names required to enter this stage
   color          String?
-  
-  blueprint      Blueprint @relation(fields: [blueprintId], references: [id])
-  leads          Lead[]
-  accounts       Account[]
-  products       Product[]
-  tasks          Task[]
-  deals          Deal[]
-  
+
+  blueprint Blueprint @relation(fields: [blueprintId], references: [id])
+  leads     Lead[]
+  accounts  Account[]
+  products  Product[]
+  tasks     Task[]
+  deals     Deal[]
+
   outgoingTransitions Transition[] @relation("FromStages")
   incomingTransitions Transition[] @relation("ToStage")
 }
 
 model Field {
-  id              String    @id @default(uuid())
-  blueprintId     String
-  name            String    // JSON key, e.g., "industry"
-  label           String    // Display name, e.g., "Industry"
-  type            String    // "text", "number", "select", "currency", "lookup"
-  options         String[]  // Dropdown options
-  isRequired      Boolean   @default(false)
-  orderIndex      Int
-  
+  id          String   @id @default(uuid())
+  blueprintId String
+  name        String // JSON key, e.g., "industry"
+  label       String // Display name, e.g., "Industry"
+  type        String // "text", "number", "select", "currency", "lookup"
+  options     String[] // Dropdown options
+  isRequired  Boolean  @default(false)
+  orderIndex  Int
+
   // Lookup specific fields
-  targetModule    String?
+  targetModule       String?
   targetDisplayField String?
-  isMultiSelect   Boolean   @default(false)
-  isBiDirectional Boolean   @default(false)
-  mappings        Json?
-  
-  blueprint       Blueprint @relation(fields: [blueprintId], references: [id])
+  isMultiSelect      Boolean @default(false)
+  isBiDirectional    Boolean @default(false)
+  mappings           Json?
+
+  blueprint Blueprint @relation(fields: [blueprintId], references: [id])
 }
 
 model Transition {
-  id             String    @id @default(uuid())
-  blueprintId    String
-  name           String    // e.g., "Qualify Lead" or "Move to Trash"
-  fromStages     Stage[]   @relation("FromStages")
-  toStageId      String
-  requiredFields String[]  // Fields required to execute this transition
+  id              String    @id @default(uuid())
+  blueprintId     String
+  name            String // e.g., "Qualify Lead" or "Move to Trash"
+  fromStages      Stage[]   @relation("FromStages")
+  toStageId       String
+  requiredFields  String[] // Fields required to execute this transition
   necessaryFields String[] // High-friction security checkpoint fields
-  visibleFields String[]   //  Fields shown on transition, but not mandatory
-  blueprint      Blueprint @relation(fields: [blueprintId], references: [id])
-  toStage        Stage     @relation("ToStage", fields: [toStageId], references: [id], onDelete: Cascade)
-  isGlobal       Boolean   @default(false)
-  
+  visibleFields   String[] //  Fields shown on transition, but not mandatory
+  blueprint       Blueprint @relation(fields: [blueprintId], references: [id])
+  toStage         Stage     @relation("ToStage", fields: [toStageId], references: [id], onDelete: Cascade)
+  isGlobal        Boolean   @default(false)
+
   // Advanced Workflow Controls
-  executionCriteria Json?    // { type: 'all' | 'matching', conditions: [] }
-  customMessage     String?  
-  checklists        String[] 
-  afterActions      Json?    // { emails: [], webhooks: [], etc. }
+  executionCriteria Json? // { type: 'all' | 'matching', conditions: [] }
+  customMessage     String?
+  checklists        String[]
+  afterActions      Json? // { emails: [], webhooks: [], etc. }
 }
 
 // ------------------------------------------------------------------
 // PHASE 2: The Data & Audit Layer
 // ------------------------------------------------------------------
 model Lead {
-  id             String    @id @default(uuid())
+  id             String @id @default(uuid())
   organizationId String
   blueprintId    String
   stageId        String
-  
-  // Standard indexed fields
-  firstName      String
-  lastName       String
-  email          String?
-  phone          String?
-  owner          String?
-  
-  // Dynamic payload
-  customData     Json      @default("{}")
-  tags           Tag[]
-  
-  
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
 
-  organization   Organization @relation(fields: [organizationId], references: [id])
-  blueprint      Blueprint    @relation(fields: [blueprintId], references: [id])
-  stage          Stage        @relation(fields: [stageId], references: [id])
-  auditLogs      AuditLog[]
+  // Standard indexed fields
+  firstName String
+  lastName  String
+  email     String?
+  phone     String?
+  owner     String?
+
+  // Dynamic payload
+  customData Json  @default("{}")
+  tags       Tag[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  blueprint    Blueprint    @relation(fields: [blueprintId], references: [id])
+  stage        Stage        @relation(fields: [stageId], references: [id])
+  auditLogs    AuditLog[]
 }
 
 model AuditLog {
-  id             String       @id @default(uuid())
+  id             String   @id @default(uuid())
   organizationId String
   leadId         String
-  actionType     String       // e.g., "LeadCreated", "StageMoved", "FieldUpdated"
-  details        Json         // e.g., { fromStage: "New", toStage: "Contacted" }
-  createdAt      DateTime     @default(now())
+  actionType     String // e.g., "LeadCreated", "StageMoved", "FieldUpdated"
+  details        Json // e.g., { fromStage: "New", toStage: "Contacted" }
+  createdAt      DateTime @default(now())
 
-  organization   Organization @relation(fields: [organizationId], references: [id])
-  lead           Lead         @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id])
+  lead         Lead         @relation(fields: [leadId], references: [id], onDelete: Cascade)
 }
 
 model Tag {
-  id             String       @id @default(uuid())
+  id             String   @id @default(uuid())
   organizationId String
-  moduleType     String       @default("Lead")
+  moduleType     String   @default("Lead")
   name           String
-  color          String       @default("#ef4444")
-  createdAt      DateTime     @default(now())
+  color          String   @default("#ef4444")
+  createdAt      DateTime @default(now())
 
-  organization   Organization @relation(fields: [organizationId], references: [id])
-  leads          Lead[]
-  deals          Deal[]
+  organization Organization @relation(fields: [organizationId], references: [id])
+  leads        Lead[]
+  deals        Deal[]
 }
 
 model Account {
-  id             String    @id @default(uuid())
+  id             String @id @default(uuid())
   organizationId String
   blueprintId    String
   stageId        String
-  
+
   // Default/Standard Fields
-  companyName    String
-  email          String?
-  gstNo          String?
-  website        String?
-  address        String?
-  contactPerson  String?
-  
+  companyName   String
+  email         String?
+  gstNo         String?
+  website       String?
+  address       String?
+  contactPerson String?
+
   // Dynamic payload for custom fields
-  customData     Json      @default("{}")
-  
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  customData Json @default("{}")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  organization   Organization @relation(fields: [organizationId], references: [id])
-  blueprint      Blueprint    @relation(fields: [blueprintId], references: [id])
-  stage          Stage        @relation(fields: [stageId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id])
+  blueprint    Blueprint    @relation(fields: [blueprintId], references: [id])
+  stage        Stage        @relation(fields: [stageId], references: [id])
 }
 
 model Product {
-  id             String    @id @default(uuid())
+  id             String @id @default(uuid())
   organizationId String
   blueprintId    String
   stageId        String
-  
+
   // Default/Standard Fields
-  name           String
-  sku            String
-  
+  name String
+  sku  String
+
   // Dynamic payload for custom fields
-  customData     Json      @default("{}")
-  
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  customData Json @default("{}")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  organization   Organization @relation(fields: [organizationId], references: [id])
-  blueprint      Blueprint    @relation(fields: [blueprintId], references: [id])
-  stage          Stage        @relation(fields: [stageId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id])
+  blueprint    Blueprint    @relation(fields: [blueprintId], references: [id])
+  stage        Stage        @relation(fields: [stageId], references: [id])
 }
 
 model Task {
-  id             String    @id @default(uuid())
+  id             String @id @default(uuid())
   organizationId String
   blueprintId    String
   stageId        String
-  
+
   // Default/Standard Fields
-  taskName       String
-  startDateTime  DateTime?
-  dueDateTime    DateTime?
-  endDateTime    DateTime?
-  repeat         String?
-  alert          String?
-  notes          String?
-  
+  taskName      String
+  startDateTime DateTime?
+  dueDateTime   DateTime?
+  endDateTime   DateTime?
+  repeat        String?
+  alert         String?
+  notes         String?
+
   // Dynamic payload for custom fields
-  customData     Json      @default("{}")
-  
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  customData Json @default("{}")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  organization   Organization @relation(fields: [organizationId], references: [id])
-  blueprint      Blueprint    @relation(fields: [blueprintId], references: [id])
-  stage          Stage        @relation(fields: [stageId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id])
+  blueprint    Blueprint    @relation(fields: [blueprintId], references: [id])
+  stage        Stage        @relation(fields: [stageId], references: [id])
 }
 
 model Deal {
-  id             String    @id @default(uuid())
+  id             String @id @default(uuid())
   organizationId String
   blueprintId    String
   stageId        String
-  
-  // Standard indexed fields
-  firstName      String
-  lastName       String
-  email          String?
-  phone          String?
-  owner          String?
-  
-  // Dynamic payload
-  customData     Json      @default("{}")
-  tags           Tag[]
-  
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
 
-  organization   Organization @relation(fields: [organizationId], references: [id])
-  blueprint      Blueprint    @relation(fields: [blueprintId], references: [id])
-  stage          Stage        @relation(fields: [stageId], references: [id])
+  // Standard indexed fields
+  firstName String
+  lastName  String
+  email     String?
+  phone     String?
+  owner     String?
+
+  // Dynamic payload
+  customData Json  @default("{}")
+  tags       Tag[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  blueprint    Blueprint    @relation(fields: [blueprintId], references: [id])
+  stage        Stage        @relation(fields: [stageId], references: [id])
 }

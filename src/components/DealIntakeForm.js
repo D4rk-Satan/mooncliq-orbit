@@ -67,11 +67,15 @@ export default function DealIntakeForm({ isOpen, onClose, onSave }) {
     if (record && mappings && mappings.length > 0) {
       mappings.forEach(mapping => {
         if (!mapping.sourceField || !mapping.targetField) return;
-        const sourceVal = record[mapping.sourceField] || (record.customData && record.customData[mapping.sourceField]);
+        let cData = {};
+        try {
+          cData = typeof record.customData === 'string' ? JSON.parse(record.customData || '{}') : (record.customData || {});
+        } catch(e) {}
+        const sourceVal = record[mapping.sourceField] || cData[mapping.sourceField];
         
         if (sourceVal !== undefined) {
           // Check if target is a standard field
-          const standardKeys = ["firstName", "lastName", "email", "phone", "owner", "stageId", "companyName", "industry", "website", "productName", "sku", "price", "taskName", "dueDate", "status"];
+          const standardKeys = ["firstName", "lastName", "email", "phone", "owner", "stageId", "companyName", "gstNo", "website", "address", "contactPerson", "name", "sku", "taskName", "startDateTime", "dueDateTime", "endDateTime", "repeat", "alert", "notes"];
           if (standardKeys.includes(mapping.targetField)) {
             setStandardData(prev => ({ ...prev, [mapping.targetField]: sourceVal }));
           } else {

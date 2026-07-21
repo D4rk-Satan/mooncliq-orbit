@@ -79,7 +79,7 @@ export default function LookupInput({ field, value, onChange }) {
         onChange(field.name, [...selectedItems, payload], record, field.mappings);
       }
     } else {
-      onChange(field.name, payload, record, field.mappings);
+      console.log('LookupInput Selection:', {name: field.name, payload, record, mappings: field.mappings}); onChange(field.name, payload, record, field.mappings);
       setIsOpen(false);
     }
     setSearchTerm(''); // Clear search on select

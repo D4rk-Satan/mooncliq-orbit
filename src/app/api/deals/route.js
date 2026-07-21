@@ -195,7 +195,7 @@ export async function PATCH(request) {
             }
 
             const requiredFields = targetBlueprint.fields.filter(f => f.isRequired).map(f => f.name);
-            const standardRequired = action.targetModule === 'Account' ? ['companyName'] : action.targetModule === 'Task' ? ['taskName'] : action.targetModule === 'Product' ? ['name', 'sku'] : [];
+            const standardRequired = action.targetModule === 'Account' ? ['companyName'] : action.targetModule === 'Task' ? ['taskName'] : action.targetModule === 'Product' ? ['name', 'sku'] : action.targetModule === 'Deal' ? ['firstName', 'lastName'] : action.targetModule === 'Lead' ? ['firstName', 'lastName'] : [];
 
             // Compile the mapping data
             const mappedData = {};
@@ -255,6 +255,10 @@ export async function PATCH(request) {
                createdRecord = await prisma.task.create({ data: createPayload });
             } else if (action.targetModule === 'Product') {
                createdRecord = await prisma.product.create({ data: createPayload });
+            } else if (action.targetModule === 'Deal') {
+               createdRecord = await prisma.deal.create({ data: createPayload });
+            } else if (action.targetModule === 'Lead') {
+               createdRecord = await prisma.lead.create({ data: createPayload });
             }
 
             // Handle Auto Link
