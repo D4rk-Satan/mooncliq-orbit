@@ -3,12 +3,14 @@
 import React, { useState, useEffect } from "react";
 import Sidebar from "../../components/Sidebar";
 import TaskIntakeForm from "../../components/TaskIntakeForm";
+import SlideOverPanel from "../../components/SlideOverPanel";
 import { useRouter } from "next/navigation";
 
 export default function TaskPage() {
   const [tasks, setTasks] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -122,7 +124,7 @@ export default function TaskPage() {
         </thead>
         <tbody>
           {tasks.map(task => (
-            <tr key={task.id}>
+            <tr key={task.id} className="cursor-pointer hover:bg-slate-50" onClick={() => setSelectedTask(task)}>
               <td>
                 <input type="checkbox" className="row-checkbox" disabled />
               </td>
@@ -179,6 +181,11 @@ export default function TaskPage() {
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
         onSave={handleAddTask}
+      />
+      <SlideOverPanel
+        isOpen={!!selectedTask}
+        lead={selectedTask}
+        onClose={() => setSelectedTask(null)}
       />
     </div>
   );

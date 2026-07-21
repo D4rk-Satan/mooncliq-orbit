@@ -3,12 +3,14 @@
 import React, { useState, useEffect } from "react";
 import Sidebar from "../../components/Sidebar";
 import ProductIntakeForm from "../../components/ProductIntakeForm";
+import SlideOverPanel from "../../components/SlideOverPanel";
 import { useRouter } from "next/navigation";
 
 export default function ProductsPage() {
   const [products, setProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -120,7 +122,7 @@ export default function ProductsPage() {
         </thead>
         <tbody>
           {products.map(product => (
-            <tr key={product.id}>
+            <tr key={product.id} className="cursor-pointer hover:bg-slate-50" onClick={() => setSelectedProduct(product)}>
               <td>
                 <input type="checkbox" className="row-checkbox" disabled />
               </td>
@@ -175,6 +177,11 @@ export default function ProductsPage() {
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
         onSave={handleAddProduct}
+      />
+      <SlideOverPanel
+        isOpen={!!selectedProduct}
+        lead={selectedProduct}
+        onClose={() => setSelectedProduct(null)}
       />
     </div>
   );

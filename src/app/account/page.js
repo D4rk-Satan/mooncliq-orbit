@@ -3,12 +3,14 @@
 import React, { useState, useEffect } from "react";
 import Sidebar from "../../components/Sidebar";
 import AccountIntakeForm from "../../components/AccountIntakeForm";
+import SlideOverPanel from "../../components/SlideOverPanel";
 import { useRouter } from "next/navigation";
 
 export default function AccountPage() {
   const [accounts, setAccounts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [selectedAccount, setSelectedAccount] = useState(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -122,7 +124,7 @@ export default function AccountPage() {
         </thead>
         <tbody>
           {accounts.map(account => (
-            <tr key={account.id}>
+            <tr key={account.id} className="cursor-pointer hover:bg-slate-50" onClick={() => setSelectedAccount(account)}>
               <td>
                 <input type="checkbox" className="row-checkbox" disabled />
               </td>
@@ -179,6 +181,11 @@ export default function AccountPage() {
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
         onSave={handleAddAccount}
+      />
+      <SlideOverPanel
+        isOpen={!!selectedAccount}
+        lead={selectedAccount}
+        onClose={() => setSelectedAccount(null)}
       />
     </div>
   );
