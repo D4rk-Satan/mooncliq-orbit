@@ -30,8 +30,15 @@ export async function POST(req) {
       });
     }
 
-    if (!initialStage) {
-      return NextResponse.json({ error: "No stages found in this blueprint. Add a stage in Settings." }, { status: 400 });
+        if (!initialStage) {
+      initialStage = await prisma.stage.create({
+        data: {
+          name: 'Default',
+          blueprintId,
+          orderIndex: 0,
+          color: '#e2e8f0'
+        }
+      });
     }
 
     const task = await prisma.task.create({
