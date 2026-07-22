@@ -253,6 +253,9 @@ export default function SettingsPage() {
         targetDisplayField: newField.type === 'lookup' ? newField.targetDisplayField : null,
         isMultiSelect: newField.type === 'lookup' ? newField.isMultiSelect : false,
         isBiDirectional: newField.type === 'lookup' ? newField.isBiDirectional : false,
+        relatedListLabel: newField.type === 'lookup' ? newField.relatedListLabel : null,
+        isPublic: newField.type === 'lookup' ? (newField.isPublic !== false) : true,
+        filters: newField.type === 'lookup' ? (newField.filters || []) : [],
         mappings: newField.type === 'lookup' ? (newField.mappings || []) : [],
         blueprintId: blueprint.id
       };
@@ -850,6 +853,7 @@ export default function SettingsPage() {
                               <option value="date">Date</option>
                               <option value="checkbox">Checkbox (True/False)</option>
                               <option value="select">Dropdown (Select)</option>
+                              <option value="lookup">Lookup (Relationship)</option>
                             </select>
                           </div>
                           {newField.type === 'select' && (
@@ -863,6 +867,46 @@ export default function SettingsPage() {
                                 value={newField.options || ''}
                                 onChange={e => setNewField({ ...newField, options: e.target.value })}
                               />
+                            </div>
+                          )}
+
+                          {newField.type === 'lookup' && (
+                            <div style={{ gridColumn: '1 / -1', padding: '1.5rem', border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: '#f1f5f9', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                              <h4 style={{ fontWeight: 600, fontSize: '1rem', color: '#334155', margin: 0 }}>Advanced Lookup Configuration</h4>
+                              
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                <div>
+                                  <label className="form-label">Target Module (Which module to link to?)</label>
+                                  <select className="form-input bg-white" value={newField.targetModule || 'Account'} onChange={e => setNewField({ ...newField, targetModule: e.target.value })}>
+                                    {['Lead', 'Deal', 'Account', 'Product', 'Task'].map(m => (
+                                      <option key={m} value={m}>{m}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                                <div>
+                                  <label className="form-label">Public Read/Write</label>
+                                  <div style={{ display: 'flex', alignItems: 'center', height: '42px', gap: '0.5rem' }}>
+                                    <input type="checkbox" checked={newField.isPublic !== false} onChange={e => setNewField({ ...newField, isPublic: e.target.checked })} style={{ width: '1.25rem', height: '1.25rem' }} />
+                                    <span style={{ fontSize: '0.875rem', color: '#475569' }}>Allow all users to view/select</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                <div>
+                                  <label className="form-label">Bi-Directional Related List</label>
+                                  <div style={{ display: 'flex', alignItems: 'center', height: '42px', gap: '0.5rem' }}>
+                                    <input type="checkbox" checked={newField.isBiDirectional || false} onChange={e => setNewField({ ...newField, isBiDirectional: e.target.checked })} style={{ width: '1.25rem', height: '1.25rem' }} />
+                                    <span style={{ fontSize: '0.875rem', color: '#475569' }}>Show on Target Module</span>
+                                  </div>
+                                </div>
+                                {newField.isBiDirectional && (
+                                  <div>
+                                    <label className="form-label">Related List Title</label>
+                                    <input required type="text" className="form-input bg-white" placeholder="e.g. Associated Deals" value={newField.relatedListLabel || ''} onChange={e => setNewField({ ...newField, relatedListLabel: e.target.value })} />
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           )}
                         </div>
