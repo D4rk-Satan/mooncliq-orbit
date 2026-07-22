@@ -1,4 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
+import dynamic from 'next/dynamic';
+import SlideOverPanel from './SlideOverPanel';
+
+const AccountIntakeForm = dynamic(() => import('./AccountIntakeForm'), { ssr: false });
+const LeadIntakeForm = dynamic(() => import('./LeadIntakeForm'), { ssr: false });
+const DealIntakeForm = dynamic(() => import('./DealIntakeForm'), { ssr: false });
+const ProductIntakeForm = dynamic(() => import('./ProductIntakeForm'), { ssr: false });
+const TaskIntakeForm = dynamic(() => import('./TaskIntakeForm'), { ssr: false });
+
 
 export default function LookupInput({ field, value, onChange }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -6,6 +15,7 @@ export default function LookupInput({ field, value, onChange }) {
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const [isQuickCreating, setIsQuickCreating] = useState(false);
 
   // value is expected to be an array of objects if multiSelect, or single object if not.
   const selectedItems = Array.isArray(value) ? value : (value ? [value] : []);
@@ -26,6 +36,23 @@ export default function LookupInput({ field, value, onChange }) {
       if (val) return String(val);
     }
     return record.name || (record.customData && record.customData.companyName) || record.taskName || (record.firstName ? record.firstName + ' ' + (record.lastName || '') : '') || record.email || 'Unknown';
+  };
+
+  
+  const evaluateFilters = (record) => {
+    if (!field.filters || !Array.isArray(field.filters) || field.filters.length === 0) return true;
+    return field.filters.every(filter => {
+      if (!filter.field || !filter.operator) return true;
+      const recordValue = String(record[filter.field] || (record.customData && record.customData[filter.field]) || '').toLowerCase();
+      const filterValue = String(filter.value || '').toLowerCase();
+      
+      switch (filter.operator) {
+        case 'is': return recordValue === filterValue;
+        case 'is_not': return recordValue !== filterValue;
+        case 'contains': return recordValue.includes(filterValue);
+        default: return true;
+      }
+    });
   };
 
   const searchRecords = async (query) => {
@@ -147,7 +174,26 @@ export default function LookupInput({ field, value, onChange }) {
               </div>
             );
           })}
+          {field.targetModule && (
+            <div 
+              style={{ padding: '0.75rem', borderTop: '1px solid #e2e8f0', background: '#f8fafc', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', color: 'var(--primary)', fontWeight: 600, fontSize: '0.875rem' }}
+              onClick={() => { setIsOpen(false); setIsQuickCreating(true); }}
+              onMouseEnter={e => e.currentTarget.style.background = '#f1f5f9'}
+              onMouseLeave={e => e.currentTarget.style.background = '#f8fafc'}
+            >
+              <span>+ New {field.targetModule}</span>
+            </div>
+          )}
         </div>
+      )}
+      {isQuickCreating && (
+        <SlideOverPanel title={`New ${field.targetModule}`} onClose={() => setIsQuickCreating(false)}>
+          {field.targetModule === 'Account' && <AccountIntakeForm onSuccess={(newRecord) => { setIsQuickCreating(false); handleSelect(newRecord); }} />}
+          {field.targetModule === 'Lead' && <LeadIntakeForm onSuccess={(newRecord) => { setIsQuickCreating(false); handleSelect(newRecord); }} />}
+          {field.targetModule === 'Deal' && <DealIntakeForm onSuccess={(newRecord) => { setIsQuickCreating(false); handleSelect(newRecord); }} />}
+          {field.targetModule === 'Product' && <ProductIntakeForm onSuccess={(newRecord) => { setIsQuickCreating(false); handleSelect(newRecord); }} />}
+          {field.targetModule === 'Task' && <TaskIntakeForm onSuccess={(newRecord) => { setIsQuickCreating(false); handleSelect(newRecord); }} />}
+        </SlideOverPanel>
       )}
     </div>
   );
