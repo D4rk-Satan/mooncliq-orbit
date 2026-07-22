@@ -607,9 +607,6 @@ export default function SettingsPage() {
                     <button onClick={() => setCurrentView('blueprint')} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
                       Workflow Engine
                     </button>
-                    <button onClick={() => setCurrentView('lookups')} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
-                      Relationships & Lookups
-                    </button>
                   </div>
                 </div>
 
@@ -649,7 +646,6 @@ export default function SettingsPage() {
                     {currentView === 'blueprint' && "Pipelines & Blueprint"}
                     {currentView === 'fields' && "Modules and Fields"}
                     {currentView === 'tags' && "Tag Definitions"}
-                    {currentView === 'lookups' && "Relationships & Lookups"}
                     {currentView === 'users' && "Users & Invitations"}
                   </h2>
                   {currentView !== 'users' && currentView !== 'profiles' && renderModuleSelector()}
@@ -906,6 +902,48 @@ export default function SettingsPage() {
                                     <input required type="text" className="form-input bg-white" placeholder="e.g. Associated Deals" value={newField.relatedListLabel || ''} onChange={e => setNewField({ ...newField, relatedListLabel: e.target.value })} />
                                   </div>
                                 )}
+                              </div>
+
+                              {/* NEW: Filter Builder */}
+                              <div>
+                                <label className="form-label">Filter Lookup Records (Optional)</label>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                  {(newField.filters || []).map((filter, idx) => (
+                                    <div key={idx} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                      <input type="text" className="form-input bg-white" style={{ flex: 1 }} placeholder="Field (e.g. status)" value={filter.field || ''} onChange={e => {
+                                        const f = [...(newField.filters || [])];
+                                        f[idx].field = e.target.value;
+                                        setNewField({ ...newField, filters: f });
+                                      }} />
+                                      <select className="form-input bg-white" style={{ width: '120px' }} value={filter.operator || 'is'} onChange={e => {
+                                        const f = [...(newField.filters || [])];
+                                        f[idx].operator = e.target.value;
+                                        setNewField({ ...newField, filters: f });
+                                      }}>
+                                        <option value="is">Is</option>
+                                        <option value="is_not">Isn't</option>
+                                        <option value="contains">Contains</option>
+                                      </select>
+                                      <input type="text" className="form-input bg-white" style={{ flex: 1 }} placeholder="Value (e.g. Active)" value={filter.value || ''} onChange={e => {
+                                        const f = [...(newField.filters || [])];
+                                        f[idx].value = e.target.value;
+                                        setNewField({ ...newField, filters: f });
+                                      }} />
+                                      <button type="button" onClick={() => {
+                                        const f = [...(newField.filters || [])];
+                                        f.splice(idx, 1);
+                                        setNewField({ ...newField, filters: f });
+                                      }} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', padding: '0 0.5rem' }}>✕</button>
+                                    </div>
+                                  ))}
+                                  <button type="button" onClick={() => {
+                                    const f = [...(newField.filters || [])];
+                                    f.push({ field: '', operator: 'is', value: '' });
+                                    setNewField({ ...newField, filters: f });
+                                  }} style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer', alignSelf: 'flex-start', marginTop: '0.25rem' }}>
+                                    + Add Filter Rule
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           )}
