@@ -74,7 +74,35 @@ export default function SettingsPage() {
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+  
+  const renderModuleSelector = () => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+      <span style={{ fontSize: '0.875rem', fontWeight: 500, color: '#64748b' }}>Configure Module:</span>
+      <select 
+        value={selectedModule} 
+        onChange={(e) => setSelectedModule(e.target.value)}
+        style={{
+          padding: '0.5rem 1rem',
+          borderRadius: '8px',
+          border: '1px solid #e2e8f0',
+          backgroundColor: 'white',
+          fontWeight: 600,
+          color: 'var(--primary)',
+          fontSize: '1rem',
+          cursor: 'pointer',
+          outline: 'none'
+        }}
+      >
+        <option value="Lead">Lead</option>
+        <option value="Deal">Deal</option>
+        <option value="Account">Account</option>
+        <option value="Product">Product</option>
+        <option value="Task">Task</option>
+      </select>
+    </div>
+  );
+
+  return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
   const [tagBuilder, setTagBuilder] = useState({ isOpen: false, name: '', color: '#ef4444' });
   const [fieldUpdateBuilder, setFieldUpdateBuilder] = useState({ isOpen: false, field: '', value: '' });
