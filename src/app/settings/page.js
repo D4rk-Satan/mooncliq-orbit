@@ -51,7 +51,7 @@ export default function SettingsPage() {
   const [selectedModule, setSelectedModule] = useState("Lead");
 
   // New Field State
-  const [newField, setNewField] = useState({ name: "", label: "", type: "text", options: "", targetModule: "Account", isMultiSelect: false, isBiDirectional: false, targetDisplayField: "name" });
+  const [newField, setNewField] = useState({ name: "", label: "", type: "text", options: "", targetModule: "Account", isMultiSelect: false, isBiDirectional: false, targetDisplayField: "name", isPublic: true, relatedListLabel: "", filters: [] });
   const [isAddingField, setIsAddingField] = useState(false);
 
   // New Stage State
@@ -956,126 +956,6 @@ export default function SettingsPage() {
                           <button onClick={() => handleDeleteTag(tag.id)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
                         </div>
                       ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* LOOKUPS TAB */}
-                {currentView === 'lookups' && (
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                      <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Relationships & Lookups</h2>
-                      <button className="btn-primary" onClick={() => setIsAddingField(!isAddingField)}>
-                        {isAddingField ? 'Cancel' : '+ Add Relationship'}
-                      </button>
-                    </div>
-
-                    {isAddingField && (
-                      <form onSubmit={handleAddField} style={{ padding: '1.5rem', backgroundColor: '#f8fafc', borderRadius: '8px', marginBottom: '1.5rem', border: '1px solid #e2e8f0' }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-                          <div>
-                            <label className="form-label">Relationship Label (e.g. Related Account)</label>
-                            <input required type="text" className="form-input bg-white" placeholder="Related Account" value={newField.label} onChange={e => setNewField({ ...newField, label: e.target.value, type: 'lookup' })} />
-                          </div>
-                          <div>
-                            <label className="form-label">Target Module (Which module to link to?)</label>
-                            <select className="form-input bg-white" value={newField.targetModule} onChange={e => setNewField({ ...newField, targetModule: e.target.value, type: 'lookup' })}>
-                              {['Lead', 'Deal', 'Account', 'Product', 'Task'].filter(m => m !== selectedModule).map(m => (
-                                <option key={m} value={m}>{m}</option>
-                              ))}
-                              {['Lead', 'Deal', 'Account', 'Product', 'Task'].includes(selectedModule) && (
-                                 <option value={selectedModule}>{selectedModule} (Self Reference)</option>
-                              )}
-                            </select>
-                          </div>
-                          <div>
-                            <label className="form-label">Target Display Field (Which field to show/search)</label>
-                            <select className="form-input bg-white" value={newField.targetDisplayField || 'name'} onChange={e => setNewField({ ...newField, targetDisplayField: e.target.value, type: 'lookup' })}>
-                              <option value="name">Name / Default</option>
-                              {getNativeFields(newField.targetModule).map(f => (
-                                <option key={f.name} value={f.name}>{f.label} (Native)</option>
-                              ))}
-                              {(targetBlueprint?.fields || []).map(f => (
-                                <option key={f.name} value={f.name}>{f.label} (Custom)</option>
-                              ))}
-                            </select>
-                          </div>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', justifyContent: 'center', paddingTop: '1.5rem' }}>
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 500, color: '#334155' }}>
-                              <input type="checkbox" checked={newField.isMultiSelect} onChange={e => setNewField({ ...newField, isMultiSelect: e.target.checked, type: 'lookup' })} />
-                              Allow Multiple Selections
-                            </label>
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 500, color: '#334155' }}>
-                              <input type="checkbox" checked={newField.isBiDirectional} onChange={e => setNewField({ ...newField, isBiDirectional: e.target.checked, type: 'lookup' })} />
-                              Create Reverse Connection
-                            </label>
-                          </div>
-
-                          <div style={{ gridColumn: '1 / -1', padding: '1rem', backgroundColor: '#f1f5f9', borderRadius: '8px' }}>
-                            <h4 style={{ fontSize: '0.9rem', fontWeight: 600, marginBottom: '0.5rem' }}>Auto-Fill Mappings (Optional)</h4>
-                            <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '1rem' }}>When a record is selected, automatically copy its data into fields on this form.</p>
-                            
-                            {(newField.mappings || []).map((mapping, idx) => (
-                              <div key={idx} style={{ display: 'flex', gap: '1rem', marginBottom: '0.5rem' }}>
-                                <select className="form-input bg-white" value={mapping.sourceField} onChange={e => {
-                                  const m = [...(newField.mappings || [])];
-                                  m[idx].sourceField = e.target.value;
-                                  setNewField({...newField, mappings: m});
-                                }}>
-                                  <option value="">Select Target Field...</option>
-                                  {getNativeFields(newField.targetModule).map(f => <option key={f.name} value={f.name}>{f.label} (Native)</option>)}
-                                  {(targetBlueprint?.fields || []).map(f => <option key={f.name} value={f.name}>{f.label} (Custom)</option>)}
-                                </select>
-                                <span style={{ padding: '0.5rem', color: '#64748b' }}>➔ pastes to ➔</span>
-                                <select className="form-input bg-white" value={mapping.targetField} onChange={e => {
-                                  const m = [...(newField.mappings || [])];
-                                  m[idx].targetField = e.target.value;
-                                  setNewField({...newField, mappings: m});
-                                }}>
-                                  <option value="">Select Local Field...</option>
-                                  {getNativeFields(selectedModule).map(f => <option key={f.name} value={f.name}>{f.label} (Native)</option>)}
-                                  {(blueprint?.fields || []).map(f => <option key={f.name} value={f.name}>{f.label} (Custom)</option>)}
-                                </select>
-                                <button type="button" onClick={() => {
-                                  const m = [...(newField.mappings || [])];
-                                  m.splice(idx, 1);
-                                  setNewField({...newField, mappings: m});
-                                }} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
-                              </div>
-                            ))}
-                            <button type="button" onClick={() => setNewField({...newField, mappings: [...(newField.mappings || []), {sourceField: '', targetField: ''}]})} style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer', marginTop: '0.5rem' }}>+ Add Mapping</button>
-                          </div>
-                        </div>
-                        <button type="submit" className="btn-primary">Save Relationship</button>
-                      </form>
-                    )}
-
-                    <div style={{ overflowX: 'auto', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: 'white' }}>
-                        <thead>
-                          <tr style={{ borderBottom: '1px solid #e2e8f0', backgroundColor: '#f8fafc', textAlign: 'left' }}>
-                            <th style={{ padding: '1rem', fontWeight: 600, color: '#64748b', fontSize: '0.85rem' }}>LABEL</th>
-                            <th style={{ padding: '1rem', fontWeight: 600, color: '#64748b', fontSize: '0.85rem' }}>TARGET MODULE</th>
-                            <th style={{ padding: '1rem', fontWeight: 600, color: '#64748b', fontSize: '0.85rem' }}>DISPLAY FIELD</th>
-                            <th style={{ padding: '1rem', fontWeight: 600, color: '#64748b', fontSize: '0.85rem', textAlign: 'right' }}>ACTIONS</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {!blueprint?.fields?.filter(f => f.type === 'lookup').length && (
-                            <tr><td colSpan="4" style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>No relationships defined.</td></tr>
-                          )}
-                          {(blueprint?.fields || []).filter(f => f.type === 'lookup').map(field => (
-                            <tr key={field.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                              <td style={{ padding: '1rem', fontWeight: 500 }}>{field.label} {field.isMultiSelect && <span style={{fontSize:'0.75rem', background:'#e2e8f0', padding:'2px 6px', borderRadius:'4px', marginLeft:'0.5rem'}}>Multi</span>}</td>
-                              <td style={{ padding: '1rem' }}><span style={{ backgroundColor: '#f0f9ff', color: '#0369a1', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.875rem', fontWeight: 500 }}>{field.targetModule}</span></td>
-                              <td style={{ padding: '1rem', color: '#475569' }}>{field.targetDisplayField || 'name'}</td>
-                              <td style={{ padding: '1rem', textAlign: 'right' }}>
-                                <button onClick={() => handleDeleteField(field.id)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}>Delete</button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
                     </div>
                   </div>
                 )}

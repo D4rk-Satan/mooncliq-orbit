@@ -134,6 +134,9 @@ model Field {
   targetDisplayField String?
   isMultiSelect      Boolean @default(false)
   isBiDirectional    Boolean @default(false)
+  relatedListLabel   String?
+  isPublic           Boolean @default(true)
+  filters            Json?
   mappings           Json?
 
   blueprint Blueprint @relation(fields: [blueprintId], references: [id])
