@@ -665,13 +665,16 @@ export default function SettingsPage() {
                   ← Back to Setup
                 </button>
                 <div style={{ width: '1px', height: '24px', backgroundColor: '#cbd5e1', margin: '0 1.5rem' }}></div>
-                <h2 style={{ fontSize: '1.15rem', fontWeight: 600, margin: 0, color: '#0f172a' }}>
-                  {currentView === 'blueprint' && "Pipelines & Blueprint"}
-                  {currentView === 'fields' && "Modules and Fields"}
-                  {currentView === 'tags' && "Tag Definitions"}
-                  {currentView === 'lookups' && "Relationships & Lookups"}
-                  {currentView === 'users' && "Users & Invitations"}
-                </h2>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                  <h2 style={{ fontSize: '1.15rem', fontWeight: 600, margin: 0, color: '#0f172a' }}>
+                    {currentView === 'blueprint' && "Pipelines & Blueprint"}
+                    {currentView === 'fields' && "Modules and Fields"}
+                    {currentView === 'tags' && "Tag Definitions"}
+                    {currentView === 'lookups' && "Relationships & Lookups"}
+                    {currentView === 'users' && "Users & Invitations"}
+                  </h2>
+                  {currentView !== 'users' && currentView !== 'profiles' && renderModuleSelector()}
+                </div>
               </div>
 
               <div style={{ padding: '2rem' }}>
