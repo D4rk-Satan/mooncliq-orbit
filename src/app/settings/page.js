@@ -983,6 +983,50 @@ export default function SettingsPage() {
                                   </button>
                                 </div>
                               </div>
+
+                              {/* NEW: Mappings Builder */}
+                              <div>
+                                <label className="form-label">Auto-Fill Mappings (Optional)</label>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                  {(newField.mappings || []).map((mapping, idx) => (
+                                    <div key={idx} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                      <select className="form-input bg-white" style={{ flex: 1 }} value={mapping.sourceField || ''} onChange={e => {
+                                        const m = [...(newField.mappings || [])];
+                                        m[idx].sourceField = e.target.value;
+                                        setNewField({ ...newField, mappings: m });
+                                      }}>
+                                        <option value="" disabled>Select Target Module Field...</option>
+                                        {(targetBlueprint?.fields || []).map(tf => (
+                                          <option key={tf.name} value={tf.name}>{tf.label}</option>
+                                        ))}
+                                      </select>
+                                      <span style={{ color: '#64748b', fontSize: '1.2rem' }}>➔</span>
+                                      <select className="form-input bg-white" style={{ flex: 1 }} value={mapping.targetField || ''} onChange={e => {
+                                        const m = [...(newField.mappings || [])];
+                                        m[idx].targetField = e.target.value;
+                                        setNewField({ ...newField, mappings: m });
+                                      }}>
+                                        <option value="" disabled>Select Current Module Field...</option>
+                                        {(blueprint?.fields || []).map(cf => (
+                                          <option key={cf.name} value={cf.name}>{cf.label}</option>
+                                        ))}
+                                      </select>
+                                      <button type="button" onClick={() => {
+                                        const m = [...(newField.mappings || [])];
+                                        m.splice(idx, 1);
+                                        setNewField({ ...newField, mappings: m });
+                                      }} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', padding: '0 0.5rem' }}>✕</button>
+                                    </div>
+                                  ))}
+                                  <button type="button" onClick={() => {
+                                    const m = [...(newField.mappings || [])];
+                                    m.push({ sourceField: '', targetField: '' });
+                                    setNewField({ ...newField, mappings: m });
+                                  }} style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer', alignSelf: 'flex-start', marginTop: '0.25rem' }}>
+                                    + Add Auto-Fill Mapping
+                                  </button>
+                                </div>
+                              </div>
                             </div>
                           )}
                         </div>
