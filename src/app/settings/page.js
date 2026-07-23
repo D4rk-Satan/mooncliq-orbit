@@ -64,8 +64,8 @@ export default function SettingsPage() {
   const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
   const [isFieldMenuOpen, setIsFieldMenuOpen] = useState(false);
   const addMenuRef = useRef(null);
-  
-  
+
+
   useEffect(() => {
     function handleClickOutside(event) {
       if (addMenuRef.current && !addMenuRef.current.contains(event.target)) {
@@ -74,8 +74,8 @@ export default function SettingsPage() {
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
-  
-  return () => document.removeEventListener("mousedown", handleClickOutside);
+
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
   const [tagBuilder, setTagBuilder] = useState({ isOpen: false, name: '', color: '#ef4444' });
   const [fieldUpdateBuilder, setFieldUpdateBuilder] = useState({ isOpen: false, field: '', value: '' });
@@ -92,7 +92,7 @@ export default function SettingsPage() {
             const data = await res.json();
             setTargetBlueprintFields(data.fields || []);
           }
-        } catch(err) {
+        } catch (err) {
           console.error(err);
         }
       };
@@ -372,7 +372,7 @@ export default function SettingsPage() {
       const token = await getAuthToken();
       const method = selectedProfile.id ? 'PUT' : 'POST';
       const url = selectedProfile.id ? `/api/profiles?id=${selectedProfile.id}` : '/api/profiles';
-      
+
       const res = await fetch(url, {
         method,
         headers: {
@@ -381,7 +381,7 @@ export default function SettingsPage() {
         },
         body: JSON.stringify(selectedProfile)
       });
-      
+
       if (res.ok) {
         setIsProfileModalOpen(false);
         fetchProfiles();
@@ -545,8 +545,8 @@ export default function SettingsPage() {
   const renderModuleSelector = () => (
     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
       <span style={{ fontSize: '0.875rem', fontWeight: 500, color: '#64748b' }}>Configure Module:</span>
-      <select 
-        value={selectedModule} 
+      <select
+        value={selectedModule}
         onChange={(e) => setSelectedModule(e.target.value)}
         style={{
           padding: '0.5rem 1rem',
@@ -614,7 +614,7 @@ export default function SettingsPage() {
                 <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '1.5rem', boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.05)', border: '1px solid #e2e8f0' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
                     <div style={{ background: '#f3f4f6', padding: '0.5rem', borderRadius: '8px', color: '#475569' }}>
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
                     </div>
                     <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: '#0f172a' }}>Users & Control</h3>
                   </div>
@@ -663,7 +663,7 @@ export default function SettingsPage() {
                         <p className="text-muted" style={{ margin: 0, fontSize: '0.9rem' }}>Manage active members and pending AWS SES invitations.</p>
                       </div>
                       <button onClick={() => setIsInviteModalOpen(true)} style={{ padding: '0.5rem 1rem', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="M12 5v14" /></svg>
                         Invite User
                       </button>
                     </div>
@@ -869,7 +869,7 @@ export default function SettingsPage() {
                           {newField.type === 'lookup' && (
                             <div style={{ gridColumn: '1 / -1', padding: '1.5rem', border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: '#f1f5f9', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                               <h4 style={{ fontWeight: 600, fontSize: '1rem', color: '#334155', margin: 0 }}>Advanced Lookup Configuration</h4>
-                              
+
                               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                 <div>
                                   <label className="form-label">Target Module (Which module to link to?)</label>
@@ -917,11 +917,18 @@ export default function SettingsPage() {
                                         setNewField({ ...newField, filters: f });
                                       }}>
                                         <option value="" disabled>Select Target Field...</option>
-                                        {(targetBlueprint?.fields || []).map(tf => (
-                                          <option key={tf.name} value={tf.name}>{tf.label}</option>
-                                        ))}
+                                        <optgroup label="Standard Fields">
+                                          {getNativeFields(newField.targetModule).map(tf => (
+                                            <option key={tf.name} value={tf.name}>{tf.label}</option>
+                                          ))}
+                                        </optgroup>
+                                        <optgroup label="Custom Fields">
+                                          {(targetBlueprint?.fields || []).map(tf => (
+                                            <option key={tf.name} value={tf.name}>{tf.label}</option>
+                                          ))}
+                                        </optgroup>
                                       </select>
-                                      
+
                                       {/* Operator Dropdown */}
                                       <select className="form-input bg-white" style={{ width: '130px' }} value={filter.operator || 'is'} onChange={e => {
                                         const f = [...(newField.filters || [])];
@@ -935,7 +942,7 @@ export default function SettingsPage() {
                                         <option value="starts_with">Starts With</option>
                                         <option value="ends_with">Ends With</option>
                                       </select>
-                                      
+
                                       {/* Match Type Dropdown */}
                                       <select className="form-input bg-white" style={{ width: '100px' }} value={filter.matchType || 'value'} onChange={e => {
                                         const f = [...(newField.filters || [])];
@@ -955,9 +962,16 @@ export default function SettingsPage() {
                                           setNewField({ ...newField, filters: f });
                                         }}>
                                           <option value="" disabled>Select Current Field...</option>
-                                          {(blueprint?.fields || []).map(cf => (
-                                            <option key={cf.name} value={cf.name}>{cf.label}</option>
-                                          ))}
+                                          <optgroup label="Standard Fields">
+                                            {getNativeFields(selectedModule).map(cf => (
+                                              <option key={cf.name} value={cf.name}>{cf.label}</option>
+                                            ))}
+                                          </optgroup>
+                                          <optgroup label="Custom Fields">
+                                            {(blueprint?.fields || []).map(cf => (
+                                              <option key={cf.name} value={cf.name}>{cf.label}</option>
+                                            ))}
+                                          </optgroup>
                                         </select>
                                       ) : (
                                         <input type="text" className="form-input bg-white" style={{ flex: 1 }} placeholder="Value (e.g. Active)" value={filter.value || ''} onChange={e => {
@@ -986,7 +1000,7 @@ export default function SettingsPage() {
 
                               {/* NEW: Mappings Builder */}
                               <div>
-                                <label className="form-label">Auto-Fill Mappings (Optional)</label>
+                                <label className="form-label">Auto-Fill Mappings</label>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                                   {(newField.mappings || []).map((mapping, idx) => (
                                     <div key={idx} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
@@ -996,9 +1010,16 @@ export default function SettingsPage() {
                                         setNewField({ ...newField, mappings: m });
                                       }}>
                                         <option value="" disabled>Select Target Module Field...</option>
-                                        {(targetBlueprint?.fields || []).map(tf => (
-                                          <option key={tf.name} value={tf.name}>{tf.label}</option>
-                                        ))}
+                                        <optgroup label="Standard Fields">
+                                          {getNativeFields(newField.targetModule).map(tf => (
+                                            <option key={tf.name} value={tf.name}>{tf.label}</option>
+                                          ))}
+                                        </optgroup>
+                                        <optgroup label="Custom Fields">
+                                          {(targetBlueprint?.fields || []).map(tf => (
+                                            <option key={tf.name} value={tf.name}>{tf.label}</option>
+                                          ))}
+                                        </optgroup>
                                       </select>
                                       <span style={{ color: '#64748b', fontSize: '1.2rem' }}>➔</span>
                                       <select className="form-input bg-white" style={{ flex: 1 }} value={mapping.targetField || ''} onChange={e => {
@@ -1007,9 +1028,17 @@ export default function SettingsPage() {
                                         setNewField({ ...newField, mappings: m });
                                       }}>
                                         <option value="" disabled>Select Current Module Field...</option>
-                                        {(blueprint?.fields || []).map(cf => (
-                                          <option key={cf.name} value={cf.name}>{cf.label}</option>
-                                        ))}
+                                        <optgroup label="Standard Fields">
+                                          {getNativeFields(selectedModule).map(cf => (
+                                            <option key={cf.name} value={cf.name}>{cf.label}</option>
+                                          ))}
+                                        </optgroup>
+                                        <optgroup label="Custom Fields">
+                                          {(blueprint?.fields || []).map(cf => (
+                                            <option key={cf.name} value={cf.name}>{cf.label}</option>
+                                          ))}
+                                        </optgroup>
+                                      </select>
                                       </select>
                                       <button type="button" onClick={() => {
                                         const m = [...(newField.mappings || [])];
@@ -1887,14 +1916,14 @@ export default function SettingsPage() {
                       <td style={{ padding: '0.75rem', fontWeight: 500 }}>{mod}</td>
                       {['view', 'create', 'edit', 'delete'].map(action => (
                         <td key={action} style={{ padding: '0.75rem', textAlign: 'center' }}>
-                          <input 
-                            type="checkbox" 
+                          <input
+                            type="checkbox"
                             checked={selectedProfile.permissions?.[mod]?.[action] || false}
                             onChange={(e) => {
                               const newPerms = { ...selectedProfile.permissions };
                               if (!newPerms[mod]) newPerms[mod] = { view: false, create: false, edit: false, delete: false, visibility: 'public' };
                               newPerms[mod][action] = e.target.checked;
-                              
+
                               // Auto-check View if others are selected
                               if (e.target.checked && action !== 'view') {
                                 newPerms[mod]['view'] = true;
@@ -1905,14 +1934,14 @@ export default function SettingsPage() {
                                 newPerms[mod]['edit'] = false;
                                 newPerms[mod]['delete'] = false;
                               }
-                              
+
                               setSelectedProfile({ ...selectedProfile, permissions: newPerms });
                             }}
                           />
                         </td>
                       ))}
                       <td style={{ padding: '0.75rem' }}>
-                        <select 
+                        <select
                           className="form-input"
                           style={{ padding: '0.25rem 0.5rem', fontSize: '0.875rem' }}
                           value={selectedProfile.permissions?.[mod]?.visibility || 'public'}
@@ -1944,7 +1973,7 @@ export default function SettingsPage() {
         </div>
       )}
 
-    
+
       {/* INVITE USER MODAL */}
       {isInviteModalOpen && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -1957,21 +1986,21 @@ export default function SettingsPage() {
             <form onSubmit={handleInviteUser}>
               <div style={{ marginBottom: '1rem' }}>
                 <label className="form-label">Email Address</label>
-                <input 
-                  type="email" 
-                  className="form-input bg-white" 
+                <input
+                  type="email"
+                  className="form-input bg-white"
                   placeholder="colleague@company.com"
-                  value={inviteData.email} 
-                  onChange={e => setInviteData({...inviteData, email: e.target.value})} 
-                  required 
+                  value={inviteData.email}
+                  onChange={e => setInviteData({ ...inviteData, email: e.target.value })}
+                  required
                 />
               </div>
               <div style={{ marginBottom: '1.5rem' }}>
                 <label className="form-label">Assign Profile (Role)</label>
-                <select 
-                  className="form-input bg-white" 
-                  value={inviteData.profileId} 
-                  onChange={e => setInviteData({...inviteData, profileId: e.target.value})}
+                <select
+                  className="form-input bg-white"
+                  value={inviteData.profileId}
+                  onChange={e => setInviteData({ ...inviteData, profileId: e.target.value })}
                   required
                 >
                   <option value="">Select a Profile...</option>
