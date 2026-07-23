@@ -138,6 +138,7 @@ model Field {
   isPublic           Boolean @default(true)
   filters            Json?
   mappings           Json?
+  subformFields      Json?
 
   blueprint Blueprint @relation(fields: [blueprintId], references: [id])
 }

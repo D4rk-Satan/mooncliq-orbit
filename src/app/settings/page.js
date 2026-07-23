@@ -850,6 +850,7 @@ export default function SettingsPage() {
                               <option value="checkbox">Checkbox (True/False)</option>
                               <option value="select">Dropdown (Select)</option>
                               <option value="lookup">Lookup (Relationship)</option>
+                              <option value="subform">Subform</option>
                             </select>
                           </div>
                           {newField.type === 'select' && (
@@ -1054,6 +1055,101 @@ export default function SettingsPage() {
                                     + Add Auto-Fill Mapping
                                   </button>
                                 </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {newField.type === 'subform' && (
+                            <div style={{ gridColumn: '1 / -1', padding: '1.5rem', border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: '#f8fafc' }}>
+                              <h4 style={{ fontWeight: 600, fontSize: '1rem', color: '#334155', margin: '0 0 1rem 0' }}>Subform Column Builder</h4>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                {(newField.subformFields || []).map((col, idx) => (
+                                  <div key={idx} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', backgroundColor: 'white', padding: '0.75rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                                    <input 
+                                      type="text" 
+                                      className="form-input" 
+                                      placeholder="Column Label (e.g. Quantity)" 
+                                      value={col.label || ''} 
+                                      style={{ flex: 1 }}
+                                      onChange={e => {
+                                        const sf = [...(newField.subformFields || [])];
+                                        sf[idx].label = e.target.value;
+                                        // Auto-generate name from label if name is empty
+                                        if (!sf[idx].name || sf[idx].name === sf[idx].label.toLowerCase().replace(/ /g, '_').substring(0, sf[idx].label.length - 1)) {
+                                          sf[idx].name = e.target.value.toLowerCase().replace(/ /g, '_');
+                                        }
+                                        setNewField({ ...newField, subformFields: sf });
+                                      }} 
+                                    />
+                                    <input 
+                                      type="text" 
+                                      className="form-input" 
+                                      placeholder="API Name (e.g. quantity)" 
+                                      value={col.name || ''} 
+                                      style={{ flex: 1 }}
+                                      onChange={e => {
+                                        const sf = [...(newField.subformFields || [])];
+                                        sf[idx].name = e.target.value.toLowerCase().replace(/ /g, '_');
+                                        setNewField({ ...newField, subformFields: sf });
+                                      }} 
+                                    />
+                                    <select 
+                                      className="form-input" 
+                                      value={col.type || 'text'} 
+                                      style={{ flex: 1 }}
+                                      onChange={e => {
+                                        const sf = [...(newField.subformFields || [])];
+                                        sf[idx].type = e.target.value;
+                                        setNewField({ ...newField, subformFields: sf });
+                                      }}
+                                    >
+                                      <option value="text">Short Text</option>
+                                      <option value="number">Number</option>
+                                      <option value="currency">Currency</option>
+                                      <option value="date">Date</option>
+                                      <option value="checkbox">Checkbox (True/False)</option>
+                                      <option value="select">Dropdown (Select)</option>
+                                    </select>
+                                    {col.type === 'select' && (
+                                      <input 
+                                        type="text" 
+                                        className="form-input" 
+                                        placeholder="Options (Comma separated)" 
+                                        value={col.options ? col.options.join(', ') : ''} 
+                                        style={{ flex: 1 }}
+                                        onChange={e => {
+                                          const sf = [...(newField.subformFields || [])];
+                                          sf[idx].options = e.target.value.split(',').map(s => s.trim()).filter(s => s);
+                                          setNewField({ ...newField, subformFields: sf });
+                                        }} 
+                                      />
+                                    )}
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.875rem' }}>
+                                      <input 
+                                        type="checkbox" 
+                                        checked={col.isRequired || false} 
+                                        onChange={e => {
+                                          const sf = [...(newField.subformFields || [])];
+                                          sf[idx].isRequired = e.target.checked;
+                                          setNewField({ ...newField, subformFields: sf });
+                                        }} 
+                                      />
+                                      Required
+                                    </label>
+                                    <button type="button" onClick={() => {
+                                      const sf = [...(newField.subformFields || [])];
+                                      sf.splice(idx, 1);
+                                      setNewField({ ...newField, subformFields: sf });
+                                    }} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', padding: '0 0.5rem' }}>✕</button>
+                                  </div>
+                                ))}
+                                <button type="button" onClick={() => {
+                                  const sf = [...(newField.subformFields || [])];
+                                  sf.push({ name: '', label: '', type: 'text', isRequired: false });
+                                  setNewField({ ...newField, subformFields: sf });
+                                }} style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer', alignSelf: 'flex-start', marginTop: '0.25rem' }}>
+                                  + Add Column
+                                </button>
                               </div>
                             </div>
                           )}

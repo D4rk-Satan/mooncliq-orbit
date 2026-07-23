@@ -4,7 +4,7 @@ import prisma from '../../../lib/prisma';
 export async function POST(request) {
   try {
     const data = await request.json();
-    const { name, label, type, options, blueprintId, isRequired, targetModule, targetDisplayField, isMultiSelect, isBiDirectional, mappings, relatedListLabel, isPublic, filters } = data;
+    const { name, label, type, options, blueprintId, isRequired, targetModule, targetDisplayField, isMultiSelect, isBiDirectional, mappings, relatedListLabel, isPublic, filters, subformFields } = data;
 
     // Get the highest orderIndex to append at the end
     const lastField = await prisma.field.findFirst({
@@ -30,7 +30,8 @@ export async function POST(request) {
         relatedListLabel: relatedListLabel || null,
         isPublic: isPublic !== undefined ? isPublic : true,
         filters: filters || null,
-        mappings: mappings || null
+        mappings: mappings || null,
+        subformFields: subformFields || null
       }
     });
 
