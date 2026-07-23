@@ -156,7 +156,7 @@ const registry = {
 };
 
 // The Component that dynamically renders the right input based on field type
-export default function DynamicField({ field, value, onChange }) {
+export default function DynamicField({ field, value, onChange, formData }) {
   const Component = registry[field.type];
 
   if (!Component) {
@@ -167,5 +167,5 @@ export default function DynamicField({ field, value, onChange }) {
     );
   }
 
-  return <Component field={field} value={value} onChange={(name, val, record, mappings) => onChange(name, val, record, mappings)} />;
+  return <Component field={field} value={value} formData={formData} onChange={(name, val, record, mappings) => onChange(name, val, record, mappings)} />;
 }

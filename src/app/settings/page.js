@@ -910,12 +910,20 @@ export default function SettingsPage() {
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                                   {(newField.filters || []).map((filter, idx) => (
                                     <div key={idx} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                      <input type="text" className="form-input bg-white" style={{ flex: 1 }} placeholder="Field (e.g. status)" value={filter.field || ''} onChange={e => {
+                                      {/* Target Module Field Dropdown */}
+                                      <select className="form-input bg-white" style={{ flex: 1 }} value={filter.field || ''} onChange={e => {
                                         const f = [...(newField.filters || [])];
                                         f[idx].field = e.target.value;
                                         setNewField({ ...newField, filters: f });
-                                      }} />
-                                      <select className="form-input bg-white" style={{ width: '120px' }} value={filter.operator || 'is'} onChange={e => {
+                                      }}>
+                                        <option value="" disabled>Select Target Field...</option>
+                                        {(targetBlueprint?.fields || []).map(tf => (
+                                          <option key={tf.name} value={tf.name}>{tf.label}</option>
+                                        ))}
+                                      </select>
+                                      
+                                      {/* Operator Dropdown */}
+                                      <select className="form-input bg-white" style={{ width: '130px' }} value={filter.operator || 'is'} onChange={e => {
                                         const f = [...(newField.filters || [])];
                                         f[idx].operator = e.target.value;
                                         setNewField({ ...newField, filters: f });
@@ -923,12 +931,42 @@ export default function SettingsPage() {
                                         <option value="is">Is</option>
                                         <option value="is_not">Isn't</option>
                                         <option value="contains">Contains</option>
+                                        <option value="does_not_contain">Doesn't Contain</option>
+                                        <option value="starts_with">Starts With</option>
+                                        <option value="ends_with">Ends With</option>
                                       </select>
-                                      <input type="text" className="form-input bg-white" style={{ flex: 1 }} placeholder="Value (e.g. Active)" value={filter.value || ''} onChange={e => {
+                                      
+                                      {/* Match Type Dropdown */}
+                                      <select className="form-input bg-white" style={{ width: '100px' }} value={filter.matchType || 'value'} onChange={e => {
                                         const f = [...(newField.filters || [])];
-                                        f[idx].value = e.target.value;
+                                        f[idx].matchType = e.target.value;
+                                        f[idx].value = ''; // Reset value when switching type
                                         setNewField({ ...newField, filters: f });
-                                      }} />
+                                      }}>
+                                        <option value="value">Value</option>
+                                        <option value="field">Field</option>
+                                      </select>
+
+                                      {/* Value Input OR Current Module Field Dropdown */}
+                                      {filter.matchType === 'field' ? (
+                                        <select className="form-input bg-white" style={{ flex: 1 }} value={filter.value || ''} onChange={e => {
+                                          const f = [...(newField.filters || [])];
+                                          f[idx].value = e.target.value;
+                                          setNewField({ ...newField, filters: f });
+                                        }}>
+                                          <option value="" disabled>Select Current Field...</option>
+                                          {(blueprint?.fields || []).map(cf => (
+                                            <option key={cf.name} value={cf.name}>{cf.label}</option>
+                                          ))}
+                                        </select>
+                                      ) : (
+                                        <input type="text" className="form-input bg-white" style={{ flex: 1 }} placeholder="Value (e.g. Active)" value={filter.value || ''} onChange={e => {
+                                          const f = [...(newField.filters || [])];
+                                          f[idx].value = e.target.value;
+                                          setNewField({ ...newField, filters: f });
+                                        }} />
+                                      )}
+
                                       <button type="button" onClick={() => {
                                         const f = [...(newField.filters || [])];
                                         f.splice(idx, 1);
@@ -938,7 +976,7 @@ export default function SettingsPage() {
                                   ))}
                                   <button type="button" onClick={() => {
                                     const f = [...(newField.filters || [])];
-                                    f.push({ field: '', operator: 'is', value: '' });
+                                    f.push({ field: '', operator: 'is', matchType: 'value', value: '' });
                                     setNewField({ ...newField, filters: f });
                                   }} style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer', alignSelf: 'flex-start', marginTop: '0.25rem' }}>
                                     + Add Filter Rule

@@ -44,12 +44,22 @@ export default function LookupInput({ field, value, onChange }) {
     return field.filters.every(filter => {
       if (!filter.field || !filter.operator) return true;
       const recordValue = String(record[filter.field] || (record.customData && record.customData[filter.field]) || '').toLowerCase();
-      const filterValue = String(filter.value || '').toLowerCase();
+      
+      let filterValue = '';
+      if (filter.matchType === 'field') {
+        if (!formData || !filter.value) return true; // Can't evaluate without form data or target field
+        filterValue = String(formData[filter.value] || '').toLowerCase();
+      } else {
+        filterValue = String(filter.value || '').toLowerCase();
+      }
       
       switch (filter.operator) {
         case 'is': return recordValue === filterValue;
         case 'is_not': return recordValue !== filterValue;
         case 'contains': return recordValue.includes(filterValue);
+        case 'does_not_contain': return !recordValue.includes(filterValue);
+        case 'starts_with': return recordValue.startsWith(filterValue);
+        case 'ends_with': return recordValue.endsWith(filterValue);
         default: return true;
       }
     });

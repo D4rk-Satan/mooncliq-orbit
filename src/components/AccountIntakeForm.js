@@ -153,6 +153,7 @@ export default function AccountIntakeForm({ isOpen, onClose, onSave }) {
                   <div className="data-grid-2col form-group-grid">
                     {blueprint.fields.map(field => (
                       <DynamicField
+                        formData={{ ...standardData, ...customData }}
                         key={field.id}
                         field={field}
                         value={customData[field.name]}
