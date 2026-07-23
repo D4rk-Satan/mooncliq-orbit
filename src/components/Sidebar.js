@@ -10,6 +10,19 @@ export default function Sidebar() {
   const router = useRouter();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
+  React.useEffect(() => {
+    const saved = localStorage.getItem('mooncliq_sidebar_collapsed');
+    if (saved !== null) {
+      setIsCollapsed(saved === 'true');
+    }
+  }, []);
+
+  const toggleSidebar = () => {
+    const newState = !isCollapsed;
+    setIsCollapsed(newState);
+    localStorage.setItem('mooncliq_sidebar_collapsed', newState.toString());
+  };
+
   const handleSignOut = async () => {
     try {
       await signOut();
@@ -35,7 +48,7 @@ export default function Sidebar() {
         {!isCollapsed && <span>moonCliq</span>}
         {isCollapsed && <span style={{ fontSize: '1.2rem' }}>mC</span>}
         <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
+          onClick={toggleSidebar}
           style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem', color: '#6b7280', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           title="Toggle Sidebar"
         >
