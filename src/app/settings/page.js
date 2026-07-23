@@ -257,6 +257,7 @@ export default function SettingsPage() {
         isPublic: newField.type === 'lookup' ? (newField.isPublic !== false) : true,
         filters: newField.type === 'lookup' ? (newField.filters || []) : [],
         mappings: newField.type === 'lookup' ? (newField.mappings || []) : [],
+        subformFields: newField.type === 'subform' ? (newField.subformFields || []) : null,
         blueprintId: blueprint.id
       };
 
