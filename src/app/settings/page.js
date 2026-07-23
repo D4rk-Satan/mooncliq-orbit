@@ -1039,7 +1039,6 @@ export default function SettingsPage() {
                                           ))}
                                         </optgroup>
                                       </select>
-                                      </select>
                                       <button type="button" onClick={() => {
                                         const m = [...(newField.mappings || [])];
                                         m.splice(idx, 1);
