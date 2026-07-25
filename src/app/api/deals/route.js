@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import prisma from '../../../lib/prisma';
 import { getAuthUser } from '../../../lib/auth';
 import { executeBiDirectionalSync } from '../../../lib/syncLookups';
+import { executeBackendWorkflows } from '../../../utils/workflowEngine';
 
 export async function GET(request) {
   console.log("PRISMA KEYS:", Object.keys(prisma));
@@ -84,6 +85,9 @@ export async function POST(request) {
         details: { stageId }
       }
     });
+
+    // Execute Backend Workflows (Async)
+    executeBackendWorkflows(user.organizationId, 'Deal', 'Created', newDeal);
 
     return NextResponse.json(newDeal);
   } catch (error) {
@@ -308,6 +312,8 @@ export async function PATCH(request) {
         details: { newStageId: stageId }
       }
     });
+    // Execute Backend Workflows (Async)
+    executeBackendWorkflows(user.organizationId, 'Deal', 'Edited', updatedDeal);
 
     return NextResponse.json(updatedDeal);
   } catch (error) {

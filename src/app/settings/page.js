@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Sidebar from "../../components/Sidebar";
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import WorkflowBuilder from '../../components/WorkflowBuilder';
 
 
 const DEFAULT_MODULE_FIELDS = {
@@ -611,6 +612,21 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
+                {/* Developer Tools Card */}
+                <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '1.5rem', boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.05)', border: '1px solid #e2e8f0' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                    <div style={{ background: '#f3f4f6', padding: '0.5rem', borderRadius: '8px', color: '#475569' }}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                    </div>
+                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: '#0f172a' }}>Developer</h3>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <button onClick={() => setCurrentView('workflows')} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
+                      Custom Workflows
+                    </button>
+                  </div>
+                </div>
+
                 {/* Users and Control Card */}
                 <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '1.5rem', boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.05)', border: '1px solid #e2e8f0' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
@@ -648,12 +664,18 @@ export default function SettingsPage() {
                     {currentView === 'fields' && "Modules and Fields"}
                     {currentView === 'tags' && "Tag Definitions"}
                     {currentView === 'users' && "Users & Invitations"}
+                    {currentView === 'workflows' && "Custom Workflows & Scripts"}
                   </h2>
                   {currentView !== 'users' && currentView !== 'profiles' && renderModuleSelector()}
                 </div>
               </div>
 
               <div style={{ padding: '2rem' }}>
+
+                {/* WORKFLOWS TAB */}
+                {currentView === 'workflows' && (
+                  <WorkflowBuilder />
+                )}
 
                 {/* USERS TAB */}
                 {currentView === 'users' && (

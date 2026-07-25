@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import Papa from "papaparse";
 import Sidebar from "../../components/Sidebar";
 import LeadIntakeForm from "../../components/LeadIntakeForm";
 import SlideOverPanel from "../../components/SlideOverPanel";
@@ -22,6 +23,9 @@ export default function LeadModule() {
   // Bulk Actions State
   const [selectedLeadIds, setSelectedLeadIds] = useState([]);
   const [isBulkTagPickerOpen, setIsBulkTagPickerOpen] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  
+  const fileInputRef = useRef(null);
 
   const router = useRouter();
 
@@ -98,6 +102,73 @@ export default function LeadModule() {
     } catch (err) {
       console.error("Failed to save lead", err);
     }
+  };
+
+  const handleExport = async () => {
+    try {
+      const token = await getAuthToken();
+      const res = await fetch('/api/leads/export', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'leads_export.csv';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+      } else {
+        alert("Failed to export leads.");
+      }
+    } catch (err) {
+      console.error("Export error:", err);
+    }
+  };
+
+  const handleImportFile = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setIsImporting(true);
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: async (results) => {
+        try {
+          const token = await getAuthToken();
+          const res = await fetch('/api/leads/import', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ rows: results.data })
+          });
+          const data = await res.json();
+          if (data.success) {
+            alert(`Successfully imported ${data.importedCount} leads!`);
+            fetchData(); // Reload table
+          } else {
+            alert(data.error || "Failed to import leads.");
+          }
+        } catch (err) {
+          console.error("Import error:", err);
+          alert("An error occurred during import.");
+        } finally {
+          setIsImporting(false);
+          // reset the input
+          if (fileInputRef.current) fileInputRef.current.value = "";
+        }
+      },
+      error: (error) => {
+        console.error("CSV Parse Error:", error);
+        alert("Failed to parse the CSV file.");
+        setIsImporting(false);
+      }
+    });
   };
 
   const handleDragStart = (e, leadId) => {
@@ -438,8 +509,8 @@ export default function LeadModule() {
       <main className="dashboard-main">
         <header className="dashboard-header">
           <h1>Leads</h1>
-          {leads.length > 0 && (
-            <div className="header-actions" style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          <div className="header-actions" style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+            {leads.length > 0 && (
               <div className="view-toggle">
                 <button
                   className={`toggle-btn ${viewMode === 'kanban' ? 'active' : ''}`}
@@ -454,13 +525,32 @@ export default function LeadModule() {
                   List
                 </button>
               </div>
-              {(currentUser?.profile?.canAccessSettings || currentUser?.profile?.permissions?.Lead?.create) && (
+            )}
+            
+            {(currentUser?.profile?.canAccessSettings || currentUser?.profile?.permissions?.Lead?.view) && (
+              <button className="btn-outline" onClick={handleExport}>
+                Export Leads
+              </button>
+            )}
+
+            {(currentUser?.profile?.canAccessSettings || currentUser?.profile?.permissions?.Lead?.create) && (
+              <>
+                <input 
+                  type="file" 
+                  accept=".csv" 
+                  ref={fileInputRef} 
+                  style={{ display: 'none' }} 
+                  onChange={handleImportFile} 
+                />
+                <button className="btn-outline" onClick={() => fileInputRef.current?.click()} disabled={isImporting}>
+                  {isImporting ? 'Importing...' : 'Import Leads'}
+                </button>
                 <button className="btn-primary" onClick={() => setIsFormOpen(true)}>
                   + Add Lead
                 </button>
-              )}
-            </div>
-          )}
+              </>
+            )}
+          </div>
         </header>
 
         <div className="module-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>

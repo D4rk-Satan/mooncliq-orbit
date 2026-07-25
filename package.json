@@ -10,8 +10,10 @@
     "postinstall": "prisma generate"
   },
   "dependencies": {
+    "@aws-sdk/client-lambda": "^3.1095.0",
     "@aws-sdk/client-ses": "^3.1090.0",
     "@hello-pangea/dnd": "^18.0.1",
+    "@monaco-editor/react": "^4.7.0",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "@types/pg": "^8.20.0",
@@ -19,6 +21,7 @@
     "aws-jwt-verify": "^5.2.1",
     "lucide-react": "^1.21.0",
     "next": "16.2.7",
+    "papaparse": "^5.5.4",
     "pg": "^8.21.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",

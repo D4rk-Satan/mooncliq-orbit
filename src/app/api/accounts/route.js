@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '../../../lib/prisma';
 import { getAuthUser } from '../../../lib/auth';
+import { executeBackendWorkflows } from '../../../utils/workflowEngine';
 
 export async function POST(req) {
   try {
@@ -54,6 +55,9 @@ export async function POST(req) {
         customData
       }
     });
+
+    // Execute Backend Workflows (Async)
+    executeBackendWorkflows(user.organizationId, 'Account', 'Created', account);
 
     return NextResponse.json(account);
   } catch (error) {

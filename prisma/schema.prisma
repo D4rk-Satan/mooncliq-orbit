@@ -24,6 +24,7 @@ model Organization {
   tasks       Task[]
   deals       Deal[]
   profiles    Profile[]
+  workflowRules WorkflowRule[]
   invitations Invitation[]
 }
 
@@ -315,4 +316,21 @@ model Deal {
   organization Organization @relation(fields: [organizationId], references: [id])
   blueprint    Blueprint    @relation(fields: [blueprintId], references: [id])
   stage        Stage        @relation(fields: [stageId], references: [id])
+}
+
+model WorkflowRule {
+  id             String   @id @default(uuid())
+  organizationId String
+  moduleType     String
+  name           String
+  recordEvent    String
+  triggerCategory String
+  triggerEvent    String
+  targetFields    String[]
+  code            String
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id])
 }

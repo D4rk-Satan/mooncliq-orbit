@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import prisma from '../../../lib/prisma';
 import { getAuthUser } from '../../../lib/auth';
 import { executeBiDirectionalSync } from '../../../lib/syncLookups';
+import { executeBackendWorkflows } from '../../../utils/workflowEngine';
 
 export async function POST(req) {
   try {
@@ -58,6 +59,9 @@ export async function POST(req) {
     });
 
     await executeBiDirectionalSync(user.organizationId, 'Task', task, blueprintId);
+
+    // Execute Backend Workflows (Async)
+    executeBackendWorkflows(user.organizationId, 'Task', 'Created', task);
 
     return NextResponse.json(task);
   } catch (error) {
