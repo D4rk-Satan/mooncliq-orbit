@@ -26,6 +26,7 @@ model Organization {
   profiles    Profile[]
   workflowRules WorkflowRule[]
   invitations Invitation[]
+  clientScripts ClientScript[]
 }
 
 // ------------------------------------------------------------------
@@ -140,6 +141,12 @@ model Field {
   filters            Json?
   mappings           Json?
   subformFields      Json?
+
+  // Layout Builder & Section Support
+  sectionName        String  @default("General Information")
+  sectionOrder       Int     @default(0)
+  isSystemField      Boolean @default(false)
+  isHidden           Boolean @default(false)
 
   blueprint Blueprint @relation(fields: [blueprintId], references: [id])
 }
@@ -331,6 +338,21 @@ model WorkflowRule {
   isActive        Boolean  @default(true)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id])
+}
+
+model ClientScript {
+  id            String   @id @default(uuid())
+  organizationId String
+  name          String
+  moduleType    String   // e.g., "Lead", "Deal", "Product"
+  triggerEvent  String   // "onLoad", "onChange", "onSave"
+  targetField   String?  // Only populated if triggerEvent is "onChange"
+  code          String   // The JavaScript code
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   organization   Organization @relation(fields: [organizationId], references: [id])
 }

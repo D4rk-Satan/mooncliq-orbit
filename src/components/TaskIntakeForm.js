@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import DynamicField from "./FieldRegistry";
+import useClientScripts from "@/hooks/useClientScripts";
 
 export default function TaskIntakeForm({ isOpen, onClose, onSave }) {
   const [blueprint, setBlueprint] = useState(null);
@@ -20,6 +21,13 @@ export default function TaskIntakeForm({ isOpen, onClose, onSave }) {
 
   // Dynamic fields
   const [customData, setCustomData] = useState({});
+
+  const { executeScript, standardFieldStates } = useClientScripts({
+    moduleType: "Task",
+    standardData, setStandardData,
+    customData, setCustomData,
+    blueprint, setBlueprint
+  });
 
   useEffect(() => {
     if (isOpen) {
@@ -45,6 +53,7 @@ export default function TaskIntakeForm({ isOpen, onClose, onSave }) {
       });
       const data = await res.json();
       setBlueprint(data);
+      setTimeout(() => executeScript("onLoad"), 0);
     } catch (err) {
       console.error("Failed to load blueprint", err);
     } finally {
@@ -54,18 +63,14 @@ export default function TaskIntakeForm({ isOpen, onClose, onSave }) {
 
   if (!isOpen) return null;
 
-  const handleStandardChange = (e) => {
-    const { name, value } = e.target;
-    setStandardData((prev) => ({ ...prev, [name]: value }));
-  };
+  const handleFieldChange = (field, name, value, record = null, mappings = []) => {
+    if (field?.isSystemField) {
+      setStandardData((prev) => ({ ...prev, [name]: value }));
+    } else {
+      setCustomData((prev) => ({ ...prev, [name]: value }));
+    }
 
-  const handleDateChange = (e) => {
-    const { name, value } = e.target;
-    setStandardData((prev) => ({ ...prev, [name]: value ? new Date(value).toISOString() : "" }));
-  };
-
-  const handleCustomChange = (name, value, record = null, mappings = []) => {
-    setCustomData((prev) => ({ ...prev, [name]: value }));
+    setTimeout(() => executeScript("onChange", name), 0);
 
     if (record && mappings && mappings.length > 0) {
       mappings.forEach(mapping => {
@@ -139,80 +144,41 @@ export default function TaskIntakeForm({ isOpen, onClose, onSave }) {
             </div>
 
             <div className="slide-content">
-              <div className="data-section">
-                <h3 className="section-heading">Standard Information</h3>
-                <div className="data-grid-2col form-group-grid">
-                  <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                    <label className="form-label">Task Name *</label>
-                    <input required type="text" name="taskName" value={standardData.taskName} onChange={handleStandardChange} className="form-input" placeholder="e.g. Call Client" />
-                  </div>
+              {blueprint?.fields && (() => {
+                const visibleFields = blueprint.fields.filter(f => !f.isHidden && !standardFieldStates?.[f.name]?.isHidden);
+                const uniqueSections = [...new Set(visibleFields.map(f => f.sectionName || 'General Information'))];
+                
+                return uniqueSections.map(sectionName => {
+                  const sectionFields = visibleFields.filter(f => (f.sectionName || 'General Information') === sectionName)
+                    .sort((a,b) => (a.sectionOrder || 0) - (b.sectionOrder || 0));
+                    
+                  if (sectionFields.length === 0) return null;
                   
-                  <div className="form-group">
-                    <label className="form-label">Start Date & Time</label>
-                    <input type="datetime-local" name="startDateTime" value={toLocalISO(standardData.startDateTime)} onChange={handleDateChange} className="form-input" />
-                  </div>
-                  
-                  <div className="form-group">
-                    <label className="form-label">Due Date & Time</label>
-                    <input type="datetime-local" name="dueDateTime" value={toLocalISO(standardData.dueDateTime)} onChange={handleDateChange} className="form-input" />
-                  </div>
-                  
-                  <div className="form-group">
-                    <label className="form-label">End Date & Time</label>
-                    <input type="datetime-local" name="endDateTime" value={toLocalISO(standardData.endDateTime)} onChange={handleDateChange} className="form-input" />
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label">Repeat</label>
-                    <select name="repeat" value={standardData.repeat} onChange={handleStandardChange} className="form-input">
-                      <option value="">None</option>
-                      <option value="everyday">Everyday</option>
-                      <option value="week">Every Week</option>
-                      <option value="month">Every Month</option>
-                      <option value="year">Every Year</option>
-                    </select>
-                  </div>
-                  
-                  <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                    <label className="form-label">Alert</label>
-                    <select name="alert" value={standardData.alert} onChange={handleStandardChange} className="form-input">
-                      <option value="">No Alert</option>
-                      <option value="at time of event">At time of event</option>
-                      <option value="5 minutes before">5 minutes before</option>
-                      <option value="10 minutes before">10 minutes before</option>
-                      <option value="15 minutes before">15 minutes before</option>
-                      <option value="30 minutes before">30 minutes before</option>
-                      <option value="1 hour before">1 hour before</option>
-                      <option value="2 hour before">2 hour before</option>
-                      <option value="1 day before">1 day before</option>
-                      <option value="2 day before">2 day before</option>
-                      <option value="1 week before">1 week before</option>
-                    </select>
-                  </div>
-
-                  <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                    <label className="form-label">Notes</label>
-                    <textarea name="notes" value={standardData.notes} onChange={handleStandardChange} className="form-input" rows="4" style={{ resize: 'vertical' }}></textarea>
-                  </div>
-                </div>
-              </div>
-
-              {blueprint?.fields && blueprint.fields.length > 0 && (
-                <div className="data-section">
-                  <h3 className="section-heading">Custom Details</h3>
-                  <div className="data-grid-2col form-group-grid">
-                    {blueprint.fields.map(field => (
-                      <DynamicField
-                        formData={{ ...standardData, ...customData }}
-                        key={field.id}
-                        field={field}
-                        value={customData[field.name]}
-                        onChange={handleCustomChange}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
+                  return (
+                    <div className="data-section" key={sectionName}>
+                      <h3 className="section-heading">{sectionName}</h3>
+                      <div className="data-grid-2col form-group-grid">
+                        {sectionFields.map(field => {
+                          const stateOverride = standardFieldStates?.[field.name];
+                          const modifiedField = {
+                            ...field,
+                            isRequired: stateOverride?.isRequired !== undefined ? stateOverride.isRequired : field.isRequired
+                          };
+                          return (
+                            <DynamicField
+                            formData={{ ...standardData, ...customData }}
+                            key={field.id}
+                            field={modifiedField}
+                            value={field.isSystemField ? standardData[field.name] : customData[field.name]}
+                            onChange={(name, value, record, mappings) => handleFieldChange(field, name, value, record, mappings)}
+                            />
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
             </div>
 
             <div className="slide-footer" style={{ borderTop: '1px solid #e2e8f0', flexShrink: 0, backgroundColor: 'var(--card-bg)', zIndex: 10 }}>

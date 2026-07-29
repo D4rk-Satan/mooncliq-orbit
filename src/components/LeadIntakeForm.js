@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import DynamicField from "./FieldRegistry";
+import useClientScripts from "@/hooks/useClientScripts";
 
 export default function LeadIntakeForm({ isOpen, onClose, onSave }) {
   const [blueprint, setBlueprint] = useState(null);
@@ -19,6 +20,13 @@ export default function LeadIntakeForm({ isOpen, onClose, onSave }) {
 
   // Dynamic fields
   const [customData, setCustomData] = useState({});
+
+  const { executeScript, standardFieldStates } = useClientScripts({
+    moduleType: "Lead",
+    standardData, setStandardData,
+    customData, setCustomData,
+    blueprint, setBlueprint
+  });
 
   useEffect(() => {
     if (isOpen) {
@@ -44,6 +52,7 @@ export default function LeadIntakeForm({ isOpen, onClose, onSave }) {
       });
       const data = await res.json();
       setBlueprint(data);
+      setTimeout(() => executeScript("onLoad"), 0);
       if (data.stages && data.stages.length > 0) {
         setStandardData(prev => ({ ...prev, stageId: data.stages[0].id })); // Default to first stage
       }
@@ -56,13 +65,14 @@ export default function LeadIntakeForm({ isOpen, onClose, onSave }) {
 
   if (!isOpen) return null;
 
-  const handleStandardChange = (e) => {
-    const { name, value } = e.target;
-    setStandardData((prev) => ({ ...prev, [name]: value }));
-  };
+  const handleFieldChange = (field, name, value, record = null, mappings = []) => {
+    if (field?.isSystemField) {
+      setStandardData((prev) => ({ ...prev, [name]: value }));
+    } else {
+      setCustomData((prev) => ({ ...prev, [name]: value }));
+    }
 
-  const handleCustomChange = (name, value, record = null, mappings = []) => {
-    setCustomData((prev) => ({ ...prev, [name]: value }));
+    setTimeout(() => executeScript("onChange", name), 0);
 
     console.log('LeadIntakeForm handleCustomChange:', {name, value, record, mappings}); if (record && mappings && mappings.length > 0) {
       mappings.forEach(mapping => {
@@ -120,58 +130,41 @@ export default function LeadIntakeForm({ isOpen, onClose, onSave }) {
             </div>
 
             <div className="slide-content">
-              <div className="data-section">
-                <h3 className="section-heading">Standard Information</h3>
-                <div className="data-grid-2col form-group-grid">
-                  <div className="form-group">
-                    <label className="form-label">First Name *</label>
-                    <input required type="text" name="firstName" value={standardData.firstName} onChange={handleStandardChange} className="form-input" placeholder="e.g. John" />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Last Name *</label>
-                    <input required type="text" name="lastName" value={standardData.lastName} onChange={handleStandardChange} className="form-input" placeholder="e.g. Doe" />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Email Address</label>
-                    <input type="email" name="email" value={standardData.email} onChange={handleStandardChange} className="form-input" placeholder="e.g. john@example.com" />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Phone Number</label>
-                    <input type="tel" name="phone" value={standardData.phone} onChange={handleStandardChange} className="form-input" placeholder="e.g. +1 234 567 890" />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Lead Owner</label>
-                    <input type="text" name="owner" value={standardData.owner} onChange={handleStandardChange} className="form-input" placeholder="e.g. Jane Smith" />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                      Initial Stage 🔒
-                    </label>
-                    <select disabled name="stageId" value={standardData.stageId} className="form-input" style={{ backgroundColor: '#f1f5f9', color: '#64748b', cursor: 'not-allowed' }}>
-                      {blueprint?.stages?.map(stage => (
-                        <option key={stage.id} value={stage.id}>{stage.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              {blueprint?.fields && blueprint.fields.length > 0 && (
-                <div className="data-section">
-                  <h3 className="section-heading">Custom Details</h3>
-                  <div className="data-grid-2col form-group-grid">
-                    {blueprint.fields.map(field => (
-                      <DynamicField
-                        formData={{ ...standardData, ...customData }}
-                        key={field.id}
-                        field={field}
-                        value={customData[field.name]}
-                        onChange={handleCustomChange}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
+              {blueprint?.fields && (() => {
+                const visibleFields = blueprint.fields.filter(f => !f.isHidden && !standardFieldStates?.[f.name]?.isHidden);
+                const uniqueSections = [...new Set(visibleFields.map(f => f.sectionName || 'General Information'))];
+                
+                return uniqueSections.map(sectionName => {
+                  const sectionFields = visibleFields.filter(f => (f.sectionName || 'General Information') === sectionName)
+                    .sort((a,b) => (a.sectionOrder || 0) - (b.sectionOrder || 0));
+                    
+                  if (sectionFields.length === 0) return null;
+                  
+                  return (
+                    <div className="data-section" key={sectionName}>
+                      <h3 className="section-heading">{sectionName}</h3>
+                      <div className="data-grid-2col form-group-grid">
+                        {sectionFields.map(field => {
+                          const stateOverride = standardFieldStates?.[field.name];
+                          const modifiedField = {
+                            ...field,
+                            isRequired: stateOverride?.isRequired !== undefined ? stateOverride.isRequired : field.isRequired
+                          };
+                          return (
+                            <DynamicField
+                            formData={{ ...standardData, ...customData }}
+                            key={field.id}
+                            field={modifiedField}
+                            value={field.isSystemField ? standardData[field.name] : customData[field.name]}
+                            onChange={(name, value, record, mappings) => handleFieldChange(field, name, value, record, mappings)}
+                            />
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
             </div>
 
             <div className="slide-footer" style={{ borderTop: '1px solid #e2e8f0', flexShrink: 0, backgroundColor: 'var(--card-bg)', zIndex: 10 }}>

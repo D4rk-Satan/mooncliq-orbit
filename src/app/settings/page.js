@@ -4,6 +4,8 @@ import React, { useState, useEffect, useRef } from "react";
 import Sidebar from "../../components/Sidebar";
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import WorkflowBuilder from '../../components/WorkflowBuilder';
+import LayoutBuilder from '../../components/LayoutBuilder';
+import ClientScriptBuilder from '../../components/ClientScriptBuilder';
 
 
 const DEFAULT_MODULE_FIELDS = {
@@ -609,6 +611,9 @@ export default function SettingsPage() {
                     <button onClick={() => setCurrentView('blueprint')} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
                       Workflow Engine
                     </button>
+                    <button onClick={() => setCurrentView('layout-builder')} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
+                      Section Builder
+                    </button>
                   </div>
                 </div>
 
@@ -616,13 +621,16 @@ export default function SettingsPage() {
                 <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '1.5rem', boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.05)', border: '1px solid #e2e8f0' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
                     <div style={{ background: '#f3f4f6', padding: '0.5rem', borderRadius: '8px', color: '#475569' }}>
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" /></svg>
                     </div>
                     <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: '#0f172a' }}>Developer</h3>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                     <button onClick={() => setCurrentView('workflows')} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
                       Custom Workflows
+                    </button>
+                    <button onClick={() => setCurrentView('client-scripts')} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
+                      Client UI Scripts
                     </button>
                   </div>
                 </div>
@@ -665,6 +673,7 @@ export default function SettingsPage() {
                     {currentView === 'tags' && "Tag Definitions"}
                     {currentView === 'users' && "Users & Invitations"}
                     {currentView === 'workflows' && "Custom Workflows & Scripts"}
+                    {currentView === 'layout-builder' && "Form Layout Builder"}
                   </h2>
                   {currentView !== 'users' && currentView !== 'profiles' && renderModuleSelector()}
                 </div>
@@ -675,6 +684,11 @@ export default function SettingsPage() {
                 {/* WORKFLOWS TAB */}
                 {currentView === 'workflows' && (
                   <WorkflowBuilder />
+                )}
+
+                {/* CLIENT SCRIPTS TAB */}
+                {currentView === 'client-scripts' && (
+                  <ClientScriptBuilder />
                 )}
 
                 {/* USERS TAB */}
@@ -843,6 +857,11 @@ export default function SettingsPage() {
 
                     </div>
                   </div>
+                )}
+
+                {/* LAYOUT BUILDER TAB */}
+                {currentView === 'layout-builder' && (
+                  <LayoutBuilder selectedModule={selectedModule} />
                 )}
 
                 {/* FIELDS TAB */}
@@ -1088,11 +1107,11 @@ export default function SettingsPage() {
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                                 {(newField.subformFields || []).map((col, idx) => (
                                   <div key={idx} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', backgroundColor: 'white', padding: '0.75rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                                    <input 
-                                      type="text" 
-                                      className="form-input" 
-                                      placeholder="Column Label (e.g. Quantity)" 
-                                      value={col.label || ''} 
+                                    <input
+                                      type="text"
+                                      className="form-input"
+                                      placeholder="Column Label (e.g. Quantity)"
+                                      value={col.label || ''}
                                       style={{ flex: 1 }}
                                       onChange={e => {
                                         const sf = [...(newField.subformFields || [])];
@@ -1102,23 +1121,23 @@ export default function SettingsPage() {
                                           sf[idx].name = e.target.value.toLowerCase().replace(/ /g, '_');
                                         }
                                         setNewField({ ...newField, subformFields: sf });
-                                      }} 
+                                      }}
                                     />
-                                    <input 
-                                      type="text" 
-                                      className="form-input" 
-                                      placeholder="API Name (e.g. quantity)" 
-                                      value={col.name || ''} 
+                                    <input
+                                      type="text"
+                                      className="form-input"
+                                      placeholder="API Name (e.g. quantity)"
+                                      value={col.name || ''}
                                       style={{ flex: 1 }}
                                       onChange={e => {
                                         const sf = [...(newField.subformFields || [])];
                                         sf[idx].name = e.target.value.toLowerCase().replace(/ /g, '_');
                                         setNewField({ ...newField, subformFields: sf });
-                                      }} 
+                                      }}
                                     />
-                                    <select 
-                                      className="form-input" 
-                                      value={col.type || 'text'} 
+                                    <select
+                                      className="form-input"
+                                      value={col.type || 'text'}
                                       style={{ flex: 1 }}
                                       onChange={e => {
                                         const sf = [...(newField.subformFields || [])];
@@ -1134,28 +1153,28 @@ export default function SettingsPage() {
                                       <option value="select">Dropdown (Select)</option>
                                     </select>
                                     {col.type === 'select' && (
-                                      <input 
-                                        type="text" 
-                                        className="form-input" 
-                                        placeholder="Options (Comma separated)" 
-                                        value={col.options ? col.options.join(', ') : ''} 
+                                      <input
+                                        type="text"
+                                        className="form-input"
+                                        placeholder="Options (Comma separated)"
+                                        value={col.options ? col.options.join(', ') : ''}
                                         style={{ flex: 1 }}
                                         onChange={e => {
                                           const sf = [...(newField.subformFields || [])];
                                           sf[idx].options = e.target.value.split(',').map(s => s.trim()).filter(s => s);
                                           setNewField({ ...newField, subformFields: sf });
-                                        }} 
+                                        }}
                                       />
                                     )}
                                     <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.875rem' }}>
-                                      <input 
-                                        type="checkbox" 
-                                        checked={col.isRequired || false} 
+                                      <input
+                                        type="checkbox"
+                                        checked={col.isRequired || false}
                                         onChange={e => {
                                           const sf = [...(newField.subformFields || [])];
                                           sf[idx].isRequired = e.target.checked;
                                           setNewField({ ...newField, subformFields: sf });
-                                        }} 
+                                        }}
                                       />
                                       Required
                                     </label>

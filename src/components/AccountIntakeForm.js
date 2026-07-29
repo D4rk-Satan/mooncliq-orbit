@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import DynamicField from "./FieldRegistry";
+import useClientScripts from "@/hooks/useClientScripts";
 
 export default function AccountIntakeForm({ isOpen, onClose, onSave }) {
   const [blueprint, setBlueprint] = useState(null);
@@ -19,6 +20,13 @@ export default function AccountIntakeForm({ isOpen, onClose, onSave }) {
 
   // Dynamic fields
   const [customData, setCustomData] = useState({});
+
+  const { executeScript, standardFieldStates } = useClientScripts({
+    moduleType: "Account",
+    standardData, setStandardData,
+    customData, setCustomData,
+    blueprint, setBlueprint
+  });
 
   useEffect(() => {
     if (isOpen) {
@@ -44,6 +52,7 @@ export default function AccountIntakeForm({ isOpen, onClose, onSave }) {
       });
       const data = await res.json();
       setBlueprint(data);
+      setTimeout(() => executeScript("onLoad"), 0);
     } catch (err) {
       console.error("Failed to load blueprint", err);
     } finally {
@@ -53,13 +62,14 @@ export default function AccountIntakeForm({ isOpen, onClose, onSave }) {
 
   if (!isOpen) return null;
 
-  const handleStandardChange = (e) => {
-    const { name, value } = e.target;
-    setStandardData((prev) => ({ ...prev, [name]: value }));
-  };
+  const handleFieldChange = (field, name, value, record = null, mappings = []) => {
+    if (field?.isSystemField) {
+      setStandardData((prev) => ({ ...prev, [name]: value }));
+    } else {
+      setCustomData((prev) => ({ ...prev, [name]: value }));
+    }
 
-  const handleCustomChange = (name, value, record = null, mappings = []) => {
-    setCustomData((prev) => ({ ...prev, [name]: value }));
+    setTimeout(() => executeScript("onChange", name), 0);
 
     if (record && mappings && mappings.length > 0) {
       mappings.forEach(mapping => {
@@ -117,52 +127,41 @@ export default function AccountIntakeForm({ isOpen, onClose, onSave }) {
             </div>
 
             <div className="slide-content">
-              <div className="data-section">
-                <h3 className="section-heading">Standard Information</h3>
-                <div className="data-grid-2col form-group-grid">
-                  <div className="form-group">
-                    <label className="form-label">Company Name *</label>
-                    <input required type="text" name="companyName" value={standardData.companyName} onChange={handleStandardChange} className="form-input" placeholder="e.g. Acme Corp" />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Email Address</label>
-                    <input type="email" name="email" value={standardData.email} onChange={handleStandardChange} className="form-input" placeholder="e.g. contact@acme.com" />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">GST No</label>
-                    <input type="text" name="gstNo" value={standardData.gstNo} onChange={handleStandardChange} className="form-input" placeholder="e.g. 22AAAAA0000A1Z5" />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Website</label>
-                    <input type="url" name="website" value={standardData.website} onChange={handleStandardChange} className="form-input" placeholder="e.g. https://acme.com" />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Contact Person</label>
-                    <input type="text" name="contactPerson" value={standardData.contactPerson} onChange={handleStandardChange} className="form-input" placeholder="e.g. Jane Smith" />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Address</label>
-                    <input type="text" name="address" value={standardData.address} onChange={handleStandardChange} className="form-input" placeholder="e.g. 123 Business Rd" />
-                  </div>
-                </div>
-              </div>
-
-              {blueprint?.fields && blueprint.fields.length > 0 && (
-                <div className="data-section">
-                  <h3 className="section-heading">Custom Details</h3>
-                  <div className="data-grid-2col form-group-grid">
-                    {blueprint.fields.map(field => (
-                      <DynamicField
-                        formData={{ ...standardData, ...customData }}
-                        key={field.id}
-                        field={field}
-                        value={customData[field.name]}
-                        onChange={handleCustomChange}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
+              {blueprint?.fields && (() => {
+                const visibleFields = blueprint.fields.filter(f => !f.isHidden && !standardFieldStates?.[f.name]?.isHidden);
+                const uniqueSections = [...new Set(visibleFields.map(f => f.sectionName || 'General Information'))];
+                
+                return uniqueSections.map(sectionName => {
+                  const sectionFields = visibleFields.filter(f => (f.sectionName || 'General Information') === sectionName)
+                    .sort((a,b) => (a.sectionOrder || 0) - (b.sectionOrder || 0));
+                    
+                  if (sectionFields.length === 0) return null;
+                  
+                  return (
+                    <div className="data-section" key={sectionName}>
+                      <h3 className="section-heading">{sectionName}</h3>
+                      <div className="data-grid-2col form-group-grid">
+                        {sectionFields.map(field => {
+                          const stateOverride = standardFieldStates?.[field.name];
+                          const modifiedField = {
+                            ...field,
+                            isRequired: stateOverride?.isRequired !== undefined ? stateOverride.isRequired : field.isRequired
+                          };
+                          return (
+                            <DynamicField
+                            formData={{ ...standardData, ...customData }}
+                            key={field.id}
+                            field={modifiedField}
+                            value={field.isSystemField ? standardData[field.name] : customData[field.name]}
+                            onChange={(name, value, record, mappings) => handleFieldChange(field, name, value, record, mappings)}
+                            />
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
             </div>
 
             <div className="slide-footer" style={{ borderTop: '1px solid #e2e8f0', flexShrink: 0, backgroundColor: 'var(--card-bg)', zIndex: 10 }}>

@@ -24,6 +24,7 @@ export default function LeadModule() {
   const [selectedLeadIds, setSelectedLeadIds] = useState([]);
   const [isBulkTagPickerOpen, setIsBulkTagPickerOpen] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   
   const fileInputRef = useRef(null);
 
@@ -451,7 +452,7 @@ export default function LeadModule() {
   };
 
   const renderListView = () => (
-    <div className="table-container">
+    <div className="table-container" style={{ overflowY: 'auto', flex: 1 }}>
       <table className="data-table">
         <thead>
           <tr>
@@ -509,30 +510,7 @@ export default function LeadModule() {
       <main className="dashboard-main">
         <header className="dashboard-header">
           <h1>Leads</h1>
-          <div className="header-actions" style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-            {leads.length > 0 && (
-              <div className="view-toggle">
-                <button
-                  className={`toggle-btn ${viewMode === 'kanban' ? 'active' : ''}`}
-                  onClick={() => setViewMode('kanban')}
-                >
-                  Kanban
-                </button>
-                <button
-                  className={`toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
-                  onClick={() => setViewMode('list')}
-                >
-                  List
-                </button>
-              </div>
-            )}
-            
-            {(currentUser?.profile?.canAccessSettings || currentUser?.profile?.permissions?.Lead?.view) && (
-              <button className="btn-outline" onClick={handleExport}>
-                Export Leads
-              </button>
-            )}
-
+          <div className="header-actions" style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
             {(currentUser?.profile?.canAccessSettings || currentUser?.profile?.permissions?.Lead?.create) && (
               <>
                 <input 
@@ -542,14 +520,76 @@ export default function LeadModule() {
                   style={{ display: 'none' }} 
                   onChange={handleImportFile} 
                 />
-                <button className="btn-outline" onClick={() => fileInputRef.current?.click()} disabled={isImporting}>
-                  {isImporting ? 'Importing...' : 'Import Leads'}
-                </button>
                 <button className="btn-primary" onClick={() => setIsFormOpen(true)}>
                   + Add Lead
                 </button>
               </>
             )}
+
+            <div style={{ position: 'relative' }}>
+              <button 
+                className="btn-outline" 
+                style={{ padding: '0.5rem 0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="1"></circle>
+                  <circle cx="12" cy="5" r="1"></circle>
+                  <circle cx="12" cy="19" r="1"></circle>
+                </svg>
+              </button>
+              
+              {isMenuOpen && (
+                <div 
+                  style={{ 
+                    position: 'absolute', right: 0, top: '100%', marginTop: '0.5rem', 
+                    backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', 
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', minWidth: '160px', 
+                    zIndex: 50, padding: '0.5rem'
+                  }}
+                >
+                  {leads.length > 0 && (
+                    <>
+                      <div style={{ padding: '0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>View Mode</div>
+                      <button 
+                        style={{ display: 'block', width: '100%', textAlign: 'left', padding: '0.5rem', borderRadius: '4px', backgroundColor: viewMode === 'kanban' ? '#f1f5f9' : 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.875rem' }}
+                        onClick={() => { setViewMode('kanban'); setIsMenuOpen(false); }}
+                      >
+                        Kanban Board
+                      </button>
+                      <button 
+                        style={{ display: 'block', width: '100%', textAlign: 'left', padding: '0.5rem', borderRadius: '4px', backgroundColor: viewMode === 'list' ? '#f1f5f9' : 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.875rem' }}
+                        onClick={() => { setViewMode('list'); setIsMenuOpen(false); }}
+                      >
+                        List View
+                      </button>
+                      <div style={{ height: '1px', backgroundColor: '#e2e8f0', margin: '0.5rem 0' }}></div>
+                    </>
+                  )}
+                  
+                  <div style={{ padding: '0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>Data</div>
+                  
+                  {(currentUser?.profile?.canAccessSettings || currentUser?.profile?.permissions?.Lead?.create) && (
+                    <button 
+                      style={{ display: 'block', width: '100%', textAlign: 'left', padding: '0.5rem', borderRadius: '4px', backgroundColor: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.875rem' }}
+                      onClick={() => { fileInputRef.current?.click(); setIsMenuOpen(false); }}
+                      disabled={isImporting}
+                    >
+                      {isImporting ? 'Importing...' : 'Import Leads'}
+                    </button>
+                  )}
+                  
+                  {(currentUser?.profile?.canAccessSettings || currentUser?.profile?.permissions?.Lead?.view) && (
+                    <button 
+                      style={{ display: 'block', width: '100%', textAlign: 'left', padding: '0.5rem', borderRadius: '4px', backgroundColor: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.875rem' }}
+                      onClick={() => { handleExport(); setIsMenuOpen(false); }}
+                    >
+                      Export Leads
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </header>
 
