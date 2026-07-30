@@ -103,3 +103,24 @@ export async function DELETE(request) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
+
+export async function PUT(request) {
+  try {
+    const data = await request.json();
+    const { id, isRequired } = data;
+
+    if (!id) {
+      return NextResponse.json({ error: "Field ID is required" }, { status: 400 });
+    }
+
+    const updatedField = await prisma.field.update({
+      where: { id },
+      data: { isRequired }
+    });
+
+    return NextResponse.json(updatedField);
+  } catch (error) {
+    console.error("Error updating field:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}

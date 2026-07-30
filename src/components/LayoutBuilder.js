@@ -12,6 +12,22 @@ export default function LayoutBuilder({ selectedModule }) {
   const [isAddingField, setIsAddingField] = useState(false);
   const [newField, setNewField] = useState({ name: "", label: "", type: "text", options: "", targetModule: "Account", isMultiSelect: false, isBiDirectional: false, targetDisplayField: "name", isPublic: true, relatedListLabel: "", filters: [], targetSection: "" });
   const [targetBlueprint, setTargetBlueprint] = useState(null);
+  const [activeFieldMenu, setActiveFieldMenu] = useState(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (!e.target.closest('.field-settings-menu')) {
+        setActiveFieldMenu(null);
+      }
+    };
+    if (activeFieldMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [activeFieldMenu]);
+
 
   useEffect(() => {
     if (newField.targetModule && newField.targetModule !== selectedModule) {
@@ -179,9 +195,26 @@ export default function LayoutBuilder({ selectedModule }) {
   };
 
   const handleUpdateSection = (sectionId, updates) => {
+      const oldSection = sections.find(s => s.id === sectionId);
       const newSections = sections.map(s => s.id === sectionId ? { ...s, ...updates } : s);
+      
+      let fieldsToUpdate = [];
+      let newFields = fields;
+      
+      if (updates.name && oldSection && oldSection.name !== updates.name) {
+          newFields = fields.map(f => {
+              if ((f.sectionName || 'General Information') === oldSection.name) {
+                  const updatedField = { ...f, sectionName: updates.name };
+                  fieldsToUpdate.push(updatedField);
+                  return updatedField;
+              }
+              return f;
+          });
+          setFields(newFields);
+      }
+      
       setSections(newSections);
-      saveLayoutState(newSections, null);
+      saveLayoutState(newSections, fieldsToUpdate.length > 0 ? fieldsToUpdate : null);
   };
 
   const handleDeleteSection = (sectionId) => {
@@ -254,6 +287,30 @@ export default function LayoutBuilder({ selectedModule }) {
       }
     } catch (err) {
       console.error(err);
+    }
+  };
+
+
+  const handleToggleMandatory = async (fieldId, currentStatus) => {
+    try {
+      const { tokens } = await fetchAuthSession();
+      const token = tokens.idToken.toString();
+
+      await fetch('/api/fields', {
+        method: 'PUT',
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          id: fieldId,
+          isRequired: !currentStatus
+        })
+      });
+      setActiveFieldMenu(null);
+      fetchBlueprintData();
+    } catch (e) {
+      console.error(e);
     }
   };
 
@@ -402,7 +459,27 @@ export default function LayoutBuilder({ selectedModule }) {
                                               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></svg>
                                           </div>
                                           <div style={{ flex: 1, fontWeight: 500, color: '#334155', fontSize: '0.9rem' }}>
-                                              {field.label}
+                                              {field.label} {field.isRequired && <span style={{color: '#ef4444'}}>*</span>}
+                                          </div>
+                                          
+                                          {/* FIELD SETTINGS MENU */}
+                                          <div className="field-settings-menu" style={{ position: 'relative' }}>
+                                            <button type="button" onClick={() => setActiveFieldMenu(activeFieldMenu === field.id ? null : field.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: '0.25rem' }}>
+                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
+                                            </button>
+                                            
+                                            {activeFieldMenu === field.id && (
+                                              <div style={{ position: 'absolute', right: 0, top: '100%', zIndex: 50, backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '6px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', width: '160px', overflow: 'hidden' }}>
+                                                <button onClick={() => handleToggleMandatory(field.id, field.isRequired)} style={{ display: 'block', width: '100%', textAlign: 'left', padding: '0.75rem 1rem', background: 'none', border: 'none', borderBottom: '1px solid #f1f5f9', cursor: 'pointer', fontSize: '0.85rem', color: '#334155', fontWeight: 500 }}>
+                                                  {field.isRequired ? 'Remove Mandatory' : 'Mark as Mandatory'}
+                                                </button>
+                                                {!field.isSystemField && (
+                                                  <button onClick={() => { handleDeleteField(field.id); setActiveFieldMenu(null); }} style={{ display: 'block', width: '100%', textAlign: 'left', padding: '0.75rem 1rem', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.85rem', color: '#ef4444', fontWeight: 500 }}>
+                                                    Delete Field
+                                                  </button>
+                                                )}
+                                              </div>
+                                            )}
                                           </div>
                                         </div>
                                       )}
