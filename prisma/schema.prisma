@@ -97,6 +97,8 @@ model Blueprint {
   tasks       Task[]
   deals       Deal[]
 
+  layoutConfig Json? // Array of { id: string, name: string, columns: 1|2|3, order: number }
+
   organization Organization @relation(fields: [organizationId], references: [id])
 
   @@unique([organizationId, moduleType, version])

@@ -125,32 +125,38 @@ export default function ProductIntakeForm({ isOpen, onClose, onSave }) {
             <div className="slide-content">
               {blueprint?.fields && (() => {
                 const visibleFields = blueprint.fields.filter(f => !f.isHidden && !standardFieldStates?.[f.name]?.isHidden);
-                const uniqueSections = [...new Set(visibleFields.map(f => f.sectionName || 'General Information'))];
                 
-                return uniqueSections.map(sectionName => {
-                  const sectionFields = visibleFields.filter(f => (f.sectionName || 'General Information') === sectionName)
+                let orderedSections = [];
+                if (blueprint?.layoutConfig && Array.isArray(blueprint.layoutConfig) && blueprint.layoutConfig.length > 0) {
+                    orderedSections = [...blueprint.layoutConfig].sort((a,b) => a.order - b.order);
+                } else {
+                    const uniqueNames = [...new Set(visibleFields.map(f => f.sectionName || 'General Information'))];
+                    orderedSections = uniqueNames.map(name => ({ name, columns: 2 }));
+                }
+                
+                return orderedSections.map(section => {
+                  const sectionFields = visibleFields.filter(f => (f.sectionName || 'General Information') === section.name)
                     .sort((a,b) => (a.sectionOrder || 0) - (b.sectionOrder || 0));
                     
                   if (sectionFields.length === 0) return null;
                   
                   return (
-                    <div className="data-section" key={sectionName}>
-                      <h3 className="section-heading">{sectionName}</h3>
-                      <div className="data-grid-2col form-group-grid">
+                    <div className="data-section" key={section.name || section.id}>
+                      <h3 className="section-heading">{section.name}</h3>
+                      <div className="form-group-grid" style={{ display: 'grid', gridTemplateColumns: `repeat(${section.columns || 2}, 1fr)`, gap: '1.5rem' }}>
                         {sectionFields.map(field => {
                           const stateOverride = standardFieldStates?.[field.name];
                           const modifiedField = {
                             ...field,
                             isRequired: stateOverride?.isRequired !== undefined ? stateOverride.isRequired : field.isRequired
                           };
-                          
                           return (
                             <DynamicField
-                              formData={{ ...standardData, ...customData }}
-                              key={field.id}
-                              field={modifiedField}
-                              value={field.isSystemField ? standardData[field.name] : customData[field.name]}
-                              onChange={(name, value, record, mappings) => handleFieldChange(field, name, value, record, mappings)}
+                            formData={{ ...standardData, ...customData }}
+                            key={field.id}
+                            field={modifiedField}
+                            value={field.isSystemField ? standardData[field.name] : customData[field.name]}
+                            onChange={(name, value, record, mappings) => handleFieldChange(field, name, value, record, mappings)}
                             />
                           );
                         })}
