@@ -149,8 +149,7 @@ export default function AccountPage() {
   );
 
   return (
-    <div className="dashboard-layout">
-      <Sidebar />
+    <>
 
       <main className="dashboard-main">
         <header className="dashboard-header">
@@ -187,6 +186,6 @@ export default function AccountPage() {
         lead={selectedAccount}
         onClose={() => setSelectedAccount(null)}
       />
-    </div>
+    </>
   );
 }

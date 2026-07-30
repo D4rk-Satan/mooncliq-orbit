@@ -9,12 +9,17 @@ export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
   React.useEffect(() => {
     const saved = localStorage.getItem('mooncliq_sidebar_collapsed');
     if (saved !== null) {
       setIsCollapsed(saved === 'true');
     }
+    const timer = setTimeout(() => {
+      setIsMounted(true);
+    }, 50);
+    return () => clearTimeout(timer);
   }, []);
 
   const toggleSidebar = () => {
@@ -43,7 +48,7 @@ export default function Sidebar() {
   ];
 
   return (
-    <aside className={`dashboard-sidebar ${isCollapsed ? 'collapsed' : ''}`} style={{ width: isCollapsed ? '72px' : '260px', transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)', overflow: 'hidden', flexShrink: 0 }}>
+    <aside className={`dashboard-sidebar ${isCollapsed ? 'collapsed' : ''}`} style={{ width: isCollapsed ? '72px' : '260px', transition: isMounted ? 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)' : 'none', overflow: 'hidden', flexShrink: 0 }}>
       <div className="sidebar-logo" style={{ display: 'flex', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'space-between', padding: isCollapsed ? '1.5rem 0' : '1.5rem' }}>
         {!isCollapsed && <span>moonCliq</span>}
         {isCollapsed && <span style={{ fontSize: '1.2rem' }}>mC</span>}

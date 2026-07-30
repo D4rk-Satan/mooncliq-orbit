@@ -10,13 +10,16 @@ export const metadata = {
 };
 
 import AmplifyProvider from "../components/AmplifyProvider";
+import DashboardLayoutWrapper from "../components/DashboardLayoutWrapper";
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className={`${inter.variable} ${outfit.variable}`}>
         <AmplifyProvider>
-          {children}
+          <DashboardLayoutWrapper>
+            {children}
+          </DashboardLayoutWrapper>
         </AmplifyProvider>
       </body>
     </html>

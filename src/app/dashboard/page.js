@@ -150,8 +150,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="dashboard-layout">
-      <Sidebar />
+    <>
 
       {/* Main Content */}
       <main className="dashboard-main">
@@ -172,6 +171,6 @@ export default function Dashboard() {
         onClose={closePanel}
         data={selectedRecord}
       />
-    </div>
+    </>
   );
 }

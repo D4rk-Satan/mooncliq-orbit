@@ -145,8 +145,7 @@ export default function ProductsPage() {
   );
 
   return (
-    <div className="dashboard-layout">
-      <Sidebar />
+    <>
 
       <main className="dashboard-main">
         <header className="dashboard-header">
@@ -183,6 +182,6 @@ export default function ProductsPage() {
         lead={selectedProduct}
         onClose={() => setSelectedProduct(null)}
       />
-    </div>
+    </>
   );
 }

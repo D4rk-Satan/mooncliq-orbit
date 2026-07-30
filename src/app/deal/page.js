@@ -432,8 +432,7 @@ export default function DealModule() {
   );
 
   return (
-    <div className="dashboard-layout">
-      <Sidebar />
+    <>
 
       <main className="dashboard-main">
         <header className="dashboard-header">
@@ -623,6 +622,6 @@ export default function DealModule() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

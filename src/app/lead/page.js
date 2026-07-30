@@ -27,8 +27,23 @@ export default function LeadModule() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   
   const fileInputRef = useRef(null);
+  const menuRef = useRef(null);
 
   const router = useRouter();
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setIsMenuOpen(false);
+      }
+    }
+    if (isMenuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isMenuOpen]);
 
   useEffect(() => {
     checkAuth();
@@ -504,8 +519,7 @@ export default function LeadModule() {
   );
 
   return (
-    <div className="dashboard-layout">
-      <Sidebar />
+    <>
 
       <main className="dashboard-main">
         <header className="dashboard-header">
@@ -526,7 +540,7 @@ export default function LeadModule() {
               </>
             )}
 
-            <div style={{ position: 'relative' }}>
+            <div style={{ position: 'relative' }} ref={menuRef}>
               <button 
                 className="btn-outline" 
                 style={{ padding: '0.5rem 0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
@@ -753,6 +767,6 @@ export default function LeadModule() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

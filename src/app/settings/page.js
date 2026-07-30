@@ -574,8 +574,7 @@ export default function SettingsPage() {
   );
 
   return (
-    <div className="dashboard-layout">
-      <Sidebar />
+    <>
       <main className="dashboard-main" style={{ overflowY: 'auto' }}>
         <header className="dashboard-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
@@ -2168,6 +2167,6 @@ export default function SettingsPage() {
         </div>
       )}
 
-    </div>
+    </>
   );
 }
