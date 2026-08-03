@@ -5,7 +5,8 @@ import Sidebar from './Sidebar';
 
 export default function DashboardLayoutWrapper({ children }) {
   const pathname = usePathname();
-  const isAuthPage = pathname === '/sign-in' || pathname === '/';
+  const authRoutes = ['/', '/sign-in', '/sign-up', '/forgot-password'];
+  const isAuthPage = authRoutes.includes(pathname);
 
   if (isAuthPage) {
     return <>{children}</>;

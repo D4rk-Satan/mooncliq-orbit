@@ -6,6 +6,7 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import WorkflowBuilder from '../../components/WorkflowBuilder';
 import LayoutBuilder from '../../components/LayoutBuilder';
 import ClientScriptBuilder from '../../components/ClientScriptBuilder';
+import WalletDashboard from '../../components/WalletDashboard';
 
 
 const DEFAULT_MODULE_FIELDS = {
@@ -649,6 +650,21 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
+                {/* Billing & Wallet Card */}
+                <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '1.5rem', boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.05)', border: '1px solid #e2e8f0' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                    <div style={{ background: '#f3f4f6', padding: '0.5rem', borderRadius: '8px', color: '#475569' }}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+                    </div>
+                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: '#0f172a' }}>Billing & Add-ons</h3>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <button onClick={() => setCurrentView('billing')} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
+                      Wallet & API Usage
+                    </button>
+                  </div>
+                </div>
+
               </div>
             </div>
           ) : (
@@ -670,8 +686,9 @@ export default function SettingsPage() {
                     {currentView === 'users' && "Users & Invitations"}
                     {currentView === 'workflows' && "Custom Workflows & Scripts"}
                     {currentView === 'layout-builder' && "Form Layout Builder"}
+                    {currentView === 'billing' && "Billing & Wallet"}
                   </h2>
-                  {currentView !== 'users' && currentView !== 'profiles' && renderModuleSelector()}
+                  {currentView !== 'users' && currentView !== 'profiles' && currentView !== 'billing' && renderModuleSelector()}
                 </div>
               </div>
 
@@ -1327,6 +1344,12 @@ export default function SettingsPage() {
                     </div>
                   </div>
                 )}
+
+                {/* BILLING TAB */}
+                {currentView === 'billing' && (
+                  <WalletDashboard />
+                )}
+
               </div>
             </div>
           )}
