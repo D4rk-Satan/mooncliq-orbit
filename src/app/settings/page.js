@@ -599,23 +599,6 @@ export default function SettingsPage() {
                     <div style={{ background: '#f3f4f6', padding: '0.5rem', borderRadius: '8px', color: '#475569' }}>
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72Z" /><path d="m14 7 3 3" /><path d="M5 6v4" /><path d="M19 14v4" /><path d="M10 2v2" /><path d="M7 8H3" /><path d="M21 16h-4" /><path d="M11 3H9" /></svg>
                     </div>
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#1e293b', margin: 0 }}>Customization</h3>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                    <button onClick={() => setCurrentView('layout')} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', background: '#f8fafc', color: '#334155', fontWeight: 500, cursor: 'pointer', textAlign: 'left', transition: 'background 0.2s' }}>
-                      Layout Builder <span style={{ color: '#94a3b8' }}>&rarr;</span>
-                    </button>
-                    <button onClick={() => setCurrentView('workflow')} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', background: '#f8fafc', color: '#334155', fontWeight: 500, cursor: 'pointer', textAlign: 'left', transition: 'background 0.2s' }}>
-                      Workflow Rules <span style={{ color: '#94a3b8' }}>&rarr;</span>
-                    </button>
-                    <button onClick={() => setCurrentView('clientScript')} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', background: '#f8fafc', color: '#334155', fontWeight: 500, cursor: 'pointer', textAlign: 'left', transition: 'background 0.2s' }}>
-                      Client Scripts <span style={{ color: '#94a3b8' }}>&rarr;</span>
-                    </button>
-                    <button onClick={() => window.location.href='/settings/whatsapp'} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', background: '#e0e7ff', color: '#4f46e5', fontWeight: 600, cursor: 'pointer', textAlign: 'left', transition: 'background 0.2s' }}>
-                      WhatsApp API Setup <span style={{ color: '#4f46e5' }}>&rarr;</span>
-                    </button>
-                  </div>
-                </div>
                     <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: '#0f172a' }}>{selectedModule} Customization</h3>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
@@ -627,6 +610,9 @@ export default function SettingsPage() {
                     </button>
                     <button onClick={() => setCurrentView('blueprint')} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
                       Workflow Engine
+                    </button>
+                    <button onClick={() => window.location.href='/settings/whatsapp'} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', background: '#e0e7ff', color: '#4f46e5', fontWeight: 600, cursor: 'pointer', textAlign: 'left', transition: 'background 0.2s', marginTop: '1rem' }}>
+                      WhatsApp API Setup <span style={{ color: '#4f46e5' }}>&rarr;</span>
                     </button>
                   </div>
                 </div>
