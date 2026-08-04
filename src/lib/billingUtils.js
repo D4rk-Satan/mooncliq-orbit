@@ -36,3 +36,28 @@ export async function deductBalance(organizationId, amount, description) {
     return false;
   }
 }
+
+export async function addFundsToWallet(organizationId, amount, description, referenceId = null) {
+  try {
+    // Add funds and create transaction atomically
+    await prisma.$transaction([
+      prisma.organization.update({
+        where: { id: organizationId },
+        data: { walletBalance: { increment: amount } }
+      }),
+      prisma.walletTransaction.create({
+        data: {
+          organizationId,
+          amount,
+          type: 'CREDIT',
+          description,
+          referenceId
+        }
+      })
+    ]);
+    return true;
+  } catch (error) {
+    console.error("Add funds error:", error);
+    return false;
+  }
+}
