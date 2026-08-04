@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 
 export default function WalletDashboard() {
   const [balance, setBalance] = useState(0);
@@ -8,22 +8,40 @@ export default function WalletDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [showRechargeModal, setShowRechargeModal] = useState(false);
   const [rechargeAmount, setRechargeAmount] = useState(1000);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [hoveredTx, setHoveredTx] = useState(null);
+
+  // Modern UI Tokens (Matching Campaigns Page)
+  const theme = {
+    bgGradient: 'linear-gradient(135deg, #f0fdfa 0%, #e0e7ff 50%, #f3e8ff 100%)',
+    glassBg: 'rgba(255, 255, 255, 0.65)',
+    glassBorder: '1px solid rgba(255, 255, 255, 0.4)',
+    glassShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.07)',
+    textPrimary: '#0f172a',
+    textSecondary: '#64748b',
+    accent: '#4f46e5',
+    accentGradient: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
+  };
 
   useEffect(() => {
     fetchWalletData();
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    document.body.appendChild(script);
   }, []);
 
   const getAuthToken = async () => {
     const { fetchAuthSession } = await import('aws-amplify/auth');
     const { tokens } = await fetchAuthSession();
-    return tokens.idToken.toString();
+    return tokens;
   };
 
   const fetchWalletData = async () => {
     setIsLoading(true);
     try {
-      const token = await getAuthToken();
-      const headers = { Authorization: `Bearer ${token}` };
+      const tokens = await getAuthToken();
+      const headers = { Authorization: `Bearer ${tokens.idToken.toString()}` };
 
       const balRes = await fetch('/api/wallet/balance', { headers });
       const balData = await balRes.json();
@@ -40,113 +58,297 @@ export default function WalletDashboard() {
   };
 
   const handleRecharge = async () => {
+    if (!window.Razorpay) {
+      alert('Razorpay SDK failed to load.');
+      return;
+    }
+
+    setIsProcessing(true);
     try {
-      const token = await getAuthToken();
+      const tokens = await getAuthToken();
+      const idToken = tokens.idToken.toString();
+      const payload = tokens.idToken.payload;
+      
+      const userEmail = payload.email || '';
+      const userName = payload.name || payload['custom:name'] || 'Mooncliq User';
+      
       const res = await fetch('/api/wallet/payment', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${idToken}`
         },
         body: JSON.stringify({ amount: rechargeAmount })
       });
-      if (res.ok) {
-        setShowRechargeModal(false);
-        fetchWalletData(); // Refresh balance and history
-      }
+      
+      const orderData = await res.json();
+      if (!res.ok) throw new Error(orderData.error);
+
+      const options = {
+        key: 'rzp_test_TLcyKjhq5um2hn',
+        amount: orderData.amount,
+        currency: orderData.currency,
+        name: 'Mooncliq Orbit',
+        description: 'Wallet Recharge',
+        order_id: orderData.orderId,
+        handler: function (response) {
+          setShowRechargeModal(false);
+          setTimeout(() => { fetchWalletData(); }, 2000);
+          alert('Payment Successful! Wallet will be updated shortly.');
+        },
+        prefill: { name: userName, email: userEmail },
+        theme: { color: theme.accent }
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.on('payment.failed', function (response){
+        alert('Payment Failed: ' + response.error.description);
+      });
+      rzp.open();
     } catch (err) {
       console.error("Recharge failed", err);
+      alert('Failed to initiate payment.');
+    } finally {
+      setIsProcessing(false);
     }
   };
 
   return (
-    <div className="wallet-dashboard p-6" style={{ maxWidth: '900px', margin: '0 auto' }}>
-      <div className="header-row flex justify-between items-center mb-8">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-800">Billing & Wallet</h2>
-          <p className="text-sm text-slate-500">Manage your prepaid wallet for WhatsApp API usage.</p>
+    <div style={{ padding: '3rem', minHeight: '100vh', background: theme.bgGradient, fontFamily: 'var(--font-inter)' }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+        
+        {/* Header Section */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3rem' }}>
+          <div>
+            <h1 style={{ fontSize: '2.5rem', fontWeight: 800, color: theme.textPrimary, margin: 0, fontFamily: 'var(--font-outfit)', letterSpacing: '-0.02em' }}>
+              Billing & Wallet
+            </h1>
+            <p style={{ color: theme.textSecondary, marginTop: '0.5rem', fontSize: '1.125rem' }}>Manage your prepaid credits for WhatsApp API.</p>
+          </div>
         </div>
+
+        {isLoading ? (
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '200px' }}>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: theme.accent }}></div>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '2rem' }}>
+            
+            {/* Left Column: Balance Card */}
+            <div style={{ gridColumn: 'span 4' }}>
+              <div style={{ 
+                background: theme.glassBg,
+                backdropFilter: 'blur(16px)',
+                border: theme.glassBorder,
+                borderRadius: '24px',
+                padding: '2.5rem',
+                boxShadow: theme.glassShadow,
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column'
+              }}>
+                <div style={{ marginBottom: '2rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                    <svg style={{ width: '20px', height: '20px', color: theme.accent }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
+                    <span style={{ color: theme.textSecondary, fontSize: '0.875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Available Balance</span>
+                  </div>
+                  <h2 style={{ fontSize: '3.5rem', fontWeight: 800, color: theme.textPrimary, margin: 0, fontFamily: 'var(--font-outfit)', letterSpacing: '-0.03em' }}>
+                    <span style={{ fontSize: '2rem', color: theme.textSecondary, marginRight: '4px' }}>₹</span>
+                    {balance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  </h2>
+                </div>
+
+                {balance < 500 && (
+                  <div style={{ padding: '1rem', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '12px', border: '1px solid rgba(239, 68, 68, 0.2)', marginBottom: '2rem' }}>
+                    <p style={{ margin: 0, color: '#b91c1c', fontSize: '0.875rem', fontWeight: 600 }}>⚠️ Low balance. Recharge soon.</p>
+                  </div>
+                )}
+
+                <div style={{ marginTop: 'auto' }}>
+                  <button 
+                    onClick={() => setShowRechargeModal(true)}
+                    style={{ 
+                      width: '100%',
+                      background: theme.accentGradient, 
+                      color: 'white', 
+                      padding: '1.25rem', 
+                      borderRadius: '16px', 
+                      fontWeight: 600, 
+                      fontSize: '1.125rem',
+                      border: 'none', 
+                      cursor: 'pointer', 
+                      boxShadow: '0 10px 25px -5px rgba(99, 102, 241, 0.4)',
+                      transition: 'all 0.3s ease'
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 15px 30px -5px rgba(99, 102, 241, 0.5)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 10px 25px -5px rgba(99, 102, 241, 0.4)'; }}
+                  >
+                    + Add Funds
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column: Transactions */}
+            <div style={{ gridColumn: 'span 8' }}>
+              <div style={{ 
+                background: theme.glassBg,
+                backdropFilter: 'blur(16px)',
+                border: theme.glassBorder,
+                borderRadius: '24px',
+                padding: '2.5rem',
+                boxShadow: theme.glassShadow,
+                height: '100%'
+              }}>
+                <h3 style={{ fontSize: '1.5rem', fontWeight: 700, color: theme.textPrimary, margin: '0 0 2rem 0', fontFamily: 'var(--font-outfit)' }}>Transaction Ledger</h3>
+                
+                {transactions.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '3rem 0', color: theme.textSecondary }}>
+                    <p>No transactions found.</p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {transactions.map((tx) => (
+                      <div 
+                        key={tx.id} 
+                        onMouseEnter={() => setHoveredTx(tx.id)}
+                        onMouseLeave={() => setHoveredTx(null)}
+                        style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'space-between',
+                          padding: '1.25rem',
+                          background: hoveredTx === tx.id ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.4)',
+                          border: theme.glassBorder,
+                          borderRadius: '16px',
+                          transition: 'all 0.2s ease',
+                          transform: hoveredTx === tx.id ? 'translateX(4px)' : 'none'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+                          <div style={{ 
+                            width: '48px', height: '48px', borderRadius: '12px', 
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            background: tx.type === 'CREDIT' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                            color: tx.type === 'CREDIT' ? '#10b981' : '#ef4444'
+                          }}>
+                            {tx.type === 'CREDIT' ? (
+                              <svg style={{ width: '24px', height: '24px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 11l5-5m0 0l5 5m-5-5v12"></path></svg>
+                            ) : (
+                              <svg style={{ width: '24px', height: '24px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 13l-5 5m0 0l-5-5m5 5V6"></path></svg>
+                            )}
+                          </div>
+                          <div>
+                            <p style={{ margin: '0 0 0.25rem 0', fontWeight: 600, color: theme.textPrimary }}>{tx.description}</p>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: theme.textSecondary, fontSize: '0.875rem' }}>
+                              <span>{new Date(tx.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' })}</span>
+                              {tx.referenceId && (
+                                <>
+                                  <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: theme.textSecondary }}></span>
+                                  <span style={{ fontFamily: 'monospace', background: 'rgba(0,0,0,0.05)', padding: '2px 6px', borderRadius: '4px', fontSize: '0.75rem' }}>{tx.referenceId}</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <div style={{ fontSize: '1.25rem', fontWeight: 700, color: tx.type === 'CREDIT' ? '#10b981' : theme.textPrimary }}>
+                          {tx.type === 'CREDIT' ? '+' : '-'}₹{tx.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
-      {isLoading ? (
-        <div className="flex justify-center p-12"><div className="spinner"></div></div>
-      ) : (
-        <>
-          <div className="balance-card bg-gradient-to-r from-blue-600 to-indigo-700 rounded-xl p-8 text-white shadow-lg mb-8 flex justify-between items-center">
-            <div>
-              <p className="text-blue-100 text-sm uppercase tracking-wider font-semibold mb-1">Available Balance</p>
-              <h1 className="text-5xl font-bold tracking-tight">₹{balance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</h1>
-              {balance < 500 && (
-                <p className="text-red-200 text-sm mt-2 font-medium">⚠️ Low balance. Please recharge soon.</p>
-              )}
-            </div>
-            <div>
-              <button 
-                onClick={() => setShowRechargeModal(true)}
-                className="bg-white text-indigo-600 px-6 py-3 rounded-lg font-semibold hover:bg-blue-50 transition-colors shadow-sm"
-              >
-                + Add Funds
-              </button>
-            </div>
-          </div>
-
-          <div className="transactions-section">
-            <h3 className="text-lg font-bold text-slate-800 mb-4 border-b pb-2">Transaction Ledger</h3>
-            {transactions.length === 0 ? (
-              <p className="text-slate-500 italic">No transactions yet.</p>
-            ) : (
-              <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
-                <table className="min-w-full divide-y divide-slate-200">
-                  <thead className="bg-slate-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Date</th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Description</th>
-                      <th className="px-6 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-slate-200">
-                    {transactions.map((tx) => (
-                      <tr key={tx.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                          {new Date(tx.createdAt).toLocaleDateString()} {new Date(tx.createdAt).toLocaleTimeString()}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-slate-700">
-                          {tx.description}
-                          {tx.referenceId && <span className="block text-xs text-slate-400">Ref: {tx.referenceId}</span>}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-right">
-                          <span className={tx.type === 'CREDIT' ? 'text-emerald-600' : 'text-red-600'}>
-                            {tx.type === 'CREDIT' ? '+' : '-'}₹{tx.amount.toFixed(2)}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </>
-      )}
-
-      {/* Recharge Modal */}
+      {/* Recharge Modal Overlay (Glassmorphic) */}
       {showRechargeModal && (
-        <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md">
-            <h3 className="text-xl font-bold text-slate-800 mb-4">Add Funds to Wallet</h3>
-            <p className="text-sm text-slate-500 mb-4">For MVP, this is a mock gateway. It will instantly add money without Razorpay.</p>
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-slate-700 mb-1">Amount (₹)</label>
-              <input 
-                type="number" 
-                value={rechargeAmount}
-                onChange={(e) => setRechargeAmount(e.target.value)}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-lg"
-              />
+        <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div 
+            style={{ position: 'absolute', inset: 0, background: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(8px)' }}
+            onClick={() => !isProcessing && setShowRechargeModal(false)}
+          ></div>
+          
+          <div style={{ 
+            position: 'relative', 
+            background: theme.glassBg, 
+            backdropFilter: 'blur(24px)',
+            border: theme.glassBorder, 
+            borderRadius: '24px', 
+            boxShadow: theme.glassShadow,
+            width: '100%', 
+            maxWidth: '450px', 
+            padding: '2.5rem'
+          }}>
+            
+            <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+              <h3 style={{ fontSize: '1.75rem', fontWeight: 800, color: theme.textPrimary, margin: 0, fontFamily: 'var(--font-outfit)' }}>Add Funds</h3>
+              <p style={{ color: theme.textSecondary, marginTop: '0.5rem', fontSize: '0.9rem' }}>Secure payment powered by Razorpay</p>
             </div>
-            <div className="flex justify-end gap-3">
-              <button onClick={() => setShowRechargeModal(false)} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors font-medium">Cancel</button>
-              <button onClick={handleRecharge} className="px-4 py-2 bg-indigo-600 text-white hover:bg-indigo-700 rounded-lg transition-colors font-medium shadow-sm">Proceed to Pay</button>
+
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: theme.textSecondary, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Amount (INR)</label>
+              <div style={{ position: 'relative' }}>
+                <span style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: theme.textSecondary, fontSize: '1.25rem', fontWeight: 600 }}>₹</span>
+                <input 
+                  type="number" 
+                  value={rechargeAmount}
+                  onChange={(e) => setRechargeAmount(e.target.value)}
+                  style={{ 
+                    width: '100%', padding: '1rem 1rem 1rem 2.5rem', 
+                    background: 'rgba(255,255,255,0.8)', 
+                    border: '2px solid rgba(99, 102, 241, 0.2)', 
+                    borderRadius: '16px', 
+                    fontSize: '1.5rem', fontWeight: 700, color: theme.textPrimary,
+                    outline: 'none', transition: 'all 0.2s'
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = theme.accent}
+                  onBlur={(e) => e.target.style.borderColor = 'rgba(99, 102, 241, 0.2)'}
+                  min="100"
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '2rem' }}>
+              {[1000, 5000, 10000].map(amt => (
+                <button 
+                  key={amt} 
+                  onClick={() => setRechargeAmount(amt)}
+                  style={{ 
+                    flex: 1, padding: '0.75rem 0', borderRadius: '12px', fontSize: '0.875rem', fontWeight: 600,
+                    background: rechargeAmount == amt ? theme.accent : 'rgba(255,255,255,0.5)',
+                    color: rechargeAmount == amt ? 'white' : theme.textSecondary,
+                    border: rechargeAmount == amt ? 'none' : theme.glassBorder,
+                    cursor: 'pointer', transition: 'all 0.2s'
+                  }}
+                >
+                  ₹{amt.toLocaleString()}
+                </button>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', gap: '1rem' }}>
+              <button 
+                onClick={() => setShowRechargeModal(false)} 
+                disabled={isProcessing}
+                style={{ flex: 1, padding: '1rem', background: 'transparent', border: theme.glassBorder, borderRadius: '16px', fontWeight: 600, color: theme.textSecondary, cursor: isProcessing ? 'not-allowed' : 'pointer' }}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleRecharge} 
+                disabled={isProcessing} 
+                style={{ 
+                  flex: 1, padding: '1rem', background: theme.textPrimary, border: 'none', borderRadius: '16px', 
+                  fontWeight: 600, color: 'white', cursor: isProcessing ? 'not-allowed' : 'pointer',
+                  opacity: isProcessing ? 0.7 : 1, boxShadow: '0 4px 12px rgba(15, 23, 42, 0.2)'
+                }}
+              >
+                {isProcessing ? 'Processing...' : 'Proceed to Pay'}
+              </button>
             </div>
           </div>
         </div>

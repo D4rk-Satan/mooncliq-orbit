@@ -2,6 +2,7 @@
 import React from 'react';
 import { usePathname } from 'next/navigation';
 import Sidebar from './Sidebar';
+import TopNavbar from './TopNavbar';
 
 export default function DashboardLayoutWrapper({ children }) {
   const pathname = usePathname();
@@ -13,9 +14,14 @@ export default function DashboardLayoutWrapper({ children }) {
   }
 
   return (
-    <div className="dashboard-layout">
+    <div className="dashboard-layout" style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
       <Sidebar />
-      {children}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <TopNavbar />
+        <main style={{ flex: 1, overflowY: 'auto' }}>
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

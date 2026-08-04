@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/auth';
-import prisma from '@/lib/prisma';
+import Razorpay from 'razorpay';
 
 export async function POST(request) {
   try {
@@ -16,26 +16,35 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Invalid recharge amount' }, { status: 400 });
     }
 
-    // MOCK IMPLEMENTATION: Directly credit the wallet instead of calling Razorpay
-    await prisma.$transaction([
-      prisma.organization.update({
-        where: { id: session.organizationId },
-        data: { walletBalance: { increment: rechargeAmount } }
-      }),
-      prisma.walletTransaction.create({
-        data: {
-          organizationId: session.organizationId,
-          amount: rechargeAmount,
-          type: 'CREDIT',
-          description: 'Wallet Recharge (Mock)',
-          referenceId: 'MOCK_REF_' + Date.now(),
-        }
-      })
-    ]);
+    // Initialize Razorpay
+    const razorpay = new Razorpay({
+      key_id: process.env.RAZORPAY_KEY_ID,
+      key_secret: process.env.RAZORPAY_SECRET,
+    });
 
-    return NextResponse.json({ success: true, message: `Successfully added ₹${rechargeAmount} to wallet` });
+    // Create an order
+    // amount in paise (rechargeAmount * 100)
+    // receipt max length is 40 chars
+    const shortOrgId = session.organizationId.substring(0, 8);
+    const options = {
+      amount: Math.round(rechargeAmount * 100), 
+      currency: 'INR',
+      receipt: `rcpt_${shortOrgId}_${Date.now()}`,
+      notes: {
+        organizationId: session.organizationId,
+      }
+    };
+
+    const order = await razorpay.orders.create(options);
+
+    return NextResponse.json({ 
+      success: true, 
+      orderId: order.id,
+      amount: order.amount,
+      currency: order.currency
+    });
   } catch (error) {
-    console.error('Wallet payment/recharge error:', error);
-    return NextResponse.json({ error: 'Failed to process recharge' }, { status: 500 });
+    console.error('Razorpay order creation error:', error);
+    return NextResponse.json({ error: 'Failed to create payment order' }, { status: 500 });
   }
 }
