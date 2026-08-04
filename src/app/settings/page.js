@@ -611,8 +611,8 @@ export default function SettingsPage() {
                     <button onClick={() => setCurrentView('blueprint')} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
                       Workflow Engine
                     </button>
-                    <button onClick={() => window.location.href='/settings/whatsapp'} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', background: '#e0e7ff', color: '#4f46e5', fontWeight: 600, cursor: 'pointer', textAlign: 'left', transition: 'background 0.2s', marginTop: '1rem' }}>
-                      WhatsApp API Setup <span style={{ color: '#4f46e5' }}>&rarr;</span>
+                    <button onClick={() => setCurrentView('clientScript')} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', background: '#f8fafc', color: '#334155', fontWeight: 500, cursor: 'pointer', textAlign: 'left', transition: 'background 0.2s' }}>
+                      Client Scripts <span style={{ color: '#94a3b8' }}>&rarr;</span>
                     </button>
                   </div>
                 </div>
@@ -664,6 +664,9 @@ export default function SettingsPage() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                     <button onClick={() => setCurrentView('billing')} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
                       Wallet & API Usage
+                    </button>
+                    <button onClick={() => window.location.href='/settings/whatsapp'} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
+                      WhatsApp API Setup
                     </button>
                   </div>
                 </div>
