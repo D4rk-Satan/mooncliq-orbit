@@ -30,6 +30,11 @@ model Organization {
   walletTransactions WalletTransaction[]
 
   walletBalance Float @default(0)
+
+  // Meta WhatsApp API Credentials
+  whatsappAccessToken   String?
+  whatsappPhoneNumberId String?
+  whatsappWabaId        String?
 }
 
 // ------------------------------------------------------------------
