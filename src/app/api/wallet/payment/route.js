@@ -18,8 +18,8 @@ export async function POST(request) {
 
     // Initialize Razorpay
     const razorpay = new Razorpay({
-      key_id: process.env.RAZORPAY_KEY_ID,
-      key_secret: process.env.RAZORPAY_SECRET,
+      key_id: 'rzp_test_TLcyKjhq5um2hn',
+      key_secret: 'S4BT9d3D554vrSMYmEzOhgU4',
     });
 
     // Create an order
