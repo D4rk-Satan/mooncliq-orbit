@@ -82,7 +82,7 @@ export default function WalletDashboard() {
       });
       
       const orderData = await res.json();
-      if (!res.ok) throw new Error(orderData.error);
+      if (!res.ok) throw new Error(orderData.details || orderData.error || 'Unknown error');
 
       const options = {
         key: 'rzp_test_TLcyKjhq5um2hn',
@@ -102,13 +102,12 @@ export default function WalletDashboard() {
 
       const rzp = new window.Razorpay(options);
       rzp.on('payment.failed', function (response){
-        alert('Payment Failed: ' + response.error.description);
+        alert(response.error.description);
       });
       rzp.open();
-    } catch (err) {
-      console.error("Recharge failed", err);
-      alert('Failed to initiate payment.');
-    } finally {
+    } catch (error) {
+      console.error(error);
+      alert(`Failed to initiate payment: ${error.message}`);
       setIsProcessing(false);
     }
   };
