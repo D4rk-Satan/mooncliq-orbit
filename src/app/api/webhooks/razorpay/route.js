@@ -6,7 +6,7 @@ export async function POST(request) {
   try {
     const body = await request.text();
     const signature = request.headers.get('x-razorpay-signature');
-    const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
+    const secret = 'my_mooncliq_secret_123';
 
     if (!signature || !secret) {
       return NextResponse.json({ error: 'Missing signature or secret' }, { status: 400 });
