@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/auth';
 import prisma from '@/lib/prisma';
-import { deductFundsFromWallet } from '@/lib/billingUtils';
+import { deductBalance } from '@/lib/billingUtils';
 import { pushToSQS } from '@/lib/sqsUtils';
 
 export async function POST(request) {
@@ -42,10 +42,9 @@ export async function POST(request) {
     const estimatedCost = totalLeads * 1.0;
 
     // 3. Deduct Wallet Balance Upfront
-    try {
-      await deductFundsFromWallet(session.organizationId, estimatedCost, `Campaign: ${name}`);
-    } catch (err) {
-      return NextResponse.json({ error: err.message }, { status: 402 }); // Payment Required
+    const deductionSuccess = await deductBalance(session.organizationId, estimatedCost, `Campaign: ${name}`);
+    if (!deductionSuccess) {
+      return NextResponse.json({ error: 'Insufficient wallet balance.' }, { status: 402 }); // Payment Required
     }
 
     // 4. Create Campaign Record
