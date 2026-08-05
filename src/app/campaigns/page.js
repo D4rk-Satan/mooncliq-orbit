@@ -230,6 +230,9 @@ export default function CampaignsPage() {
                   <select value={targetModule} onChange={e => setTargetModule(e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #e2e8f0', outline: 'none' }}>
                     <option value="Lead">Leads</option>
                     <option value="Account">Accounts</option>
+                    <option value="Deal">Deals</option>
+                    <option value="Product">Products</option>
+                    <option value="Task">Tasks</option>
                   </select>
                 </div>
               </div>
@@ -244,14 +247,14 @@ export default function CampaignsPage() {
                 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   {customFilters.map((filter, index) => (
-                    <div key={filter.id} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div key={filter.id} style={{ display: 'grid', gridTemplateColumns: '70px 1fr 1fr 1.5fr 30px', gap: '0.5rem', alignItems: 'center' }}>
                       {index === 0 ? (
-                         <span style={{ fontSize: '0.75rem', fontWeight: 600, color: theme.textSecondary, width: '50px' }}>WHERE</span>
+                         <div style={{ fontSize: '0.75rem', fontWeight: 700, color: theme.textSecondary, textAlign: 'center' }}>WHERE</div>
                       ) : (
                         <select 
                           value={filter.logic}
                           onChange={(e) => updateFilter(filter.id, 'logic', e.target.value)}
-                          style={{ width: '60px', padding: '0.5rem', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '0.75rem', fontWeight: 'bold' }}
+                          style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '0.75rem', fontWeight: 'bold' }}
                         >
                           <option value="AND">AND</option>
                           <option value="OR">OR</option>
@@ -261,7 +264,7 @@ export default function CampaignsPage() {
                       <select 
                         value={filter.field} 
                         onChange={(e) => updateFilter(filter.id, 'field', e.target.value)}
-                        style={{ flex: 1, minWidth: '100px', padding: '0.6rem', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '0.85rem' }}
+                        style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '0.85rem' }}
                       >
                         <option value="tag">Tag</option>
                         <option value="stageId">Stage ID</option>
@@ -272,7 +275,7 @@ export default function CampaignsPage() {
                       <select 
                         value={filter.operator} 
                         onChange={(e) => updateFilter(filter.id, 'operator', e.target.value)}
-                        style={{ flex: 1, minWidth: '100px', padding: '0.6rem', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '0.85rem' }}
+                        style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '0.85rem' }}
                       >
                         <option value="equals">Equals</option>
                         <option value="contains">Contains</option>
@@ -283,7 +286,7 @@ export default function CampaignsPage() {
                         value={filter.value} 
                         onChange={(e) => updateFilter(filter.id, 'value', e.target.value)}
                         placeholder="Value..." 
-                        style={{ flex: 1.5, minWidth: '100px', padding: '0.6rem', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '0.85rem' }} 
+                        style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '0.85rem' }} 
                       />
                       
                       <button type="button" onClick={() => removeFilter(filter.id)} style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
