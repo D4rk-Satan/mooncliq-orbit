@@ -11,16 +11,39 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { name, targetStageId, templateBody } = await request.json();
+    const { name, customFilters, templateBody } = await request.json();
 
     if (!name || !templateBody) {
       return NextResponse.json({ error: 'Missing campaign details' }, { status: 400 });
     }
 
-    // 1. Fetch Target Leads
-    const filter = { organizationId: session.organizationId };
-    if (targetStageId) {
-      filter.stageId = targetStageId;
+    // 1. Fetch Target Leads based on customFilters
+    const filter = { organizationId: session.organizationId, AND: [] };
+    
+    // Parse custom filters: [{ field, operator, value }]
+    if (customFilters && Array.isArray(customFilters)) {
+      customFilters.forEach(f => {
+        if (!f.field || !f.value) return;
+        
+        if (f.field === 'tag') {
+          // Prisma relation filter for tags
+          filter.AND.push({ tags: { some: { name: { equals: f.value, mode: 'insensitive' } } } });
+        } else {
+          // Standard lead fields (firstName, stageId, etc.)
+          if (f.operator === 'contains') {
+             filter.AND.push({ [f.field]: { contains: f.value, mode: 'insensitive' } });
+          } else if (f.operator === 'equals') {
+             filter.AND.push({ [f.field]: f.value });
+          } else if (f.operator === 'not_equals') {
+             filter.AND.push({ [f.field]: { not: f.value } });
+          }
+        }
+      });
+    }
+    
+    // Cleanup empty AND array so Prisma doesn't complain
+    if (filter.AND.length === 0) {
+      delete filter.AND;
     }
     
     // In reality you might filter by tags or other criteria. 
@@ -53,7 +76,7 @@ export async function POST(request) {
         organizationId: session.organizationId,
         name,
         templateBody,
-        targetStageId,
+        targetStageId: 'custom-query',
         estimatedCost,
         totalLeads,
         status: 'PROCESSING'
