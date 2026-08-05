@@ -85,7 +85,7 @@ export default function CampaignsPage() {
   };
 
   return (
-    <div style={{ padding: '3rem', minHeight: '100vh', background: theme.bgGradient, fontFamily: 'var(--font-inter)' }}>
+    <div style={{ padding: '3rem', minHeight: '100%', background: theme.bgGradient, fontFamily: 'var(--font-inter)' }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
         
         {/* Header Section */}
