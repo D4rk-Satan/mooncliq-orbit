@@ -128,6 +128,7 @@ export default function CampaignsPage() {
             + Create Broadcast
           </button>
         </div>
+        </div>
 
         {/* Analytics Glass Cards (Dummy logic for now) */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '2rem', marginBottom: '4rem' }}>
