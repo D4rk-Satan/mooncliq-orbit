@@ -7,6 +7,7 @@ export default function CampaignsPage() {
   const [campaigns, setCampaigns] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [walletBalance, setWalletBalance] = useState(0);
   
   // Form State
   const [name, setName] = useState('');
@@ -39,15 +40,22 @@ export default function CampaignsPage() {
       
       const idToken = tokens.idToken.toString();
 
-      const res = await fetch('/api/campaigns', {
-        headers: { 'Authorization': `Bearer ${idToken}` }
-      });
+      const headers = { 'Authorization': `Bearer ${idToken}` };
+
+      const res = await fetch('/api/campaigns', { headers });
       if (res.ok) {
         const data = await res.json();
         setCampaigns(data);
       }
+      
+      const balRes = await fetch('/api/wallet/balance', { headers });
+      if (balRes.ok) {
+        const balData = await balRes.json();
+        setWalletBalance(balData.balance || 0);
+      }
+      
     } catch (err) {
-      console.error(err);
+      console.error("Failed to fetch data:", err);
     } finally {
       setIsLoading(false);
     }
@@ -103,26 +111,20 @@ export default function CampaignsPage() {
         
         {/* Header Section */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3rem' }}>
-          <div>
-            <h1 style={{ fontSize: '2.5rem', fontWeight: 800, color: theme.textPrimary, margin: 0, fontFamily: 'var(--font-outfit)', letterSpacing: '-0.02em' }}>
-              Campaigns
-            </h1>
-            <p style={{ color: theme.textSecondary, marginTop: '0.5rem', fontSize: '1.125rem' }}>Automate and scale your WhatsApp outreach.</p>
+          <div style={{ flex: 1 }}>
+          <h1 style={{ fontSize: '2.5rem', fontWeight: 800, margin: '0 0 0.5rem 0', fontFamily: 'var(--font-outfit)', background: 'linear-gradient(90deg, #1e293b, #475569)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+            Campaigns
+          </h1>
+          <p style={{ color: theme.textSecondary, margin: 0, fontSize: '1.1rem' }}>
+            Automate and scale your WhatsApp outreach.
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          <div style={{ background: 'white', padding: '0.75rem 1.25rem', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '0.75rem', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
+            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: theme.textSecondary }}>Wallet Balance:</span>
+            <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#10b981' }}>₹{walletBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
           </div>
-          <button style={{ 
-            background: theme.accentGradient, 
-            color: 'white', 
-            padding: '1rem 2rem', 
-            borderRadius: '9999px', 
-            fontWeight: 600, 
-            fontSize: '1rem',
-            border: 'none', 
-            cursor: 'pointer', 
-            boxShadow: '0 10px 25px -5px rgba(99, 102, 241, 0.4)',
-            transition: 'all 0.3s ease',
-          }}
-          onClick={() => setShowCreateModal(true)}
-          >
+          <button onClick={() => setShowCreateModal(true)} style={{ background: theme.accentGradient, color: 'white', border: 'none', padding: '0.8rem 1.5rem', borderRadius: '12px', fontSize: '0.95rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 15px rgba(79, 70, 229, 0.3)' }}>
             + Create Broadcast
           </button>
         </div>
