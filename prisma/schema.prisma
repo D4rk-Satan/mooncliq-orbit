@@ -28,6 +28,8 @@ model Organization {
   invitations Invitation[]
   clientScripts ClientScript[]
   walletTransactions WalletTransaction[]
+  campaigns   Campaign[]
+  chatMessages ChatMessage[]
 
   walletBalance Float @default(0)
 
@@ -380,6 +382,41 @@ model WalletTransaction {
   description    String
   referenceId    String?
   createdAt      DateTime        @default(now())
+
+  organization   Organization @relation(fields: [organizationId], references: [id])
+}
+
+// ------------------------------------------------------------------
+// PHASE 2.2b: SQS Bulk Campaign Engine
+// ------------------------------------------------------------------
+model Campaign {
+  id             String   @id @default(uuid())
+  organizationId String
+  name           String
+  status         String   @default("DRAFT") // DRAFT, PROCESSING, COMPLETED
+  estimatedCost  Float    @default(0)
+  totalLeads     Int      @default(0)
+  successCount   Int      @default(0)
+  failedCount    Int      @default(0)
+  templateBody   String
+  targetStageId  String?  // If they targeted a specific stage
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id])
+}
+
+model ChatMessage {
+  id             String   @id @default(uuid())
+  organizationId String
+  direction      String   // OUTBOUND or INBOUND
+  toPhone        String
+  fromPhone      String?
+  body           String
+  status         String   // SENT, DELIVERED, READ, FAILED
+  cost           Float    @default(0)
+  campaignId     String?  // Null if it was a 1-on-1 manual message
+  createdAt      DateTime @default(now())
 
   organization   Organization @relation(fields: [organizationId], references: [id])
 }
