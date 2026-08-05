@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/components/AuthProvider';
 
 export default function CampaignsPage() {
   const [hoveredCard, setHoveredCard] = useState(null);
@@ -15,16 +14,18 @@ export default function CampaignsPage() {
   const [targetStageId, setTargetStageId] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { idToken } = useAuth();
-
   useEffect(() => {
-    if (idToken) {
-      fetchCampaigns();
-    }
-  }, [idToken]);
+    fetchCampaigns();
+  }, []);
 
   const fetchCampaigns = async () => {
     try {
+      const { fetchAuthSession } = await import('aws-amplify/auth');
+      const { tokens } = await fetchAuthSession();
+      if (!tokens) return;
+      
+      const idToken = tokens.idToken.toString();
+
       const res = await fetch('/api/campaigns', {
         headers: { 'Authorization': `Bearer ${idToken}` }
       });
@@ -43,6 +44,11 @@ export default function CampaignsPage() {
     e.preventDefault();
     setIsSubmitting(true);
     try {
+      const { fetchAuthSession } = await import('aws-amplify/auth');
+      const { tokens } = await fetchAuthSession();
+      if (!tokens) throw new Error("Not authenticated");
+      const idToken = tokens.idToken.toString();
+
       const res = await fetch('/api/campaigns', {
         method: 'POST',
         headers: {
