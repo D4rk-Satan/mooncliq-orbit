@@ -11,11 +11,12 @@ export default function CampaignsPage() {
   // Form State
   const [name, setName] = useState('');
   const [templateBody, setTemplateBody] = useState('Hi {{name}}, ');
-  const [customFilters, setCustomFilters] = useState([{ id: Date.now(), field: 'tag', operator: 'equals', value: '' }]);
+  const [targetModule, setTargetModule] = useState('Lead'); // Added Module Selection
+  const [customFilters, setCustomFilters] = useState([{ id: Date.now(), logic: 'AND', field: 'tag', operator: 'equals', value: '' }]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const addFilter = () => {
-    setCustomFilters([...customFilters, { id: Date.now(), field: 'tag', operator: 'equals', value: '' }]);
+    setCustomFilters([...customFilters, { id: Date.now(), logic: 'AND', field: 'tag', operator: 'equals', value: '' }]);
   };
 
   const removeFilter = (id) => {
@@ -67,7 +68,7 @@ export default function CampaignsPage() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${idToken}`
         },
-        body: JSON.stringify({ name, templateBody, customFilters })
+        body: JSON.stringify({ name, templateBody, targetModule, customFilters })
       });
       
       const data = await res.json();
@@ -219,38 +220,59 @@ export default function CampaignsPage() {
           <div style={{ background: 'white', padding: '2rem', borderRadius: '24px', width: '100%', maxWidth: '500px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
             <h2 style={{ fontSize: '1.5rem', fontWeight: 700, margin: '0 0 1.5rem 0', fontFamily: 'var(--font-outfit)' }}>Launch Broadcast</h2>
             <form onSubmit={handleLaunch}>
-              <div style={{ marginBottom: '1.5rem' }}>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: theme.textSecondary, marginBottom: '0.5rem' }}>Campaign Name</label>
-                <input required value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Diwali Offer" style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #e2e8f0', outline: 'none' }} />
+              <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '1rem' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: theme.textSecondary, marginBottom: '0.5rem' }}>Campaign Name</label>
+                  <input required value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Diwali Offer" style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #e2e8f0', outline: 'none' }} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: theme.textSecondary, marginBottom: '0.5rem' }}>Target Module</label>
+                  <select value={targetModule} onChange={e => setTargetModule(e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '1px solid #e2e8f0', outline: 'none' }}>
+                    <option value="Lead">Leads</option>
+                    <option value="Account">Accounts</option>
+                  </select>
+                </div>
               </div>
               
-              <div style={{ marginBottom: '1.5rem', background: 'rgba(241, 245, 249, 0.5)', padding: '1.5rem', borderRadius: '16px' }}>
+              <div style={{ marginBottom: '1.5rem', background: 'rgba(241, 245, 249, 0.5)', padding: '1.5rem', borderRadius: '16px', overflowX: 'hidden' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                   <label style={{ fontSize: '0.875rem', fontWeight: 700, color: theme.textPrimary, margin: 0 }}>Target Audience Rules</label>
                   <button type="button" onClick={addFilter} style={{ background: 'white', border: '1px solid #e2e8f0', padding: '0.35rem 0.75rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', color: theme.textSecondary }}>+ Add Rule</button>
                 </div>
                 
-                {customFilters.length === 0 && <p style={{ fontSize: '0.85rem', color: theme.textSecondary }}>Targeting ALL leads. Add a rule to filter.</p>}
+                {customFilters.length === 0 && <p style={{ fontSize: '0.85rem', color: theme.textSecondary }}>Targeting ALL records. Add a rule to filter.</p>}
                 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   {customFilters.map((filter, index) => (
-                    <div key={filter.id} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: theme.textSecondary, width: '30px' }}>{index > 0 ? 'AND' : 'IF'}</span>
+                    <div key={filter.id} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                      {index === 0 ? (
+                         <span style={{ fontSize: '0.75rem', fontWeight: 600, color: theme.textSecondary, width: '50px' }}>WHERE</span>
+                      ) : (
+                        <select 
+                          value={filter.logic}
+                          onChange={(e) => updateFilter(filter.id, 'logic', e.target.value)}
+                          style={{ width: '60px', padding: '0.5rem', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '0.75rem', fontWeight: 'bold' }}
+                        >
+                          <option value="AND">AND</option>
+                          <option value="OR">OR</option>
+                        </select>
+                      )}
+                      
                       <select 
                         value={filter.field} 
                         onChange={(e) => updateFilter(filter.id, 'field', e.target.value)}
-                        style={{ flex: 1, padding: '0.6rem', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '0.85rem' }}
+                        style={{ flex: 1, minWidth: '100px', padding: '0.6rem', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '0.85rem' }}
                       >
                         <option value="tag">Tag</option>
                         <option value="stageId">Stage ID</option>
-                        <option value="firstName">First Name</option>
+                        <option value="firstName">Name / Company</option>
                         <option value="city">City</option>
                       </select>
                       
                       <select 
                         value={filter.operator} 
                         onChange={(e) => updateFilter(filter.id, 'operator', e.target.value)}
-                        style={{ flex: 1, padding: '0.6rem', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '0.85rem' }}
+                        style={{ flex: 1, minWidth: '100px', padding: '0.6rem', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '0.85rem' }}
                       >
                         <option value="equals">Equals</option>
                         <option value="contains">Contains</option>
@@ -261,7 +283,7 @@ export default function CampaignsPage() {
                         value={filter.value} 
                         onChange={(e) => updateFilter(filter.id, 'value', e.target.value)}
                         placeholder="Value..." 
-                        style={{ flex: 1.5, padding: '0.6rem', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '0.85rem' }} 
+                        style={{ flex: 1.5, minWidth: '100px', padding: '0.6rem', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '0.85rem' }} 
                       />
                       
                       <button type="button" onClick={() => removeFilter(filter.id)} style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

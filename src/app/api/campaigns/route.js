@@ -11,50 +11,57 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { name, customFilters, templateBody } = await request.json();
+    const { name, targetModule, customFilters, templateBody } = await request.json();
 
-    if (!name || !templateBody) {
+    if (!name || !templateBody || !targetModule) {
       return NextResponse.json({ error: 'Missing campaign details' }, { status: 400 });
     }
 
-    // 1. Fetch Target Leads based on customFilters
-    const filter = { organizationId: session.organizationId, AND: [] };
+    // 1. Fetch Target Records based on customFilters
+    const filter = { organizationId: session.organizationId, AND: [], OR: [] };
     
-    // Parse custom filters: [{ field, operator, value }]
+    // Parse custom filters: [{ logic, field, operator, value }]
     if (customFilters && Array.isArray(customFilters)) {
-      customFilters.forEach(f => {
+      customFilters.forEach((f, idx) => {
         if (!f.field || !f.value) return;
         
+        let condition = {};
         if (f.field === 'tag') {
           // Prisma relation filter for tags
-          filter.AND.push({ tags: { some: { name: { equals: f.value, mode: 'insensitive' } } } });
+          condition = { tags: { some: { name: { equals: f.value, mode: 'insensitive' } } } };
         } else {
           // Standard lead fields (firstName, stageId, etc.)
           if (f.operator === 'contains') {
-             filter.AND.push({ [f.field]: { contains: f.value, mode: 'insensitive' } });
+             condition = { [f.field]: { contains: f.value, mode: 'insensitive' } };
           } else if (f.operator === 'equals') {
-             filter.AND.push({ [f.field]: f.value });
+             condition = { [f.field]: f.value };
           } else if (f.operator === 'not_equals') {
-             filter.AND.push({ [f.field]: { not: f.value } });
+             condition = { [f.field]: { not: f.value } };
           }
+        }
+
+        if (idx === 0 || f.logic === 'AND') {
+          filter.AND.push(condition);
+        } else if (f.logic === 'OR') {
+          filter.OR.push(condition);
         }
       });
     }
     
-    // Cleanup empty AND array so Prisma doesn't complain
-    if (filter.AND.length === 0) {
-      delete filter.AND;
-    }
+    // Cleanup empty arrays so Prisma doesn't complain
+    if (filter.AND.length === 0) delete filter.AND;
+    if (filter.OR.length === 0) delete filter.OR;
     
     // In reality you might filter by tags or other criteria. 
-    // Here we just fetch leads in the targeted stage (or all leads if not provided)
-    const leads = await prisma.lead.findMany({
+    // Here we fetch leads or accounts
+    const model = targetModule === 'Account' ? prisma.account : prisma.lead;
+    const records = await model.findMany({
       where: filter,
-      select: { id: true, firstName: true, phone: true }
+      select: { id: true, [targetModule === 'Account' ? 'companyName' : 'firstName']: true, phone: true }
     });
 
-    // Filter leads with valid phone numbers
-    const validLeads = leads.filter(l => l.phone && l.phone.length > 8);
+    // Filter records with valid phone numbers
+    const validLeads = records.filter(l => l.phone && l.phone.length > 8);
     const totalLeads = validLeads.length;
 
     if (totalLeads === 0) {
