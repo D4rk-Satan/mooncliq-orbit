@@ -11,11 +11,13 @@ export const metadata = {
 
 import AmplifyProvider from "../components/AmplifyProvider";
 import DashboardLayoutWrapper from "../components/DashboardLayoutWrapper";
+import NextTopLoader from 'nextjs-toploader';
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className={`${inter.variable} ${outfit.variable}`}>
+        <NextTopLoader color="#ef4444" showSpinner={false} />
         <AmplifyProvider>
           <DashboardLayoutWrapper>
             {children}

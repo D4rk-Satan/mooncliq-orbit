@@ -6,6 +6,7 @@ import Sidebar from "../../components/Sidebar";
 import LeadIntakeForm from "../../components/LeadIntakeForm";
 import SlideOverPanel from "../../components/SlideOverPanel";
 import { useRouter } from "next/navigation";
+import TableSkeleton from "../../components/skeletons/TableSkeleton";
 
 const getColumnColor = (color) => color || "#e2e8f0";
 
@@ -610,7 +611,7 @@ export default function LeadModule() {
         <div className="module-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           {isLoading ? (
             <div className="p-8 text-center" style={{ margin: 'auto' }}>
-              <h3 className="text-xl">Loading Platform Data...</h3>
+              <TableSkeleton />
             </div>
           ) : leads.length === 0 ? (
             renderEmptyState()

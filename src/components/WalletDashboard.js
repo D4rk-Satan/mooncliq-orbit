@@ -44,12 +44,16 @@ export default function WalletDashboard() {
       const headers = { Authorization: `Bearer ${tokens.idToken.toString()}` };
 
       const balRes = await fetch('/api/wallet/balance', { headers });
-      const balData = await balRes.json();
-      setBalance(balData.balance || 0);
+      if (balRes.ok) {
+        const balData = await balRes.json();
+        setBalance(balData.balance || 0);
+      }
 
       const transRes = await fetch('/api/wallet/transactions', { headers });
-      const transData = await transRes.json();
-      setTransactions(Array.isArray(transData) ? transData : []);
+      if (transRes.ok) {
+        const transData = await transRes.json();
+        setTransactions(Array.isArray(transData) ? transData : []);
+      }
     } catch (err) {
       console.error("Failed to fetch wallet data", err);
     } finally {

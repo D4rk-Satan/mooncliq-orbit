@@ -5,6 +5,7 @@ import Sidebar from "../../components/Sidebar";
 import ProductIntakeForm from "../../components/ProductIntakeForm";
 import SlideOverPanel from "../../components/SlideOverPanel";
 import { useRouter } from "next/navigation";
+import TableSkeleton from "../../components/skeletons/TableSkeleton";
 
 export default function ProductsPage() {
   const [products, setProducts] = useState([]);
@@ -162,7 +163,7 @@ export default function ProductsPage() {
         <div className="module-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           {isLoading ? (
             <div className="p-8 text-center" style={{ margin: 'auto' }}>
-              <h3 className="text-xl">Loading Platform Data...</h3>
+              <TableSkeleton />
             </div>
           ) : products.length === 0 ? (
             renderEmptyState()

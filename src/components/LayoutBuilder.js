@@ -2,11 +2,21 @@ import React, { useState, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { fetchAuthSession } from 'aws-amplify/auth';
 
-export default function LayoutBuilder({ selectedModule }) {
+export default function LayoutBuilder({ selectedModule, onDirtyChange }) {
   const [fields, setFields] = useState([]);
   const [sections, setSections] = useState([]);
   const [blueprint, setBlueprint] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Shopify-style Unsaved Changes State
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [originalSections, setOriginalSections] = useState([]);
+  const [originalFields, setOriginalFields] = useState([]);
+  const [isSaving, setIsSaving] = useState(false);
+  
+  useEffect(() => {
+    if (onDirtyChange) onDirtyChange(hasUnsavedChanges);
+  }, [hasUnsavedChanges, onDirtyChange]);
   
   // Field Creation State
   const [isAddingField, setIsAddingField] = useState(false);
@@ -76,10 +86,13 @@ export default function LayoutBuilder({ selectedModule }) {
       if (data && data.fields) {
         setBlueprint(data);
         setFields(data.fields);
+        setOriginalFields(JSON.parse(JSON.stringify(data.fields)));
         
         // Load layout config or generate defaults
         if (data.layoutConfig && Array.isArray(data.layoutConfig) && data.layoutConfig.length > 0) {
-            setSections(data.layoutConfig.sort((a,b) => a.order - b.order));
+            const loadedSections = data.layoutConfig.sort((a,b) => a.order - b.order);
+            setSections(loadedSections);
+            setOriginalSections(JSON.parse(JSON.stringify(loadedSections)));
         } else {
             // Fallback logic for legacy data
             const uniqueSections = [...new Set(data.fields.map(f => f.sectionName || 'General Information'))];
@@ -93,7 +106,9 @@ export default function LayoutBuilder({ selectedModule }) {
                 defaultSections.push({ id: 'general', name: 'General Information', columns: 2, order: 0 });
             }
             setSections(defaultSections);
+            setOriginalSections(JSON.parse(JSON.stringify(defaultSections)));
         }
+        setHasUnsavedChanges(false);
       }
     } catch (e) {
       console.error("Failed to load blueprint", e);
@@ -102,6 +117,7 @@ export default function LayoutBuilder({ selectedModule }) {
   };
 
   const saveLayoutState = async (newSections, newFields) => {
+    newFields = newFields || fields;
     try {
         const { tokens } = await fetchAuthSession();
         const token = tokens.idToken.toString();
@@ -125,6 +141,22 @@ export default function LayoutBuilder({ selectedModule }) {
     }
   };
 
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    await saveLayoutState(sections, fields); // We send all fields now to be safe
+    setOriginalSections(JSON.parse(JSON.stringify(sections)));
+    setOriginalFields(JSON.parse(JSON.stringify(fields)));
+    setHasUnsavedChanges(false);
+    setIsSaving(false);
+  };
+
+  const handleDiscard = () => {
+    setSections(JSON.parse(JSON.stringify(originalSections)));
+    setFields(JSON.parse(JSON.stringify(originalFields)));
+    setHasUnsavedChanges(false);
+  };
+
   const handleDragEnd = (result) => {
     const { destination, source, draggableId, type } = result;
     if (!destination) return;
@@ -140,7 +172,7 @@ export default function LayoutBuilder({ selectedModule }) {
         // Update order property
         newSections.forEach((s, idx) => s.order = idx);
         setSections(newSections);
-        saveLayoutState(newSections, null);
+        setHasUnsavedChanges(true);
         return;
     }
 
@@ -177,7 +209,7 @@ export default function LayoutBuilder({ selectedModule }) {
     setFields([...newFields]);
     
     const fieldsToUpdate = source.droppableId === destination.droppableId ? sourceFields : [...sourceFields, ...destFields];
-    saveLayoutState(sections, fieldsToUpdate);
+    setHasUnsavedChanges(true);
   };
 
   const handleAddSection = () => {
@@ -191,7 +223,7 @@ export default function LayoutBuilder({ selectedModule }) {
           };
           const newSections = [...sections, newSec];
           setSections(newSections);
-          saveLayoutState(newSections, null);
+          setHasUnsavedChanges(true);
       }
   };
 
@@ -215,7 +247,7 @@ export default function LayoutBuilder({ selectedModule }) {
       }
       
       setSections(newSections);
-      saveLayoutState(newSections, fieldsToUpdate.length > 0 ? fieldsToUpdate : null);
+      setHasUnsavedChanges(true);
   };
 
   const handleDeleteSection = (sectionId) => {
@@ -240,7 +272,7 @@ export default function LayoutBuilder({ selectedModule }) {
 
       setSections(newSections);
       setFields(newFields);
-      saveLayoutState(newSections, fieldsToUpdate.length > 0 ? fieldsToUpdate : null);
+      setHasUnsavedChanges(true);
   };
 
   const handleAddField = async (e) => {
@@ -331,6 +363,51 @@ export default function LayoutBuilder({ selectedModule }) {
 
   return (
     <div style={{ display: 'flex', gap: '2rem', height: '100%', minHeight: '80vh' }}>
+
+    {hasUnsavedChanges && (
+        <div style={{
+            position: 'fixed', top: '20px', left: '50%', transform: 'translateX(-50%)',
+            backgroundColor: '#0f172a', color: 'white', padding: '12px 24px',
+            borderRadius: '50px', display: 'flex', alignItems: 'center', gap: '24px',
+            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+            zIndex: 9999, fontWeight: 500, fontSize: '0.95rem',
+            animation: 'slideDown 0.3s ease-out forwards'
+        }}>
+            <style>
+            {`
+                @keyframes slideDown {
+                    from { transform: translate(-50%, -100%); opacity: 0; }
+                    to { transform: translate(-50%, 0); opacity: 1; }
+                }
+            `}
+            </style>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#f59e0b' }}></span>
+                Unsaved changes
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <button 
+                    onClick={handleDiscard} 
+                    disabled={isSaving}
+                    style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontWeight: 500, padding: '4px 8px', transition: 'color 0.2s' }}
+                    onMouseEnter={e => e.target.style.color = 'white'}
+                    onMouseLeave={e => e.target.style.color = '#94a3b8'}
+                >
+                    Discard
+                </button>
+                <button 
+                    onClick={handleSave} 
+                    disabled={isSaving}
+                    style={{ backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '24px', padding: '6px 16px', cursor: 'pointer', fontWeight: 600, transition: 'background-color 0.2s', display: 'flex', alignItems: 'center', gap: '8px' }}
+                    onMouseEnter={e => e.target.style.backgroundColor = '#059669'}
+                    onMouseLeave={e => e.target.style.backgroundColor = '#10b981'}
+                >
+                    {isSaving ? 'Saving...' : 'Save'}
+                </button>
+            </div>
+        </div>
+    )}
+
         {/* LEFT PANE: FIELD PALETTE */}
         <div style={{ width: '320px', backgroundColor: '#f8fafc', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column' }}>
             <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.1rem', fontWeight: 600 }}>Available Fields</h3>

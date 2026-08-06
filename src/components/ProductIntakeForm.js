@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import DynamicField from "./FieldRegistry";
 import useClientScripts from "@/hooks/useClientScripts";
+import FormSkeleton from "./skeletons/FormSkeleton";
 
 export default function ProductIntakeForm({ isOpen, onClose, onSave }) {
   const [blueprint, setBlueprint] = useState(null);
@@ -109,7 +110,7 @@ export default function ProductIntakeForm({ isOpen, onClose, onSave }) {
 
         {isLoading ? (
           <div className="p-8 text-center" style={{ margin: 'auto' }}>
-            <h3 className="text-xl">Loading Architecture...</h3>
+            <FormSkeleton />
             <p className="text-muted mt-2">Fetching Blueprint from Database</p>
           </div>
         ) : (

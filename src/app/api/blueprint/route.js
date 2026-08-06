@@ -11,6 +11,31 @@ export async function GET(request) {
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    if (moduleType === 'ALL') {
+      const standardModules = ['Lead', 'Deal', 'Account', 'Product', 'Task'];
+      let blueprints = await prisma.blueprint.findMany({
+        where: { organizationId: user.organizationId },
+        orderBy: { updatedAt: 'desc' }
+      });
+      
+      const existingTypes = blueprints.map(b => b.moduleType);
+      const missingModules = standardModules.filter(m => !existingTypes.includes(m));
+      
+      if (missingModules.length > 0) {
+        for (const mod of missingModules) {
+          const newBp = await prisma.blueprint.create({
+            data: {
+              organizationId: user.organizationId,
+              moduleType: mod,
+              name: `Default ${mod} Pipeline`,
+              version: 1
+            }
+          });
+          blueprints.push(newBp);
+        }
+      }
+      return NextResponse.json(blueprints);
+    }
 
     let blueprint = await prisma.blueprint.findFirst({
       where: { 
@@ -52,6 +77,28 @@ export async function GET(request) {
     return NextResponse.json(blueprint);
   } catch (error) {
     console.error("Failed to fetch blueprint:", error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
+
+export async function PUT(request) {
+  try {
+    const user = await getAuthUser(request);
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const data = await request.json();
+    const { id, isActive } = data;
+
+    if (!id) return NextResponse.json({ error: "Blueprint ID is required" }, { status: 400 });
+
+    const updatedBlueprint = await prisma.blueprint.update({
+      where: { id, organizationId: user.organizationId },
+      data: { isActive }
+    });
+
+    return NextResponse.json(updatedBlueprint);
+  } catch (error) {
+    console.error("Failed to update blueprint:", error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

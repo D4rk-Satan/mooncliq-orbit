@@ -52,7 +52,7 @@ export default function Sidebar() {
 
   return (
     <aside className={`dashboard-sidebar ${isCollapsed ? 'collapsed' : ''}`} style={{ width: isCollapsed ? '72px' : '260px', transition: isMounted ? 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)' : 'none', overflow: 'hidden', flexShrink: 0 }}>
-      <div className="sidebar-logo" style={{ display: 'flex', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'space-between', padding: isCollapsed ? '1.5rem 0' : '1.5rem' }}>
+      <div className="sidebar-logo" style={{ display: 'flex', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'space-between', padding: isCollapsed ? '1rem 0' : '1rem 1.5rem' }}>
         {!isCollapsed && <span>moonCliq</span>}
         {isCollapsed && <span style={{ fontSize: '1.2rem' }}>mC</span>}
         <button
@@ -65,7 +65,7 @@ export default function Sidebar() {
           </svg>
         </button>
       </div>
-      <nav className="sidebar-nav" style={{ padding: '1rem 0' }}>
+      <nav className="sidebar-nav" style={{ padding: '0.5rem 0' }}>
         {navItems.map((item, idx) => (
           <Link key={idx} href={item.href} className={`nav-item ${pathname === item.href ? "active" : ""}`} style={{ display: 'flex', alignItems: 'center', gap: '1rem', textDecoration: 'none', justifyContent: isCollapsed ? 'center' : 'flex-start', padding: isCollapsed ? '0.75rem 0' : '0.75rem 1.5rem', margin: isCollapsed ? '0.25rem' : '0.25rem 1rem' }}>
             <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} title={item.name}>{item.icon}</span>
