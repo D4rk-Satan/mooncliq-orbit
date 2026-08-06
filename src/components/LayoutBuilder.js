@@ -68,8 +68,9 @@ export default function LayoutBuilder({ selectedModule }) {
       const { tokens } = await fetchAuthSession();
       const token = tokens.idToken.toString();
 
-      const res = await fetch(`/api/blueprint?moduleType=${selectedModule}`, {
-        headers: { Authorization: `Bearer ${token}` }
+      const res = await fetch(`/api/blueprint?moduleType=${selectedModule}&t=${Date.now()}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: 'no-store'
       });
       const data = await res.json();
       if (data && data.fields) {
