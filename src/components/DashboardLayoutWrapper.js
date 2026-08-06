@@ -2,8 +2,6 @@
 import React from 'react';
 import { usePathname } from 'next/navigation';
 import Sidebar from './Sidebar';
-import TopNavbar from './TopNavbar';
-
 export default function DashboardLayoutWrapper({ children }) {
   const pathname = usePathname();
   const authRoutes = ['/', '/sign-in', '/sign-up', '/forgot-password'];
@@ -17,7 +15,6 @@ export default function DashboardLayoutWrapper({ children }) {
     <div className="dashboard-layout" style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <TopNavbar />
         <main style={{ flex: 1, overflowY: 'auto' }}>
           {children}
         </main>
