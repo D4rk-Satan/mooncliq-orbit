@@ -54,6 +54,8 @@ export default function SettingsPage() {
   const [targetBlueprintFields, setTargetBlueprintFields] = useState([]);
   const [currentView, setCurrentView] = useState("hub");
   const [selectedModule, setSelectedModule] = useState("Lead");
+  const [isLayoutDirty, setIsLayoutDirty] = useState(false);
+  const [activeFeature, setActiveFeature] = useState(null);
 
   // New Field State
   const [newField, setNewField] = useState({ name: "", label: "", type: "text", options: "", targetModule: "Account", isMultiSelect: false, isBiDirectional: false, targetDisplayField: "name", isPublic: true, relatedListLabel: "", filters: [] });
@@ -603,13 +605,13 @@ export default function SettingsPage() {
                     <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: '#0f172a' }}>Customization</h3>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                    <button onClick={() => setCurrentView('layout-builder')} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
+                    <button onClick={() => { setActiveFeature('layout-builder'); setCurrentView('module-list'); }} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
                       Form Layout Builder
                     </button>
-                    <button onClick={() => setCurrentView('tags')} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
+                    <button onClick={() => { setActiveFeature('tags'); setCurrentView('module-list'); }} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
                       Manage Tags
                     </button>
-                    <button onClick={() => setCurrentView('blueprint')} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
+                    <button onClick={() => { setActiveFeature('blueprint'); setCurrentView('module-list'); }} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
                       Blueprint engine
                     </button>
                   </div>
@@ -684,6 +686,7 @@ export default function SettingsPage() {
                 <div style={{ width: '1px', height: '24px', backgroundColor: '#cbd5e1', margin: '0 1.5rem' }}></div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                   <h2 style={{ fontSize: '1.15rem', fontWeight: 600, margin: 0, color: '#0f172a' }}>
+                    {currentView === 'module-list' && "Select Module"}
                     {currentView === 'blueprint' && "Pipelines & Blueprint"}
                     {currentView === 'fields' && "Modules and Fields"}
                     {currentView === 'tags' && "Tag Definitions"}
@@ -692,11 +695,63 @@ export default function SettingsPage() {
                     {currentView === 'layout-builder' && "Form Layout Builder"}
                     {currentView === 'billing' && "Billing & Wallet"}
                   </h2>
-                  {currentView !== 'users' && currentView !== 'profiles' && currentView !== 'billing' && renderModuleSelector()}
+                  
                 </div>
               </div>
 
               <div style={{ padding: '2rem' }}>
+
+
+                {/* MODULE LIST TAB */}
+                {currentView === 'module-list' && (
+                  <div>
+                    <p style={{ color: '#475569', marginBottom: '1.5rem', fontSize: '0.95rem' }}>Select a module to customize its {activeFeature === 'tags' ? 'tags' : activeFeature === 'layout-builder' ? 'layout' : 'blueprint'}.</p>
+
+                    <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                        <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                          <tr>
+                            <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Module Name</th>
+                            <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Last Modified</th>
+                            <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Status</th>
+                            <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600, textAlign: 'right' }}>Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {['Lead', 'Deal', 'Account', 'Product', 'Task'].map((mod, idx) => (
+                            <tr key={mod} style={{ borderBottom: idx === 4 ? 'none' : '1px solid #e2e8f0', transition: 'background-color 0.2s' }} onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
+                              <td style={{ padding: '1rem', color: '#0f172a', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <div style={{ background: '#e0e7ff', color: '#4f46e5', padding: '0.35rem', borderRadius: '6px' }}>
+                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                                </div>
+                                {mod}
+                              </td>
+                              <td style={{ padding: '1rem', color: '#475569', fontSize: '0.9rem' }}>Just now</td>
+                              <td style={{ padding: '1rem' }}>
+                                <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                                  <div style={{ position: 'relative', width: '36px', height: '20px', backgroundColor: '#10b981', borderRadius: '10px' }}>
+                                    <div style={{ position: 'absolute', top: '2px', left: '18px', width: '16px', height: '16px', backgroundColor: 'white', borderRadius: '50%', transition: 'all 0.2s' }}></div>
+                                  </div>
+                                  <span style={{ marginLeft: '0.5rem', fontSize: '0.85rem', color: '#475569', fontWeight: 500 }}>Active</span>
+                                </label>
+                              </td>
+                              <td style={{ padding: '1rem', textAlign: 'right' }}>
+                                <button
+                                  onClick={() => { setSelectedModule(mod); setCurrentView(activeFeature); }}
+                                  style={{ padding: '0.4rem 1rem', backgroundColor: 'white', color: '#0f172a', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)' }}
+                                  onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'}
+                                  onMouseLeave={e => e.target.style.backgroundColor = 'white'}
+                                >
+                                  Configure
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
 
                 {/* WORKFLOWS TAB */}
                 {currentView === 'workflows' && (
