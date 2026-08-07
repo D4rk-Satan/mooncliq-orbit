@@ -8,6 +8,7 @@ import LayoutBuilder from '../../components/LayoutBuilder';
 import ClientScriptBuilder from '../../components/ClientScriptBuilder';
 import WalletDashboard from '../../components/WalletDashboard';
 import FormSkeleton from "../../components/skeletons/FormSkeleton";
+import ConfirmModal from "../../components/ConfirmModal";
 
 
 const DEFAULT_MODULE_FIELDS = {
@@ -55,6 +56,25 @@ export default function SettingsPage() {
   const [currentView, setCurrentView] = useState("hub");
   const [selectedModule, setSelectedModule] = useState("Lead");
   const [isLayoutDirty, setIsLayoutDirty] = useState(false);
+
+  const [confirmState, setConfirmState] = useState({ isOpen: false, title: '', message: '', onConfirm: () => { } });
+
+  const showConfirm = (title, message, onConfirm, isDestructive = true, confirmText = 'Delete', cancelText = 'Cancel') => {
+    setConfirmState({
+      isOpen: true,
+      title,
+      message,
+      isDestructive,
+      confirmText,
+      cancelText,
+      onConfirm: () => {
+        onConfirm();
+        setConfirmState(prev => ({ ...prev, isOpen: false }));
+      },
+      onCancel: () => setConfirmState(prev => ({ ...prev, isOpen: false }))
+    });
+  };
+
   const [activeFeature, setActiveFeature] = useState(null);
 
   // New Field State
@@ -106,6 +126,45 @@ export default function SettingsPage() {
       fetchTargetBlueprint();
     }
   }, [createRecordBuilder.isOpen, createRecordBuilder.targetModule]);
+
+  // Prevent navigation when layout is dirty
+  useEffect(() => {
+    const handleGlobalClick = (e) => {
+      if (isLayoutDirty) {
+        const targetLink = e.target.closest('a');
+        if (targetLink) {
+          e.preventDefault();
+          e.stopPropagation();
+          showConfirm(
+            "Unsaved Changes",
+            "You have unsaved changes in your layout. Are you sure you want to leave?",
+            () => {
+              setIsLayoutDirty(false);
+              window.location.href = targetLink.getAttribute('href');
+            },
+            true,
+            "Leave"
+          );
+        }
+      }
+    };
+
+    const handleBeforeUnload = (e) => {
+      if (isLayoutDirty) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    document.addEventListener('click', handleGlobalClick, { capture: true });
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      document.removeEventListener('click', handleGlobalClick, { capture: true });
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [isLayoutDirty]);
+
 
   const tagColors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#0ea5e9', '#8b5cf6', '#ec4899', '#64748b', '#84cc16'];
 
@@ -287,14 +346,15 @@ export default function SettingsPage() {
     }
   };
 
-  const handleDeleteField = async (id) => {
-    if (!confirm("Are you sure you want to delete this field?")) return;
-    try {
-      const res = await fetch(`/api/fields?id=${id}`, { method: 'DELETE' });
-      if (res.ok) fetchBlueprint();
-    } catch (err) {
-      console.error(err);
-    }
+  const handleDeleteField = (id) => {
+    showConfirm("Delete Field", "Are you sure you want to delete this field? This action cannot be undone.", async () => {
+      try {
+        const res = await fetch(`/api/fields?id=${id}`, { method: 'DELETE' });
+        if (res.ok) fetchBlueprint();
+      } catch (err) {
+        console.error(err);
+      }
+    });
   };
 
   // --- Stage Handlers ---
@@ -322,19 +382,20 @@ export default function SettingsPage() {
     }
   };
 
-  const handleDeleteStage = async (id) => {
-    if (!confirm("Are you sure you want to delete this stage?")) return;
-    try {
-      const res = await fetch(`/api/stages?id=${id}`, { method: 'DELETE' });
-      if (!res.ok) {
-        const data = await res.json();
-        alert(data.error || "Failed to delete stage.");
-      } else {
-        fetchBlueprint();
+  const handleDeleteStage = (id) => {
+    showConfirm("Delete Stage", "Are you sure you want to delete this stage? This action cannot be undone.", async () => {
+      try {
+        const res = await fetch(`/api/stages?id=${id}`, { method: 'DELETE' });
+        if (!res.ok) {
+          const data = await res.json();
+          alert(data.error || "Failed to delete stage.");
+        } else {
+          fetchBlueprint();
+        }
+      } catch (err) {
+        console.error(err);
       }
-    } catch (err) {
-      console.error(err);
-    }
+    });
   };
 
   const handleAddTag = async (e) => {
@@ -359,20 +420,21 @@ export default function SettingsPage() {
     }
   };
 
-  const handleDeleteTag = async (id) => {
-    if (!confirm("Are you sure you want to delete this tag?")) return;
-    try {
-      const token = await getAuthToken();
-      const res = await fetch(`/api/tags?id=${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        fetchTags();
+  const handleDeleteTag = (id) => {
+    showConfirm("Delete Tag", "Are you sure you want to delete this tag? It will be removed from all associated records.", async () => {
+      try {
+        const token = await getAuthToken();
+        const res = await fetch(`/api/tags?id=${id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          fetchTags();
+        }
+      } catch (err) {
+        console.error(err);
       }
-    } catch (err) {
-      console.error(err);
-    }
+    });
   };
 
   const handleSaveProfile = async () => {
@@ -402,23 +464,24 @@ export default function SettingsPage() {
     }
   };
 
-  const handleDeleteProfile = async (id) => {
-    if (!confirm("Are you sure you want to delete this profile?")) return;
-    try {
-      const token = await getAuthToken();
-      const res = await fetch(`/api/profiles?id=${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        fetchProfiles();
-      } else {
-        const data = await res.json();
-        alert(data.error || "Failed to delete profile");
+  const handleDeleteProfile = (id) => {
+    showConfirm("Delete Profile", "Are you sure you want to delete this profile?", async () => {
+      try {
+        const token = await getAuthToken();
+        const res = await fetch(`/api/profiles?id=${id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          fetchProfiles();
+        } else {
+          const data = await res.json();
+          alert(data.error || "Failed to delete profile");
+        }
+      } catch (err) {
+        console.error(err);
       }
-    } catch (err) {
-      console.error(err);
-    }
+    });
   };
 
   const handleDragEnd = async (result) => {
@@ -529,19 +592,19 @@ export default function SettingsPage() {
     }
   };
 
-  const handleDeleteRule = async () => {
+  const handleDeleteRule = () => {
     if (!selectedRule.id) return;
-    if (!confirm("Are you sure you want to remove this rule?")) return;
-
-    try {
-      const res = await fetch(`/api/transitions?id=${selectedRule.id}`, { method: 'DELETE' });
-      if (res.ok) {
-        setSelectedRule(null);
-        fetchBlueprint();
+    showConfirm("Delete Rule", "Are you sure you want to remove this rule?", async () => {
+      try {
+        const res = await fetch(`/api/transitions?id=${selectedRule.id}`, { method: 'DELETE' });
+        if (res.ok) {
+          setSelectedRule(null);
+          fetchBlueprint();
+        }
+      } catch (err) {
+        console.error(err);
       }
-    } catch (err) {
-      console.error(err);
-    }
+    });
   };
 
   const toggleArrayItem = (array, item) => {
@@ -579,15 +642,15 @@ export default function SettingsPage() {
 
   return (
     <>
-      <main className="dashboard-main" style={{ overflowY: 'auto' }}>
+
+      <main className="dashboard-main" style={{ height: '100vh', overflowY: 'hidden', display: 'flex', flexDirection: 'column' }}>
         <header className="dashboard-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <h1>Admin Settings</h1>
-            <p className="text-muted" style={{ marginTop: '0.5rem' }}>Configure your dynamic CRM Blueprints</p>
           </div>
         </header>
 
-        <div className="module-content" style={{ padding: '2rem', maxWidth: '1200px' }}>
+        <div className="module-content" style={{ padding: '1rem', maxWidth: '1200px', overflowY: 'auto', flex: 1 }}>
           {isLoading ? (
             <FormSkeleton />
           ) : !blueprint || blueprint.error ? (
@@ -612,7 +675,7 @@ export default function SettingsPage() {
                       Manage Tags
                     </button>
                     <button onClick={() => { setActiveFeature('blueprint'); setCurrentView('module-list'); }} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
-                      Blueprint engine
+                      Blueprint Engine
                     </button>
                   </div>
                 </div>
@@ -678,15 +741,50 @@ export default function SettingsPage() {
 
               <div style={{ display: 'flex', alignItems: 'center', padding: '1rem 2rem', borderBottom: '1px solid #e2e8f0', backgroundColor: '#f8fafc' }}>
                 <button
-                  onClick={() => setCurrentView('hub')}
+                  onClick={() => {
+                    if (isLayoutDirty) {
+                      showConfirm(
+                        "Unsaved Changes",
+                        "You have unsaved changes in your layout. Do you want to discard them and leave?",
+                        () => {
+                          setIsLayoutDirty(false);
+                          if (currentView === 'module-list') {
+                            setCurrentView('hub');
+                            setActiveFeature(null);
+                          } else if (['layout-builder', 'blueprint', 'tags'].includes(currentView)) {
+                            setCurrentView('module-list');
+                          } else {
+                            setCurrentView('hub');
+                          }
+                        },
+                        true,
+                        "Discard & Leave"
+                      );
+                      return;
+                    }
+                    if (currentView === 'module-list') {
+                      setCurrentView('hub');
+                      setActiveFeature(null);
+                    } else if (['layout-builder', 'blueprint', 'tags'].includes(currentView)) {
+                      setCurrentView('module-list');
+                    } else {
+                      setCurrentView('hub');
+                    }
+                  }}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.95rem' }}
                 >
-                  ← Back to Setup
+                  ← Back to {currentView === 'module-list' ? 'Setup' : 'Modules'}
                 </button>
                 <div style={{ width: '1px', height: '24px', backgroundColor: '#cbd5e1', margin: '0 1.5rem' }}></div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                   <h2 style={{ fontSize: '1.15rem', fontWeight: 600, margin: 0, color: '#0f172a' }}>
-                    {currentView === 'module-list' && "Select Module"}
+                    {currentView === 'module-list' && (
+                      activeFeature === 'layout-builder' ? 'Form Layout Builder' :
+                        activeFeature === 'tags' ? 'Manage Tags' :
+                          activeFeature === 'blueprint' ? 'Blueprint Engine' :
+                            'Select Module'
+                    )}
+
                     {currentView === 'blueprint' && "Pipelines & Blueprint"}
                     {currentView === 'fields' && "Modules and Fields"}
                     {currentView === 'tags' && "Tag Definitions"}
@@ -695,11 +793,11 @@ export default function SettingsPage() {
                     {currentView === 'layout-builder' && "Form Layout Builder"}
                     {currentView === 'billing' && "Billing & Wallet"}
                   </h2>
-                  
+
                 </div>
               </div>
 
-              <div style={{ padding: '2rem' }}>
+              <div style={{ padding: '1rem' }}>
 
 
                 {/* MODULE LIST TAB */}
@@ -742,7 +840,7 @@ export default function SettingsPage() {
                                   onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'}
                                   onMouseLeave={e => e.target.style.backgroundColor = 'white'}
                                 >
-                                  Configure
+                                  Customize
                                 </button>
                               </td>
                             </tr>
@@ -2246,6 +2344,7 @@ export default function SettingsPage() {
         </div>
       )}
 
+      <ConfirmModal {...confirmState} />
     </>
   );
 }
