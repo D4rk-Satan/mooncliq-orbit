@@ -56,6 +56,7 @@ export default function SettingsPage() {
   const [currentView, setCurrentView] = useState("hub");
   const [selectedModule, setSelectedModule] = useState("Lead");
   const [isLayoutDirty, setIsLayoutDirty] = useState(false);
+  const [shakeTrigger, setShakeTrigger] = useState(0);
 
   const [confirmState, setConfirmState] = useState({ isOpen: false, title: '', message: '', onConfirm: () => { } });
 
@@ -135,16 +136,7 @@ export default function SettingsPage() {
         if (targetLink) {
           e.preventDefault();
           e.stopPropagation();
-          showConfirm(
-            "Unsaved Changes",
-            "You have unsaved changes in your layout. Are you sure you want to leave?",
-            () => {
-              setIsLayoutDirty(false);
-              window.location.href = targetLink.getAttribute('href');
-            },
-            true,
-            "Leave"
-          );
+          setShakeTrigger(prev => prev + 1);
         }
       }
     };
@@ -690,10 +682,10 @@ export default function SettingsPage() {
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                     <button onClick={() => setCurrentView('workflows')} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
-                      Custom Workflows
+                      Webhook Engine
                     </button>
                     <button onClick={() => setCurrentView('client-scripts')} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
-                      Client UI Scripts
+                      Custom Workflows
                     </button>
                   </div>
                 </div>
@@ -743,23 +735,7 @@ export default function SettingsPage() {
                 <button
                   onClick={() => {
                     if (isLayoutDirty) {
-                      showConfirm(
-                        "Unsaved Changes",
-                        "You have unsaved changes in your layout. Do you want to discard them and leave?",
-                        () => {
-                          setIsLayoutDirty(false);
-                          if (currentView === 'module-list') {
-                            setCurrentView('hub');
-                            setActiveFeature(null);
-                          } else if (['layout-builder', 'blueprint', 'tags'].includes(currentView)) {
-                            setCurrentView('module-list');
-                          } else {
-                            setCurrentView('hub');
-                          }
-                        },
-                        true,
-                        "Discard & Leave"
-                      );
+                      setShakeTrigger(prev => prev + 1);
                       return;
                     }
                     if (currentView === 'module-list') {
@@ -789,7 +765,8 @@ export default function SettingsPage() {
                     {currentView === 'fields' && "Modules and Fields"}
                     {currentView === 'tags' && "Tag Definitions"}
                     {currentView === 'users' && "Users & Invitations"}
-                    {currentView === 'workflows' && "Custom Workflows & Scripts"}
+                    {currentView === 'workflows' && "Webhook Engine"}
+                    {currentView === 'client-scripts' && "Custom Workflows"}
                     {currentView === 'layout-builder' && "Form Layout Builder"}
                     {currentView === 'billing' && "Billing & Wallet"}
                   </h2>
@@ -1031,7 +1008,7 @@ export default function SettingsPage() {
 
                 {/* LAYOUT BUILDER TAB */}
                 {currentView === 'layout-builder' && (
-                  <LayoutBuilder selectedModule={selectedModule} onDirtyChange={setIsLayoutDirty} />
+                  <LayoutBuilder selectedModule={selectedModule} onDirtyChange={setIsLayoutDirty} shakeTrigger={shakeTrigger} />
                 )}
 
                 {/* FIELDS TAB */}

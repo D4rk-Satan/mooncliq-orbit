@@ -22,7 +22,7 @@ export default function LeadIntakeForm({ isOpen, onClose, onSave }) {
   // Dynamic fields
   const [customData, setCustomData] = useState({});
 
-  const { executeScript, standardFieldStates } = useClientScripts({
+  const { executeScript, standardFieldStates, fieldErrors, fieldReadonlyStates } = useClientScripts({
     moduleType: "Lead",
     standardData, setStandardData,
     customData, setCustomData,
@@ -97,8 +97,11 @@ export default function LeadIntakeForm({ isOpen, onClose, onSave }) {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    const canSave = await executeScript("onSave");
+    if (!canSave) return;
+    
     onSave({
       ...standardData,
       customData,
@@ -160,12 +163,14 @@ export default function LeadIntakeForm({ isOpen, onClose, onSave }) {
                           };
                           return (
                             <DynamicField
-                            formData={{ ...standardData, ...customData }}
-                            key={field.id}
-                            field={modifiedField}
-                            value={field.isSystemField ? standardData[field.name] : customData[field.name]}
-                            onChange={(name, value, record, mappings) => handleFieldChange(field, name, value, record, mappings)}
-                            />
+                              formData={{ ...standardData, ...customData }}
+                              key={field.id}
+                              field={modifiedField}
+                              value={field.isSystemField ? standardData[field.name] : customData[field.name]}
+                              onChange={(name, value, record, mappings) => handleFieldChange(field, name, value, record, mappings)}
+                              error={fieldErrors?.[field.name]}
+                              readOnly={fieldReadonlyStates?.[field.name]}
+                              />
                           );
                         })}
                       </div>

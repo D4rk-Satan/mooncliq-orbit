@@ -237,8 +237,7 @@ const registry = {
   subform: SubformInput,
 };
 
-// The Component that dynamically renders the right input based on field type
-export default function DynamicField({ field, value, onChange, formData }) {
+export default function DynamicField({ field, value, onChange, formData, error, readOnly }) {
   const Component = registry[field.type];
 
   if (!Component) {
@@ -249,5 +248,19 @@ export default function DynamicField({ field, value, onChange, formData }) {
     );
   }
 
-  return <Component field={field} value={value} formData={formData} onChange={(name, val, record, mappings) => onChange(name, val, record, mappings)} />;
+  return (
+    <div style={{ position: 'relative', opacity: readOnly ? 0.6 : 1, pointerEvents: readOnly ? 'none' : 'auto' }}>
+      <Component 
+        field={field} 
+        value={value} 
+        formData={formData} 
+        onChange={(name, val, record, mappings) => onChange(name, val, record, mappings)} 
+      />
+      {error && (
+        <div style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '-0.5rem', marginBottom: '0.5rem' }}>
+          {error}
+        </div>
+      )}
+    </div>
+  );
 }

@@ -3,7 +3,7 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { fetchAuthSession } from 'aws-amplify/auth';
 import ConfirmModal from './ConfirmModal';
 
-export default function LayoutBuilder({ selectedModule, onDirtyChange }) {
+export default function LayoutBuilder({ selectedModule, onDirtyChange, shakeTrigger }) {
   const [fields, setFields] = useState([]);
   const [sections, setSections] = useState([]);
   const [blueprint, setBlueprint] = useState(null);
@@ -14,6 +14,15 @@ export default function LayoutBuilder({ selectedModule, onDirtyChange }) {
   const [originalSections, setOriginalSections] = useState([]);
   const [originalFields, setOriginalFields] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [isShaking, setIsShaking] = useState(false);
+
+  useEffect(() => {
+    if (shakeTrigger > 0) {
+      setIsShaking(true);
+      const timer = setTimeout(() => setIsShaking(false), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [shakeTrigger]);
 
   const [confirmState, setConfirmState] = useState({ isOpen: false, title: '', message: '', onConfirm: () => { } });
 
@@ -335,9 +344,12 @@ export default function LayoutBuilder({ selectedModule, onDirtyChange }) {
       });
 
       if (res.ok) {
+        const addedField = await res.json();
+        setFields(prev => [...prev, addedField]);
+        setOriginalFields(prev => [...prev, addedField]);
         setNewField({ name: "", label: "", type: "text", options: "", targetModule: "Account", isMultiSelect: false, isBiDirectional: false, targetDisplayField: "name", isPublic: true, relatedListLabel: "", filters: [], targetSection: "" });
         setIsAddingField(false);
-        fetchBlueprintData();
+        setHasUnsavedChanges(true);
       }
     } catch (err) {
       console.error(err);
@@ -350,7 +362,7 @@ export default function LayoutBuilder({ selectedModule, onDirtyChange }) {
       const { tokens } = await fetchAuthSession();
       const token = tokens.idToken.toString();
 
-      await fetch('/api/fields', {
+      const res = await fetch('/api/fields', {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -361,8 +373,12 @@ export default function LayoutBuilder({ selectedModule, onDirtyChange }) {
           isRequired: !currentStatus
         })
       });
+      if (res.ok) {
+        setFields(prev => prev.map(f => f.id === fieldId ? { ...f, isRequired: !currentStatus } : f));
+        setOriginalFields(prev => prev.map(f => f.id === fieldId ? { ...f, isRequired: !currentStatus } : f));
+        setHasUnsavedChanges(true);
+      }
       setActiveFieldMenu(null);
-      fetchBlueprintData();
     } catch (e) {
       console.error(e);
     }
@@ -374,6 +390,8 @@ export default function LayoutBuilder({ selectedModule, onDirtyChange }) {
         const res = await fetch(`/api/fields?id=${id}`, { method: 'DELETE' });
         if (res.ok) {
           setFields(fields.filter(f => f.id !== id));
+          setOriginalFields(originalFields.filter(f => f.id !== id));
+          setHasUnsavedChanges(true);
         }
       } catch (err) {
         console.error(err);
@@ -384,25 +402,29 @@ export default function LayoutBuilder({ selectedModule, onDirtyChange }) {
   if (isLoading) return <div style={{ padding: '2rem' }}>Loading Master Builder...</div>;
 
   return (
-    <div style={{ display: 'flex', gap: '2rem', height: '100%' }}>
+    <>
+      <style>{`
+        @keyframes shake-banner {
+          0%, 100% { transform: translateX(-50%); }
+          10%, 30%, 50%, 70%, 90% { transform: translateX(calc(-50% - 8px)); }
+          20%, 40%, 60%, 80% { transform: translateX(calc(-50% + 8px)); }
+        }
+        @keyframes slideDown {
+          from { transform: translate(-50%, -100%); opacity: 0; }
+          to { transform: translate(-50%, 0); opacity: 1; }
+        }
+      `}</style>
+      <div style={{ display: 'flex', gap: '2rem', height: '100%' }}>
 
-      {hasUnsavedChanges && (
-        <div style={{
-          position: 'fixed', top: '20px', left: '50%', transform: 'translateX(-50%)',
-          backgroundColor: '#0f172a', color: 'white', padding: '12px 24px',
-          borderRadius: '50px', display: 'flex', alignItems: 'center', gap: '24px',
-          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
-          zIndex: 9999, fontWeight: 500, fontSize: '0.95rem',
-          animation: 'slideDown 0.3s ease-out forwards'
-        }}>
-          <style>
-            {`
-                @keyframes slideDown {
-                    from { transform: translate(-50%, -100%); opacity: 0; }
-                    to { transform: translate(-50%, 0); opacity: 1; }
-                }
-            `}
-          </style>
+        {hasUnsavedChanges && (
+          <div style={{
+            position: 'fixed', top: '20px', left: '50%', transform: 'translateX(-50%)',
+            backgroundColor: '#0f172a', color: 'white', padding: '12px 24px',
+            borderRadius: '50px', display: 'flex', alignItems: 'center', gap: '24px',
+            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+            zIndex: 9999, fontWeight: 500, fontSize: '0.95rem',
+            animation: isShaking ? 'shake-banner 0.4s ease-in-out' : 'slideDown 0.3s ease-out forwards'
+          }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#f59e0b' }}></span>
             Unsaved changes
@@ -947,5 +969,6 @@ export default function LayoutBuilder({ selectedModule, onDirtyChange }) {
       </div>
       <ConfirmModal {...confirmState} />
     </div>
+    </>
   );
 }

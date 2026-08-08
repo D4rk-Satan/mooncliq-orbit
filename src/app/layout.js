@@ -12,12 +12,14 @@ export const metadata = {
 import AmplifyProvider from "../components/AmplifyProvider";
 import DashboardLayoutWrapper from "../components/DashboardLayoutWrapper";
 import NextTopLoader from 'nextjs-toploader';
+import { Toaster } from 'react-hot-toast';
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className={`${inter.variable} ${outfit.variable}`}>
         <NextTopLoader color="#ef4444" showSpinner={false} />
+        <Toaster position="top-right" />
         <AmplifyProvider>
           <DashboardLayoutWrapper>
             {children}

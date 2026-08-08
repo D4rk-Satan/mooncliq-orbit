@@ -1,15 +1,16 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import Editor from "@monaco-editor/react";
+import Editor, { useMonaco } from "@monaco-editor/react";
 
 export default function ClientScriptBuilder() {
+  const monaco = useMonaco();
   const [scripts, setScripts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedScript, setSelectedScript] = useState(null);
   const [moduleFields, setModuleFields] = useState([]);
 
-  const defaultCode = `// The FormAPI object gives you access to the UI
+const defaultCode = `// The FormAPI object gives you access to the UI
 const value = FormAPI.getValue('yourFieldName');
 
 if (value === 'Some Condition') {
@@ -20,10 +21,162 @@ if (value === 'Some Condition') {
   FormAPI.showField('otherField');
 }`;
 
+  useEffect(() => {
+    if (selectedScript?.moduleType) {
+      const loadFields = async () => {
+         try {
+           const token = await getAuthToken();
+           const res = await fetch(`/api/blueprint?moduleType=${selectedScript.moduleType}`, {
+              headers: { Authorization: `Bearer ${token}` }
+           });
+           if (res.ok) {
+             const data = await res.json();
+             const fields = data.fields ? data.fields.map(f => f.name) : [];
+             const stdFields = ["name", "sku", "firstName", "lastName", "email", "phone", "owner", "stageId", "companyName", "gstNo", "website", "address", "contactPerson", "taskName", "startDateTime", "dueDateTime", "endDateTime", "repeat", "alert", "notes"];
+             setModuleFields([...new Set([...stdFields, ...fields])]);
+           }
+         } catch (e) {
+           console.error('Failed to load fields for intellisense');
+         }
+      };
+      loadFields();
+    }
+  }, [selectedScript?.moduleType]);
+
+  useEffect(() => {
+    if (monaco) {
+      const provider = monaco.languages.registerCompletionItemProvider('javascript', {
+        provideCompletionItems: (model, position) => {
+          const word = model.getWordUntilPosition(position);
+          const range = {
+            startLineNumber: position.lineNumber,
+            endLineNumber: position.lineNumber,
+            startColumn: word.startColumn,
+            endColumn: word.endColumn,
+          };
+          
+          const lineContent = model.getLineContent(position.lineNumber);
+          
+          // Case 1: FormAPI. -> suggest methods
+          if (lineContent.substring(0, word.startColumn - 1).endsWith('FormAPI.')) {
+            return {
+              suggestions: [
+                {
+                  label: 'getValue',
+                  kind: monaco.languages.CompletionItemKind.Method,
+                  insertText: 'getValue(\'${1:fieldName}\')',
+                  insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                  documentation: 'Gets the current value of a field.',
+                  range: range
+                },
+                {
+                  label: 'setValue',
+                  kind: monaco.languages.CompletionItemKind.Method,
+                  insertText: 'setValue(\'${1:fieldName}\', ${2:value})',
+                  insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                  documentation: 'Sets the value of a field programmatically.',
+                  range: range
+                },
+                {
+                  label: 'hideField',
+                  kind: monaco.languages.CompletionItemKind.Method,
+                  insertText: 'hideField(\'${1:fieldName}\')',
+                  insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                  documentation: 'Hides a field from the UI.',
+                  range: range
+                },
+                {
+                  label: 'showField',
+                  kind: monaco.languages.CompletionItemKind.Method,
+                  insertText: 'showField(\'${1:fieldName}\')',
+                  insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                  documentation: 'Shows a previously hidden field.',
+                  range: range
+                },
+                {
+                  label: 'setMandatory',
+                  kind: monaco.languages.CompletionItemKind.Method,
+                  insertText: 'setMandatory(\'${1:fieldName}\', ${2:true/false})',
+                  insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                  documentation: 'Makes a field mandatory or optional.',
+                  range: range
+                },
+                {
+                  label: 'showFieldError',
+                  kind: monaco.languages.CompletionItemKind.Method,
+                  insertText: 'showFieldError(\'${1:fieldName}\', \'${2:message}\')',
+                  insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                  documentation: 'Displays a validation error under a specific field.',
+                  range: range
+                },
+                {
+                  label: 'setReadOnly',
+                  kind: monaco.languages.CompletionItemKind.Method,
+                  insertText: 'setReadOnly(\'${1:fieldName}\', ${2:true/false})',
+                  insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                  documentation: 'Makes a field read-only and uneditable.',
+                  range: range
+                },
+                {
+                  label: 'showToast',
+                  kind: monaco.languages.CompletionItemKind.Method,
+                  insertText: 'showToast(\'${1:message}\', \'${2:success/error/info}\')',
+                  insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                  documentation: 'Displays a non-blocking toast notification.',
+                  range: range
+                },
+                {
+                  label: 'fetch',
+                  kind: monaco.languages.CompletionItemKind.Method,
+                  insertText: 'await fetch(\'${1:url}\')',
+                  insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                  documentation: 'Fetches data from an external API via backend proxy.',
+                  range: range
+                },
+                {
+                  label: 'context',
+                  kind: monaco.languages.CompletionItemKind.Property,
+                  insertText: 'context',
+                  documentation: 'Access current user, record, and module data.',
+                  range: range
+                }
+              ]
+            };
+          }
+          
+          // Case 2: Field name suggestions inside quotes (e.g. FormAPI.getValue('...'))
+          const textUntilPosition = lineContent.substring(0, position.column - 1);
+          const inQuotes = (textUntilPosition.match(/['"]/g) || []).length % 2 === 1;
+          
+          if (inQuotes && moduleFields.length > 0) {
+            return {
+              suggestions: moduleFields.map(f => ({
+                label: f,
+                kind: monaco.languages.CompletionItemKind.Field,
+                insertText: f,
+                documentation: `Field name: ${f}`,
+                range: range
+              }))
+            };
+          }
+
+          return { suggestions: [] };
+        }
+      });
+      
+      return () => provider.dispose();
+    }
+  }, [monaco, moduleFields]);
+
   const getAuthToken = async () => {
-    const { fetchAuthSession } = await import('aws-amplify/auth');
-    const { tokens } = await fetchAuthSession();
-    return tokens.idToken.toString();
+    try {
+      const { fetchAuthSession } = await import('aws-amplify/auth');
+      const { tokens } = await fetchAuthSession();
+      return tokens?.idToken?.toString() || '';
+    } catch (error) {
+      console.warn('Failed to get auth token:', error);
+      return '';
+    }
   };
 
   const fetchScripts = async () => {
@@ -59,7 +212,7 @@ if (value === 'Some Condition') {
           if (res.ok) {
             const data = await res.json();
             let stdFields = ['stageId'];
-            
+
             if (selectedScript.moduleType === 'Lead' || selectedScript.moduleType === 'Deal') {
               stdFields.push('firstName', 'lastName', 'email', 'phone', 'owner');
             } else if (selectedScript.moduleType === 'Account') {
@@ -88,21 +241,21 @@ if (value === 'Some Condition') {
       alert("Name, Module, and Trigger Event are required.");
       return;
     }
-    
+
     try {
       const token = await getAuthToken();
       const method = selectedScript.id ? 'PUT' : 'POST';
       const url = selectedScript.id ? `/api/client-scripts/${selectedScript.id}` : '/api/client-scripts';
-      
+
       const res = await fetch(url, {
         method,
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}` 
+          Authorization: `Bearer ${token}`
         },
         body: JSON.stringify(selectedScript)
       });
-      
+
       if (res.ok) {
         alert('Client Script saved successfully!');
         setSelectedScript(null);
@@ -118,14 +271,14 @@ if (value === 'Some Condition') {
 
   const handleDelete = async (id) => {
     if (!confirm('Are you sure you want to delete this script?')) return;
-    
+
     try {
       const token = await getAuthToken();
       const res = await fetch(`/api/client-scripts/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       if (res.ok) {
         alert('Client Script deleted successfully!');
         fetchScripts();
@@ -139,8 +292,8 @@ if (value === 'Some Condition') {
     return (
       <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
         <div style={{ marginBottom: '1.5rem' }}>
-          <button 
-            onClick={() => setSelectedScript(null)} 
+          <button
+            onClick={() => setSelectedScript(null)}
             style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', padding: 0, fontSize: '0.875rem', fontWeight: 500, marginBottom: '1rem' }}
           >
             &larr; Back to Client Scripts
@@ -153,19 +306,19 @@ if (value === 'Some Condition') {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '2rem' }}>
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, fontSize: '0.875rem' }}>Script Name</label>
-            <input 
-              className="form-input" 
+            <input
+              className="form-input"
               placeholder="e.g. Hide Fields on Close"
               value={selectedScript.name}
-              onChange={(e) => setSelectedScript({...selectedScript, name: e.target.value})}
+              onChange={(e) => setSelectedScript({ ...selectedScript, name: e.target.value })}
             />
           </div>
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, fontSize: '0.875rem' }}>Module Type</label>
-            <select 
+            <select
               className="form-input"
               value={selectedScript.moduleType}
-              onChange={(e) => setSelectedScript({...selectedScript, moduleType: e.target.value})}
+              onChange={(e) => setSelectedScript({ ...selectedScript, moduleType: e.target.value })}
             >
               <option value="">Select Module</option>
               <option value="Lead">Lead</option>
@@ -180,10 +333,10 @@ if (value === 'Some Condition') {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '2rem' }}>
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, fontSize: '0.875rem' }}>Trigger Event</label>
-            <select 
+            <select
               className="form-input"
               value={selectedScript.triggerEvent}
-              onChange={(e) => setSelectedScript({...selectedScript, triggerEvent: e.target.value, targetField: ''})}
+              onChange={(e) => setSelectedScript({ ...selectedScript, triggerEvent: e.target.value, targetField: '' })}
             >
               <option value="">Select Trigger</option>
               <option value="onLoad">onLoad (When form opens)</option>
@@ -191,15 +344,15 @@ if (value === 'Some Condition') {
               <option value="onSave">onSave (Before form is submitted)</option>
             </select>
           </div>
-          
+
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, fontSize: '0.875rem', color: selectedScript.triggerEvent === 'onChange' ? 'inherit' : '#94a3b8' }}>
               Target Field to Watch
             </label>
-            <select 
+            <select
               className="form-input"
               value={selectedScript.targetField || ''}
-              onChange={(e) => setSelectedScript({...selectedScript, targetField: e.target.value})}
+              onChange={(e) => setSelectedScript({ ...selectedScript, targetField: e.target.value })}
               disabled={selectedScript.triggerEvent !== 'onChange'}
             >
               <option value="">Select Field</option>
@@ -221,7 +374,7 @@ if (value === 'Some Condition') {
               defaultLanguage="javascript"
               theme="vs-dark"
               value={selectedScript.code}
-              onChange={(val) => setSelectedScript({...selectedScript, code: val})}
+              onChange={(val) => setSelectedScript({ ...selectedScript, code: val })}
               options={{
                 minimap: { enabled: false },
                 fontSize: 14,
@@ -232,11 +385,11 @@ if (value === 'Some Condition') {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem' }}>
-          <input 
-            type="checkbox" 
+          <input
+            type="checkbox"
             id="isActiveScript"
             checked={selectedScript.isActive}
-            onChange={(e) => setSelectedScript({...selectedScript, isActive: e.target.checked})}
+            onChange={(e) => setSelectedScript({ ...selectedScript, isActive: e.target.checked })}
             style={{ width: '1rem', height: '1rem', accentColor: '#1e3a8a' }}
           />
           <label htmlFor="isActiveScript" style={{ fontSize: '0.875rem', fontWeight: 500 }}>Script is Active</label>
@@ -252,9 +405,8 @@ if (value === 'Some Condition') {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600 }}>Client UI Scripts</h2>
-        <button 
-          className="btn-primary" 
+        <button
+          className="btn-primary"
           style={{ padding: '0.5rem 1rem' }}
           onClick={() => setSelectedScript({
             name: '', moduleType: '', triggerEvent: 'onLoad', targetField: '', code: defaultCode, isActive: true
@@ -269,7 +421,7 @@ if (value === 'Some Condition') {
       ) : scripts.length === 0 ? (
         <div style={{ padding: '3rem', textAlign: 'center', backgroundColor: 'white', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
           <p style={{ color: '#64748b', marginBottom: '1rem' }}>No client scripts found.</p>
-          <button 
+          <button
             className="btn-outline"
             onClick={() => setSelectedScript({
               name: '', moduleType: '', triggerEvent: 'onLoad', targetField: '', code: defaultCode, isActive: true

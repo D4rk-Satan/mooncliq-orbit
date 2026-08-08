@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
 import { fetchAuthSession } from 'aws-amplify/auth';
+import { toast } from 'react-hot-toast';
 
-export default function useClientScripts({ moduleType, standardData, setStandardData, customData, setCustomData, blueprint, setBlueprint }) {
+export default function useClientScripts({ moduleType, standardData, setStandardData, customData, setCustomData, blueprint, setBlueprint, currentUser }) {
   const [clientScripts, setClientScripts] = useState([]);
   const [standardFieldStates, setStandardFieldStates] = useState({});
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [fieldReadonlyStates, setFieldReadonlyStates] = useState({});
 
   useEffect(() => {
     if (!moduleType) return;
@@ -29,7 +32,7 @@ export default function useClientScripts({ moduleType, standardData, setStandard
     fetchScripts();
   }, [moduleType]);
 
-  const executeScript = (triggerEvent, targetField = null) => {
+  const executeScript = async (triggerEvent, targetField = null) => {
     const scriptsToRun = clientScripts.filter(s => 
       s.triggerEvent === triggerEvent &&
       (triggerEvent !== 'onChange' || s.targetField === targetField)
@@ -45,9 +48,13 @@ export default function useClientScripts({ moduleType, standardData, setStandard
     let nextCustomData = { ...customData };
     let nextBlueprint = { ...blueprint };
     let nextStandardFieldStates = { ...standardFieldStates };
+    let nextFieldErrors = { ...fieldErrors };
+    let nextFieldReadonlyStates = { ...fieldReadonlyStates };
     let hasDataChanges = false;
     let hasBlueprintChanges = false;
     let hasStandardFieldChanges = false;
+    let hasErrorChanges = false;
+    let hasReadonlyChanges = false;
 
     const stdFields = ["name", "sku", "firstName", "lastName", "email", "phone", "owner", "stageId", "companyName", "gstNo", "website", "address", "contactPerson", "taskName", "startDateTime", "dueDateTime", "endDateTime", "repeat", "alert", "notes"];
 
@@ -102,16 +109,54 @@ export default function useClientScripts({ moduleType, standardData, setStandard
           showError: (message) => {
             alert(`Validation Error: ${message}`);
             throw new Error("FormAPI_ValidationError");
+          },
+          showFieldError: (fieldName, message) => {
+            nextFieldErrors[fieldName] = message;
+            hasErrorChanges = true;
+            throw new Error("FormAPI_FieldError");
+          },
+          setReadOnly: (fieldName, isReadOnly) => {
+            nextFieldReadonlyStates[fieldName] = isReadOnly;
+            hasReadonlyChanges = true;
+          },
+          showToast: (message, type = 'success') => {
+            if (type === 'error') toast.error(message);
+            else if (type === 'success') toast.success(message);
+            else toast(message);
+          },
+          fetch: async (url, options = {}) => {
+            const res = await fetch('/api/proxy', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ url, options })
+            });
+            const result = await res.json();
+            if (!result.ok) throw new Error(result.error || 'Proxy fetch failed');
+            return result.data;
+          },
+          context: {
+            user: currentUser,
+            moduleType,
+            recordId: standardData?.id || null
           }
         };
 
-        const fn = new Function('FormAPI', script.code);
-        fn(FormAPI);
+        // If triggerEvent is onChange, clear previous field error for that field
+        if (triggerEvent === 'onChange' && targetField) {
+          if (nextFieldErrors[targetField]) {
+            delete nextFieldErrors[targetField];
+            hasErrorChanges = true;
+          }
+        }
+
+        const fn = new Function('FormAPI', `return (async () => { ${script.code} })();`);
+        await fn(FormAPI);
 
       } catch (e) {
-        console.error(`Client Script Error (${script.name}):`, e);
-        if (e.message === "FormAPI_ValidationError") {
+        if (e.message === "FormAPI_ValidationError" || e.message === "FormAPI_FieldError") {
           blockSave = true;
+        } else {
+          console.error(`Client Script Error (${script.name}):`, e);
         }
       }
     }
@@ -128,9 +173,17 @@ export default function useClientScripts({ moduleType, standardData, setStandard
     if (hasStandardFieldChanges) {
       setStandardFieldStates(nextStandardFieldStates);
     }
+    
+    if (hasErrorChanges) {
+      setFieldErrors(nextFieldErrors);
+    }
+    
+    if (hasReadonlyChanges) {
+      setFieldReadonlyStates(nextFieldReadonlyStates);
+    }
 
     return !blockSave;
   };
 
-  return { executeScript, clientScripts, standardFieldStates };
+  return { executeScript, clientScripts, standardFieldStates, fieldErrors, fieldReadonlyStates };
 }
