@@ -302,6 +302,7 @@ model Task {
   repeat        String?
   alert         String?
   notes         String?
+  owner         String?
 
   // Dynamic payload for custom fields
   customData Json @default("{}")

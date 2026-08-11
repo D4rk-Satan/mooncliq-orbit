@@ -78,9 +78,9 @@ export default function AccountIntakeForm({ isOpen, onClose, onSave }) {
         let cData = {};
         try {
           cData = typeof record.customData === 'string' ? JSON.parse(record.customData || '{}') : (record.customData || {});
-        } catch(e) {}
+        } catch (e) { }
         const sourceVal = record[mapping.sourceField] || cData[mapping.sourceField];
-        
+
         if (sourceVal !== undefined) {
           // Check if target is a standard field
           const standardKeys = ["firstName", "lastName", "email", "phone", "owner", "stageId", "companyName", "gstNo", "website", "address", "contactPerson", "name", "sku", "taskName", "startDateTime", "dueDateTime", "endDateTime", "repeat", "alert", "notes"];
@@ -122,7 +122,6 @@ export default function AccountIntakeForm({ isOpen, onClose, onSave }) {
             <div className="slide-header" style={{ flexShrink: 0, backgroundColor: 'var(--card-bg)', zIndex: 10 }}>
               <div>
                 <span className="slide-eyebrow">NEW {blueprint?.moduleType?.toUpperCase() || 'ACCOUNT'}</span>
-                <h2 className="slide-title">{blueprint?.name || 'Account Intake Form'}</h2>
               </div>
               <button type="button" className="btn-close" onClick={onClose}>✕</button>
             </div>
@@ -130,21 +129,21 @@ export default function AccountIntakeForm({ isOpen, onClose, onSave }) {
             <div className="slide-content">
               {blueprint?.fields && (() => {
                 const visibleFields = blueprint.fields.filter(f => !f.isHidden && !standardFieldStates?.[f.name]?.isHidden);
-                
+
                 let orderedSections = [];
                 if (blueprint?.layoutConfig && Array.isArray(blueprint.layoutConfig) && blueprint.layoutConfig.length > 0) {
-                    orderedSections = [...blueprint.layoutConfig].sort((a,b) => a.order - b.order);
+                  orderedSections = [...blueprint.layoutConfig].sort((a, b) => a.order - b.order);
                 } else {
-                    const uniqueNames = [...new Set(visibleFields.map(f => f.sectionName || 'General Information'))];
-                    orderedSections = uniqueNames.map(name => ({ name, columns: 2 }));
+                  const uniqueNames = [...new Set(visibleFields.map(f => f.sectionName || 'General Information'))];
+                  orderedSections = uniqueNames.map(name => ({ name, columns: 2 }));
                 }
-                
+
                 return orderedSections.map(section => {
                   const sectionFields = visibleFields.filter(f => (f.sectionName || 'General Information') === section.name)
-                    .sort((a,b) => (a.sectionOrder || 0) - (b.sectionOrder || 0));
-                    
+                    .sort((a, b) => (a.sectionOrder || 0) - (b.sectionOrder || 0));
+
                   if (sectionFields.length === 0) return null;
-                  
+
                   return (
                     <div className="data-section" key={section.name || section.id}>
                       <h3 className="section-heading">{section.name}</h3>
@@ -157,11 +156,11 @@ export default function AccountIntakeForm({ isOpen, onClose, onSave }) {
                           };
                           return (
                             <DynamicField
-                            formData={{ ...standardData, ...customData }}
-                            key={field.id}
-                            field={modifiedField}
-                            value={field.isSystemField ? standardData[field.name] : customData[field.name]}
-                            onChange={(name, value, record, mappings) => handleFieldChange(field, name, value, record, mappings)}
+                              formData={{ ...standardData, ...customData }}
+                              key={field.id}
+                              field={modifiedField}
+                              value={field.isSystemField ? standardData[field.name] : customData[field.name]}
+                              onChange={(name, value, record, mappings) => handleFieldChange(field, name, value, record, mappings)}
                             />
                           );
                         })}

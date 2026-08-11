@@ -4,6 +4,9 @@ import React, { useEffect, useState } from "react";
 import DynamicField from "./FieldRegistry";
 import useClientScripts from "@/hooks/useClientScripts";
 import FormSkeleton from "./skeletons/FormSkeleton";
+import TaskRepeatDropdown from "./TaskRepeatDropdown";
+import TaskAlertDropdown from "./TaskAlertDropdown";
+import TaskStageDropdown from "./TaskStageDropdown";
 
 export default function TaskIntakeForm({ isOpen, onClose, onSave }) {
   const [blueprint, setBlueprint] = useState(null);
@@ -14,10 +17,11 @@ export default function TaskIntakeForm({ isOpen, onClose, onSave }) {
     taskName: "",
     startDateTime: "",
     dueDateTime: "",
-    endDateTime: "",
     repeat: "",
     alert: "",
-    notes: ""
+    notes: "",
+    owner: "",
+    stageId: ""
   });
 
   // Dynamic fields
@@ -54,6 +58,9 @@ export default function TaskIntakeForm({ isOpen, onClose, onSave }) {
       });
       const data = await res.json();
       setBlueprint(data);
+      if (data?.stages?.length > 0) {
+        setStandardData(prev => ({ ...prev, stageId: data.stages[0].id }));
+      }
       setTimeout(() => executeScript("onLoad"), 0);
     } catch (err) {
       console.error("Failed to load blueprint", err);
@@ -79,9 +86,9 @@ export default function TaskIntakeForm({ isOpen, onClose, onSave }) {
         let cData = {};
         try {
           cData = typeof record.customData === 'string' ? JSON.parse(record.customData || '{}') : (record.customData || {});
-        } catch(e) {}
+        } catch (e) { }
         const sourceVal = record[mapping.sourceField] || cData[mapping.sourceField];
-        
+
         if (sourceVal !== undefined) {
           // Check if target is a standard field
           const standardKeys = ["firstName", "lastName", "email", "phone", "owner", "stageId", "companyName", "gstNo", "website", "address", "contactPerson", "name", "sku", "taskName", "startDateTime", "dueDateTime", "endDateTime", "repeat", "alert", "notes"];
@@ -97,12 +104,11 @@ export default function TaskIntakeForm({ isOpen, onClose, onSave }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     // Clean up empty dates
     const payloadData = { ...standardData };
     if (!payloadData.startDateTime) delete payloadData.startDateTime;
     if (!payloadData.dueDateTime) delete payloadData.dueDateTime;
-    if (!payloadData.endDateTime) delete payloadData.endDateTime;
 
     onSave({
       ...payloadData,
@@ -111,7 +117,7 @@ export default function TaskIntakeForm({ isOpen, onClose, onSave }) {
     });
 
     // Reset
-    setStandardData({ taskName: "", startDateTime: "", dueDateTime: "", endDateTime: "", repeat: "", alert: "", notes: "" });
+    setStandardData({ taskName: "", startDateTime: "", dueDateTime: "", repeat: "", alert: "", notes: "", owner: "", stageId: blueprint?.stages?.[0]?.id || "" });
     setCustomData({});
     onClose();
   };
@@ -139,7 +145,6 @@ export default function TaskIntakeForm({ isOpen, onClose, onSave }) {
             <div className="slide-header" style={{ flexShrink: 0, backgroundColor: 'var(--card-bg)', zIndex: 10 }}>
               <div>
                 <span className="slide-eyebrow">NEW {blueprint?.moduleType?.toUpperCase() || 'TASK'}</span>
-                <h2 className="slide-title">{blueprint?.name || 'Task Intake Form'}</h2>
               </div>
               <button type="button" className="btn-close" onClick={onClose}>✕</button>
             </div>
@@ -147,38 +152,75 @@ export default function TaskIntakeForm({ isOpen, onClose, onSave }) {
             <div className="slide-content">
               {blueprint?.fields && (() => {
                 const visibleFields = blueprint.fields.filter(f => !f.isHidden && !standardFieldStates?.[f.name]?.isHidden);
-                
+
                 let orderedSections = [];
                 if (blueprint?.layoutConfig && Array.isArray(blueprint.layoutConfig) && blueprint.layoutConfig.length > 0) {
-                    orderedSections = [...blueprint.layoutConfig].sort((a,b) => a.order - b.order);
+                  orderedSections = [...blueprint.layoutConfig].sort((a, b) => a.order - b.order);
                 } else {
-                    const uniqueNames = [...new Set(visibleFields.map(f => f.sectionName || 'General Information'))];
-                    orderedSections = uniqueNames.map(name => ({ name, columns: 2 }));
+                  const uniqueNames = [...new Set(visibleFields.map(f => f.sectionName || 'General Information'))];
+                  orderedSections = uniqueNames.map(name => ({ name, columns: 2 }));
                 }
-                
+
                 return orderedSections.map(section => {
                   const sectionFields = visibleFields.filter(f => (f.sectionName || 'General Information') === section.name)
-                    .sort((a,b) => (a.sectionOrder || 0) - (b.sectionOrder || 0));
-                    
+                    .sort((a, b) => (a.sectionOrder || 0) - (b.sectionOrder || 0));
+
                   if (sectionFields.length === 0) return null;
-                  
+
                   return (
                     <div className="data-section" key={section.name || section.id}>
                       <h3 className="section-heading">{section.name}</h3>
                       <div className="form-group-grid" style={{ display: 'grid', gridTemplateColumns: `repeat(${section.columns || 2}, 1fr)`, gap: '1.5rem' }}>
                         {sectionFields.map(field => {
                           const stateOverride = standardFieldStates?.[field.name];
+                          if (stateOverride?.isHidden) return null;
+
                           const modifiedField = {
                             ...field,
                             isRequired: stateOverride?.isRequired !== undefined ? stateOverride.isRequired : field.isRequired
                           };
+
+                          if (field.name === 'repeat') {
+                            return (
+                              <TaskRepeatDropdown
+                                key={field.id}
+                                field={modifiedField}
+                                value={standardData.repeat}
+                                onChange={(val) => handleFieldChange(field, 'repeat', val)}
+                              />
+                            );
+                          }
+
+                          if (field.name === 'alert') {
+                            return (
+                              <TaskAlertDropdown
+                                key={field.id}
+                                field={modifiedField}
+                                value={standardData.alert}
+                                onChange={(val) => handleFieldChange(field, 'alert', val)}
+                              />
+                            );
+                          }
+
+                          if (field.name === 'stageId') {
+                            return (
+                              <TaskStageDropdown
+                                key={field.id}
+                                field={modifiedField}
+                                value={standardData.stageId}
+                                blueprint={blueprint}
+                                onChange={(val) => handleFieldChange(field, 'stageId', val)}
+                              />
+                            );
+                          }
+
                           return (
                             <DynamicField
-                            formData={{ ...standardData, ...customData }}
-                            key={field.id}
-                            field={modifiedField}
-                            value={field.isSystemField ? standardData[field.name] : customData[field.name]}
-                            onChange={(name, value, record, mappings) => handleFieldChange(field, name, value, record, mappings)}
+                              formData={{ ...standardData, ...customData }}
+                              key={field.id}
+                              field={modifiedField}
+                              value={field.isSystemField ? standardData[field.name] : customData[field.name]}
+                              onChange={(name, value, record, mappings) => handleFieldChange(field, name, value, record, mappings)}
                             />
                           );
                         })}

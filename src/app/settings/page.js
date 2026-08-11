@@ -685,7 +685,7 @@ export default function SettingsPage() {
                       Webhook Engine
                     </button>
                     <button onClick={() => setCurrentView('client-scripts')} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
-                      Custom Workflows
+                      Custom Scripts
                     </button>
                   </div>
                 </div>
@@ -766,7 +766,7 @@ export default function SettingsPage() {
                     {currentView === 'tags' && "Tag Definitions"}
                     {currentView === 'users' && "Users & Invitations"}
                     {currentView === 'workflows' && "Webhook Engine"}
-                    {currentView === 'client-scripts' && "Custom Workflows"}
+                    {currentView === 'client-scripts' && "Custom Scripts"}
                     {currentView === 'layout-builder' && "Form Layout Builder"}
                     {currentView === 'billing' && "Billing & Wallet"}
                   </h2>

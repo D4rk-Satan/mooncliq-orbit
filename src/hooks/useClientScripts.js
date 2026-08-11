@@ -141,6 +141,86 @@ export default function useClientScripts({ moduleType, standardData, setStandard
           }
         };
 
+        const getAuthToken = async () => {
+          try {
+            const { tokens } = await fetchAuthSession();
+            return tokens.idToken.toString();
+          } catch(e) {
+            return '';
+          }
+        };
+
+        const orbit = {
+          getRecord: async (module, id) => {
+            const token = await getAuthToken();
+            const res = await fetch(`/api/records?moduleType=${module}&id=${id}`, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            if (!res.ok) throw new Error('Failed to get record');
+            return res.json();
+          },
+          createRecord: async (module, data) => {
+            const token = await getAuthToken();
+            const res = await fetch(`/api/records?moduleType=${module}`, {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify(data)
+            });
+            if (!res.ok) throw new Error('Failed to create record');
+            return res.json();
+          },
+          updateRecord: async (module, id, data) => {
+            const token = await getAuthToken();
+            const res = await fetch(`/api/records?moduleType=${module}&id=${id}`, {
+              method: 'PUT',
+              headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify(data)
+            });
+            if (!res.ok) throw new Error('Failed to update record');
+            return res.json();
+          },
+          deleteRecord: async (module, id) => {
+            const token = await getAuthToken();
+            const res = await fetch(`/api/records?moduleType=${module}&id=${id}`, {
+              method: 'DELETE',
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            if (!res.ok) throw new Error('Failed to delete record');
+            return true;
+          },
+          sendEmail: async (to, subject, body) => {
+            const token = await getAuthToken();
+            // Note: Update path if it differs in your app.
+            const res = await fetch(`/api/email/send`, {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ to, subject, body })
+            });
+            if (!res.ok) throw new Error('Failed to send email');
+            return res.json();
+          },
+          aggregateRecords: async (moduleType, filters, operation, field) => {
+            const token = await getAuthToken();
+            const res = await fetch(`/api/records/aggregate?moduleType=${moduleType}&operation=${operation}&field=${field}`, {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify(filters)
+            });
+            if (!res.ok) throw new Error('Failed to aggregate records');
+            return res.json();
+          },
+          addNote: async (moduleType, recordId, content) => {
+            const token = await getAuthToken();
+            const res = await fetch(`/api/notes`, {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ moduleType, recordId, content })
+            });
+            if (!res.ok) throw new Error('Failed to add note');
+            return res.json();
+          }
+        };
+
         // If triggerEvent is onChange, clear previous field error for that field
         if (triggerEvent === 'onChange' && targetField) {
           if (nextFieldErrors[targetField]) {
@@ -149,8 +229,8 @@ export default function useClientScripts({ moduleType, standardData, setStandard
           }
         }
 
-        const fn = new Function('FormAPI', `return (async () => { ${script.code} })();`);
-        await fn(FormAPI);
+        const fn = new Function('FormAPI', 'orbit', `return (async () => { ${script.code} })();`);
+        await fn(FormAPI, orbit);
 
       } catch (e) {
         if (e.message === "FormAPI_ValidationError" || e.message === "FormAPI_FieldError") {
