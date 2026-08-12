@@ -69,7 +69,7 @@ const DateInput = ({ field, value, onChange }) => (
       {field.label} {field.isRequired && <span className="text-red-500">*</span>}
     </label>
     <input
-      type="date"
+      type={field.name.toLowerCase().includes('time') ? 'datetime-local' : 'date'}
       id={field.name}
       name={field.name}
       required={field.isRequired}

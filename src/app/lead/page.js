@@ -389,7 +389,8 @@ export default function LeadModule() {
                     draggable="true"
                     onDragStart={(e) => handleDragStart(e, lead.id)}
                     style={{
-                      border: selectedLeadIds.includes(lead.id) ? '2px solid var(--primary)' : '1px solid #e2e8f0'
+                      border: selectedLeadIds.includes(lead.id) ? '2px solid var(--primary)' : '1px solid #e2e8f0',
+                      backgroundColor: col.stage.color ? `${col.stage.color}15` : '#ffffff'
                     }}
                   >
                     <div className="card-header-top">

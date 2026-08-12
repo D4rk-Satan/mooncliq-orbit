@@ -42,6 +42,10 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
   if (!isOpen || !lead || !blueprint) return null;
 
   const currentStageId = lead.stageId;
+  const currentStage = blueprint.stages.find(s => s.id === currentStageId);
+  const stageColor = currentStage?.color;
+  const stageName = currentStage?.name || "Unknown";
+
   const availableTransitions = blueprint.transitions.filter(t => {
     // 0. Permission Check
     if (currentUser && !currentUser.profile?.canAccessSettings && !currentUser.profile?.permissions?.[blueprint.moduleType]?.edit) {
@@ -245,10 +249,10 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
         </div>
       )}
 
-      <div className={`modal-card ${isOpen ? 'open' : ''}`} style={{ display: 'flex', flexDirection: 'column' }}>
-        <div className="slide-header">
+      <div className={`modal-card ${isOpen ? 'open' : ''}`} style={{ display: 'flex', flexDirection: 'column', backgroundColor: 'var(--card-bg)', backgroundImage: stageColor ? `linear-gradient(${stageColor}1A, ${stageColor}1A)` : 'none' }}>
+        <div className="slide-header" style={{ borderBottom: `2px solid ${stageColor || '#e2e8f0'}`, paddingBottom: '0.75rem' }}>
           <div>
-            <span className="slide-eyebrow">BLUEPRINT STAGE: {blueprint.stages.find(s => s.id === lead.stageId)?.name || "Unknown"}</span>
+            <span className="slide-eyebrow">BLUEPRINT STAGE: {stageName}</span>
             <h2 className="slide-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
               {lead.firstName} {lead.lastName}
               {localTags.map((t, idx) => (

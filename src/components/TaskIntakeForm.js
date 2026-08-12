@@ -7,9 +7,10 @@ import FormSkeleton from "./skeletons/FormSkeleton";
 import TaskRepeatDropdown from "./TaskRepeatDropdown";
 import TaskAlertDropdown from "./TaskAlertDropdown";
 import TaskStageDropdown from "./TaskStageDropdown";
+import TaskUserDropdown from "./TaskUserDropdown";
 
-export default function TaskIntakeForm({ isOpen, onClose, onSave }) {
-  const [blueprint, setBlueprint] = useState(null);
+export default function TaskIntakeForm({ blueprint, isOpen, onClose, onSave, taskData, standardFieldStates }) {
+  const [localBlueprint, setBlueprint] = useState(blueprint || null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Standard fields
@@ -21,25 +22,98 @@ export default function TaskIntakeForm({ isOpen, onClose, onSave }) {
     alert: "",
     notes: "",
     owner: "",
-    stageId: ""
+    stageId: "",
+    assignedBy: "",
+    priority: "",
+    relatedModule: ""
   });
 
   // Dynamic fields
   const [customData, setCustomData] = useState({});
+  const [users, setUsers] = useState([]);
+  const [currentUserEmail, setCurrentUserEmail] = useState("");
 
-  const { executeScript, standardFieldStates } = useClientScripts({
+  const { executeScript, standardFieldStates: scriptFieldStates } = useClientScripts({
     moduleType: "Task",
     standardData, setStandardData,
     customData, setCustomData,
-    blueprint, setBlueprint
+    blueprint: localBlueprint, setBlueprint
   });
 
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
-      fetchBlueprint();
+      if (!localBlueprint) fetchBlueprint();
+      else setIsLoading(false);
     } else {
       document.body.style.overflow = "auto";
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (isOpen) {
+      if (taskData) {
+        const initialStd = {
+          taskName: "", startDateTime: "", dueDateTime: "", repeat: "", alert: "", notes: "", owner: "", stageId: "", assignedBy: "", priority: "", relatedModule: ""
+        };
+        const initialCustom = {};
+        
+        Object.keys(taskData).forEach(key => {
+          if (["taskName", "startDateTime", "dueDateTime", "repeat", "alert", "notes", "owner", "stageId", "assignedBy", "priority", "relatedModule"].includes(key)) {
+            initialStd[key] = taskData[key];
+          } else if (key === "customData" && typeof taskData.customData === 'object') {
+            Object.assign(initialCustom, taskData.customData);
+          } else if (key !== "id" && key !== "createdAt" && key !== "updatedAt" && key !== "organizationId") {
+            initialCustom[key] = taskData[key];
+          }
+        });
+        
+        if (initialStd.startDateTime) initialStd.startDateTime = toLocalISO(initialStd.startDateTime);
+        if (initialStd.dueDateTime) initialStd.dueDateTime = toLocalISO(initialStd.dueDateTime);
+
+        setStandardData(initialStd);
+        setCustomData(initialCustom);
+      } else {
+        setStandardData({
+          taskName: "",
+          startDateTime: "",
+          dueDateTime: "",
+          repeat: "",
+          alert: "",
+          notes: "",
+          owner: "",
+          stageId: localBlueprint?.stages?.[0]?.id || "",
+          assignedBy: currentUserEmail,
+          priority: "",
+          relatedModule: ""
+        });
+        setCustomData({});
+      }
+    }
+  }, [isOpen, taskData, localBlueprint, currentUserEmail]);
+
+  useEffect(() => {
+    if (isOpen) {
+      const fetchUsersAndMe = async () => {
+        try {
+          const token = await getAuthToken();
+          
+          const meRes = await fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } });
+          if (meRes.ok) {
+            const meData = await meRes.json();
+            if (meData.email) setCurrentUserEmail(meData.email);
+          }
+
+          const usersRes = await fetch('/api/users', { headers: { Authorization: `Bearer ${token}` } });
+          if (usersRes.ok) {
+            const usersData = await usersRes.json();
+            if (Array.isArray(usersData)) setUsers(usersData);
+          }
+        } catch (err) {
+          console.error("Error fetching users or me:", err);
+        }
+      };
+      fetchUsersAndMe();
     }
   }, [isOpen]);
 
@@ -90,8 +164,7 @@ export default function TaskIntakeForm({ isOpen, onClose, onSave }) {
         const sourceVal = record[mapping.sourceField] || cData[mapping.sourceField];
 
         if (sourceVal !== undefined) {
-          // Check if target is a standard field
-          const standardKeys = ["firstName", "lastName", "email", "phone", "owner", "stageId", "companyName", "gstNo", "website", "address", "contactPerson", "name", "sku", "taskName", "startDateTime", "dueDateTime", "endDateTime", "repeat", "alert", "notes"];
+          const standardKeys = ["firstName", "lastName", "email", "phone", "owner", "stageId", "companyName", "gstNo", "website", "address", "contactPerson", "name", "sku", "taskName", "startDateTime", "dueDateTime", "endDateTime", "repeat", "alert", "notes", "assignedBy", "priority", "relatedModule"];
           if (standardKeys.includes(mapping.targetField)) {
             setStandardData(prev => ({ ...prev, [mapping.targetField]: sourceVal }));
           } else {
@@ -105,24 +178,41 @@ export default function TaskIntakeForm({ isOpen, onClose, onSave }) {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // Clean up empty dates
-    const payloadData = { ...standardData };
+    if (!standardData.taskName?.trim()) {
+      alert("Task Name is mandatory.");
+      return;
+    }
+    if (!standardData.owner) {
+      alert("Assign To (Owner) is mandatory.");
+      return;
+    }
+    if (!standardData.startDateTime) {
+      alert("Start Date & Time is mandatory.");
+      return;
+    }
+    if (!standardData.dueDateTime) {
+      alert("Due Date & Time is mandatory.");
+      return;
+    }
+    if (new Date(standardData.dueDateTime) <= new Date(standardData.startDateTime)) {
+      alert("Due Date & Time must be strictly greater than Start Date & Time.");
+      return;
+    }
+
+    let payloadData = { ...standardData };
+    
     if (!payloadData.startDateTime) delete payloadData.startDateTime;
     if (!payloadData.dueDateTime) delete payloadData.dueDateTime;
 
     onSave({
       ...payloadData,
       customData,
-      blueprintId: blueprint?.id
+      blueprintId: localBlueprint?.id
     });
 
-    // Reset
-    setStandardData({ taskName: "", startDateTime: "", dueDateTime: "", repeat: "", alert: "", notes: "", owner: "", stageId: blueprint?.stages?.[0]?.id || "" });
-    setCustomData({});
     onClose();
   };
 
-  // Convert ISO string back to datetime-local format for the input value
   const toLocalISO = (isoString) => {
     if (!isoString) return "";
     const date = new Date(isoString);
@@ -142,27 +232,27 @@ export default function TaskIntakeForm({ isOpen, onClose, onSave }) {
           </div>
         ) : (
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-            <div className="slide-header" style={{ flexShrink: 0, backgroundColor: 'var(--card-bg)', zIndex: 10 }}>
+            <div className="slide-header">
               <div>
-                <span className="slide-eyebrow">NEW {blueprint?.moduleType?.toUpperCase() || 'TASK'}</span>
+                <span className="slide-eyebrow">NEW {localBlueprint?.moduleType?.toUpperCase() || 'TASK'}</span>
               </div>
               <button type="button" className="btn-close" onClick={onClose}>✕</button>
             </div>
 
             <div className="slide-content">
-              {blueprint?.fields && (() => {
-                const visibleFields = blueprint.fields.filter(f => !f.isHidden && !standardFieldStates?.[f.name]?.isHidden);
+              {localBlueprint?.fields && (() => {
+                const visibleFields = localBlueprint.fields.filter(f => !f.isHidden && !scriptFieldStates?.[f.name]?.isHidden);
 
                 let orderedSections = [];
-                if (blueprint?.layoutConfig && Array.isArray(blueprint.layoutConfig) && blueprint.layoutConfig.length > 0) {
-                  orderedSections = [...blueprint.layoutConfig].sort((a, b) => a.order - b.order);
+                if (localBlueprint?.layoutConfig && Array.isArray(localBlueprint.layoutConfig) && localBlueprint.layoutConfig.length > 0) {
+                  orderedSections = [...localBlueprint.layoutConfig].sort((a, b) => a.order - b.order);
                 } else {
-                  const uniqueNames = [...new Set(visibleFields.map(f => f.sectionName || 'General Information'))];
-                  orderedSections = uniqueNames.map(name => ({ name, columns: 2 }));
+                  const uniqueNames = [...new Set(visibleFields.map(f => f.sectionName || 'Task Information'))];
+                  orderedSections = uniqueNames.map(name => ({ name, columns: 3 }));
                 }
 
                 return orderedSections.map(section => {
-                  const sectionFields = visibleFields.filter(f => (f.sectionName || 'General Information') === section.name)
+                  const sectionFields = visibleFields.filter(f => (f.sectionName || 'Task Information') === section.name)
                     .sort((a, b) => (a.sectionOrder || 0) - (b.sectionOrder || 0));
 
                   if (sectionFields.length === 0) return null;
@@ -170,15 +260,34 @@ export default function TaskIntakeForm({ isOpen, onClose, onSave }) {
                   return (
                     <div className="data-section" key={section.name || section.id}>
                       <h3 className="section-heading">{section.name}</h3>
-                      <div className="form-group-grid" style={{ display: 'grid', gridTemplateColumns: `repeat(${section.columns || 2}, 1fr)`, gap: '1.5rem' }}>
+                      <div className="form-group-grid" style={{ display: 'grid', gridTemplateColumns: `repeat(${section.columns || 3}, 1fr)`, gap: '1.5rem' }}>
                         {sectionFields.map(field => {
                           const stateOverride = standardFieldStates?.[field.name];
                           if (stateOverride?.isHidden) return null;
+                          
+                          // Hide stageId upon creation
+                          if (field.name === 'stageId' && !taskData) return null;
+
+                          const alwaysRequired = ['taskName', 'owner', 'startDateTime', 'dueDateTime'];
+                          const isRequiredByRule = stateOverride?.isRequired !== undefined ? stateOverride.isRequired : field.isRequired;
 
                           const modifiedField = {
                             ...field,
-                            isRequired: stateOverride?.isRequired !== undefined ? stateOverride.isRequired : field.isRequired
+                            isRequired: alwaysRequired.includes(field.name) || isRequiredByRule
                           };
+
+                          if (field.name === 'owner' || field.name === 'assignedBy') {
+                            return (
+                              <TaskUserDropdown
+                                key={field.id}
+                                field={modifiedField}
+                                value={standardData[field.name]}
+                                users={users}
+                                readOnly={field.name === 'assignedBy'} // assignedBy should be read-only if we just autofill it, or just allow change? The user said "usme by default jo user log in he uska naam autofill aayega". We'll allow them to change it if they want. So readOnly={false}
+                                onChange={(val) => handleFieldChange(field, field.name, val)}
+                              />
+                            );
+                          }
 
                           if (field.name === 'repeat') {
                             return (
@@ -208,7 +317,7 @@ export default function TaskIntakeForm({ isOpen, onClose, onSave }) {
                                 key={field.id}
                                 field={modifiedField}
                                 value={standardData.stageId}
-                                blueprint={blueprint}
+                                blueprint={localBlueprint}
                                 onChange={(val) => handleFieldChange(field, 'stageId', val)}
                               />
                             );
