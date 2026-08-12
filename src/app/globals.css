@@ -258,16 +258,17 @@ body {
 }
 
 .nav-item.active {
-  background-color: #D4F870;
-  color: #000000;
-  font-weight: 700;
-  border: 1px solid #000000;
-  box-shadow: 3px 3px 0px #000000;
-  transform: translate(-1px, -1px);
+  background-color: #d8f95c;
+  color: #111827;
+  font-weight: 600;
+  border: 1px solid transparent;
+  box-shadow: none;
+  transform: none;
 }
 
 .nav-item.active svg {
   stroke-width: 2.5;
+  color: #111827;
 }
 
 .dashboard-main {

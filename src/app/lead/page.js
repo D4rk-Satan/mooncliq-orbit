@@ -354,19 +354,18 @@ export default function LeadModule() {
     return (
       <div className="kanban-board">
         {columns.map(col => (
-          <div
-            key={col.stage.id}
-            className="kanban-column"
-            onDrop={(e) => handleDrop(e, col.stage.id)}
-            onDragOver={(e) => e.preventDefault()}
-          >
-            <div className="kanban-column-header" style={{ backgroundColor: getColumnColor(col.stage.color) }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <h3>{col.stage.name}</h3>
-                <span className="kanban-count">{col.leads.length}</span>
-              </div>
+            <div
+              key={col.stage.id}
+              className="kanban-column"
+              onDrop={(e) => handleDrop(e, col.stage.id)}
+              onDragOver={(e) => e.preventDefault()}
+              style={{ padding: '0 0.5rem', border: 'none', display: 'flex', flexDirection: 'column', minWidth: '320px' }}
+            >
+            <div className="kanban-column-header" style={{ backgroundColor: getColumnColor(col.stage.color), borderRadius: '24px', color: '#ffffff', border: 'none', padding: '0.75rem 1.25rem', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
+              <h3 style={{ margin: 0, color: '#ffffff', fontSize: '1rem', fontWeight: 600 }}>{col.stage.name}</h3>
+              <span className="kanban-count" style={{ backgroundColor: 'rgba(255, 255, 255, 0.25)', color: '#ffffff', border: 'none', borderRadius: '50%', width: '26px', height: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 600 }}>{col.leads.length}</span>
             </div>
-            <div className="kanban-cards">
+            <div className="kanban-cards" style={{ backgroundColor: col.stage.color ? `${col.stage.color}15` : '#f8fafc', borderRadius: '16px', padding: '0.75rem', minHeight: '300px', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {col.leads.map(lead => {
                 const dateOptions = { day: 'numeric', month: 'short' };
                 const formattedDate = lead.createdAt ? new Date(lead.createdAt).toLocaleDateString('en-US', dateOptions) : 'No due date';
@@ -389,32 +388,37 @@ export default function LeadModule() {
                     draggable="true"
                     onDragStart={(e) => handleDragStart(e, lead.id)}
                     style={{
-                      border: selectedLeadIds.includes(lead.id) ? '2px solid var(--primary)' : '1px solid #e2e8f0',
-                      backgroundColor: col.stage.color ? `${col.stage.color}15` : '#ffffff'
+                      border: selectedLeadIds.includes(lead.id) ? '2px solid var(--primary)' : '1px solid transparent',
+                      backgroundColor: '#ffffff',
+                      borderRadius: '16px',
+                      padding: '1rem',
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)'
                     }}
                   >
-                    <div className="card-header-top">
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <div className="card-header-top" style={{ marginBottom: '0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
                         <input
                           type="checkbox"
                           checked={selectedLeadIds.includes(lead.id)}
                           onChange={(e) => toggleLeadSelection(lead.id, e)}
                           onClick={(e) => e.stopPropagation()}
-                          style={{ cursor: 'pointer' }}
+                          style={{ cursor: 'pointer', marginTop: '6px' }}
                         />
-                        <h4 className="card-title" style={{ margin: 0 }}>{title}</h4>
+                        <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: col.stage.color ? `${col.stage.color}25` : '#e2e8f0', color: col.stage.color || '#333', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem', fontWeight: 600, flexShrink: 0 }}>
+                          {lead.firstName?.charAt(0)}{lead.lastName?.charAt(0)}
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          <h4 className="card-title" style={{ margin: 0, fontSize: '0.95rem', color: '#111827', fontWeight: 600 }}>{title}</h4>
+                          <span style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '2px' }}>{subtitle}</span>
+                        </div>
                       </div>
                       <button className="card-menu-btn" onClick={(e) => { e.stopPropagation(); }}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
                       </button>
                     </div>
 
-                    <div className="card-subtitle">
-                      {subtitle}
-                    </div>
-
                     {leadTags.length > 0 && (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', marginTop: '0.5rem', marginBottom: '0.5rem' }}>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', marginTop: '1rem', marginBottom: '0.5rem' }}>
                         {leadTags.map((t, i) => (
                           <span key={i} style={{ fontSize: '0.65rem', fontWeight: 600, color: 'white', background: t.color, padding: '0.15rem 0.4rem', borderRadius: '8px' }}>
                             {t.name}
@@ -423,14 +427,14 @@ export default function LeadModule() {
                       </div>
                     )}
 
-                    <div className="card-footer-bottom">
-                      <div className="date-badge">
+                    <div className="card-footer-bottom" style={{ marginTop: '1rem', paddingTop: '0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div className="date-badge" style={{ backgroundColor: '#f1f5f9', color: '#64748b', padding: '0.25rem 0.6rem', borderRadius: '8px', border: 'none', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem', fontWeight: 500 }}>
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
                         {formattedDate}
                       </div>
 
-                      <div className="card-icons">
-                        <div className="card-icon-item">
+                      <div className="card-icons" style={{ display: 'flex', gap: '0.75rem', color: '#94a3b8' }}>
+                        <div className="card-icon-item" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem' }}>
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
                           <span>{callCount}</span>
                         </div>
@@ -444,21 +448,11 @@ export default function LeadModule() {
                 );
               })}
               {col.leads.length === 0 && (
-                <div style={{ padding: '2rem 1rem', textAlign: 'center', opacity: 0.6 }}>
-                  <svg width="60" height="60" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ margin: '0 auto 1rem auto' }}>
-                    <circle cx="20" cy="30" r="4" fill="#f1f5f9" />
-                    <circle cx="100" cy="20" r="2" fill="#f1f5f9" />
-                    <path d="M40 20H70C75.5228 20 80 24.4772 80 30V80C80 85.5228 75.5228 90 70 90H40C34.4772 90 30 85.5228 30 80V30C30 24.4772 34.4772 20 40 20Z" fill="white" stroke="#cbd5e1" strokeWidth="4" strokeLinejoin="round" />
-                    <path d="M35 25H65C70.5228 25 75 29.4772 75 35V85C75 90.5228 70.5228 95 65 95H35C29.4772 95 25 90.5228 25 85V35C25 29.4772 29.4772 25 35 25Z" fill="white" stroke="#cbd5e1" strokeWidth="4" strokeLinejoin="round" />
-                    <rect x="40" y="40" width="25" height="4" rx="2" fill="#e2e8f0" />
-                    <rect x="40" y="55" width="15" height="4" rx="2" fill="#e2e8f0" />
-                    <circle cx="75" cy="70" r="15" fill="white" stroke="#cbd5e1" strokeWidth="4" />
-                    <path d="M85 80L95 90" stroke="#cbd5e1" strokeWidth="6" strokeLinecap="round" />
-                    <path d="M70 65L80 75" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" />
-                    <path d="M80 65L70 75" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" />
+                <div style={{ border: `2px dashed ${col.stage.color || '#cbd5e1'}`, borderRadius: '12px', padding: '3rem 1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', color: col.stage.color || '#64748b' }}>
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '1rem', opacity: 0.8 }}>
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
                   </svg>
-                  <div style={{ fontSize: '0.875rem', color: '#151920ff', fontWeight: 500 }}>No leads in {col.stage.name}</div>
-                  <div style={{ fontSize: '0.75rem', color: '#13161aff', marginTop: '0.25rem' }}>Drop a card here</div>
+                  <span style={{ fontWeight: 600 }}>No leads here yet</span>
                 </div>
               )}
             </div>
