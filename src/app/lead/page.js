@@ -149,6 +149,30 @@ export default function LeadModule() {
     }
   };
 
+  
+  const fetchOnlyLeads = async (q = '') => {
+    try {
+      const { fetchAuthSession } = await import('aws-amplify/auth');
+      const { tokens } = await fetchAuthSession();
+      const token = tokens.idToken.toString();
+      const headers = { Authorization: `Bearer ${token}` };
+      
+      const url = q ? `/api/leads?q=${encodeURIComponent(q)}` : '/api/leads';
+      const res = await fetch(url, { headers });
+      if (res.ok) {
+        const data = await res.json();
+        setLeads(data);
+      }
+    } catch (e) { console.error('Search fetch error:', e); }
+  };
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      fetchOnlyLeads(searchQuery);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
   const handleImportFile = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -483,14 +507,11 @@ export default function LeadModule() {
       let cData = {};
       try { cData = typeof lead.customData === 'string' ? JSON.parse(lead.customData) : (lead.customData || {}); } catch(e) {}
       
-      const matchesSearch = searchQuery === "" || 
-        `${lead.firstName} ${lead.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (lead.email && lead.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (cData.companyName && cData.companyName.toLowerCase().includes(searchQuery.toLowerCase()));
+      
       
       const matchesStage = filterStageId === "" || lead.stageId === filterStageId;
       
-      return matchesSearch && matchesStage;
+      return matchesStage;
     });
 
     const activeStage = blueprint?.stages?.find(s => s.id === filterStageId);
@@ -498,43 +519,6 @@ export default function LeadModule() {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', flex: 1, backgroundColor: '#f8fafc', padding: '1.5rem', overflow: 'hidden' }}>
         
-        {/* Top Filter Bar */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-          <div style={{ position: 'relative', width: '280px' }}>
-            <svg style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-            <input 
-              type="text" 
-              placeholder="Search leads..." 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ width: '100%', padding: '8px 12px 8px 36px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '0.9rem' }}
-            />
-          </div>
-          
-          <select 
-            value={filterStageId}
-            onChange={(e) => setFilterStageId(e.target.value)}
-            style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '0.9rem', backgroundColor: '#fff', cursor: 'pointer', minWidth: '120px' }}
-          >
-            <option value="">All Stages</option>
-            {(blueprint?.stages || []).map(stage => (
-              <option key={stage.id} value={stage.id}>{stage.name}</option>
-            ))}
-          </select>
-
-          <button style={{ padding: '8px 12px', borderRadius: '8px', border: '1px dashed #cbd5e1', backgroundColor: 'transparent', color: '#64748b', fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            + Add filter
-          </button>
-
-          {/* Active Filter Pill */}
-          {activeStage && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '6px 12px', borderRadius: '16px', backgroundColor: '#0f172a', color: '#fff', fontSize: '0.85rem', fontWeight: 500 }}>
-              Stage: {activeStage.name}
-              <span onClick={() => setFilterStageId("")} style={{ cursor: 'pointer', opacity: 0.7 }}>✕</span>
-            </div>
-          )}
-        </div>
-
         {/* Table Container */}
         <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05)' }}>
           <div style={{ overflowY: 'auto', flex: 1 }}>
@@ -653,6 +637,44 @@ export default function LeadModule() {
       <main className="dashboard-main">
         <header className="dashboard-header">
           <h1>Leads</h1>
+{/* Top Filter Bar */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0', flex: 1, justifyContent: 'center', flexWrap: 'wrap' }}>
+          <div style={{ position: 'relative', width: '280px' }}>
+            <svg style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input 
+              type="text" 
+              placeholder="Search leads..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{ width: '100%', padding: '8px 12px 8px 36px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '0.9rem' }}
+            />
+          </div>
+          
+          <select 
+            value={filterStageId}
+            onChange={(e) => setFilterStageId(e.target.value)}
+            style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '0.9rem', backgroundColor: '#fff', cursor: 'pointer', minWidth: '120px' }}
+          >
+            <option value="">All Stages</option>
+            {(blueprint?.stages || []).map(stage => (
+              <option key={stage.id} value={stage.id}>{stage.name}</option>
+            ))}
+          </select>
+
+          <button style={{ padding: '8px 12px', borderRadius: '8px', border: '1px dashed #cbd5e1', backgroundColor: 'transparent', color: '#64748b', fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            + Add filter
+          </button>
+
+          {/* Active Filter Pill */}
+          {activeStage && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '6px 12px', borderRadius: '16px', backgroundColor: '#0f172a', color: '#fff', fontSize: '0.85rem', fontWeight: 500 }}>
+              Stage: {activeStage.name}
+              <span onClick={() => setFilterStageId("")} style={{ cursor: 'pointer', opacity: 0.7 }}>✕</span>
+            </div>
+          )}
+        </div>
+
+        
           <div className="header-actions" style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
             {(currentUser?.profile?.canAccessSettings || currentUser?.profile?.permissions?.Lead?.create) && (
               <>

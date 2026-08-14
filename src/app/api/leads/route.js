@@ -30,7 +30,10 @@ export async function GET(request) {
       whereClause.owner = user.email; // Assuming owner field holds email
     }
 
-    const leads = await prisma.lead.findMany({
+    const searchParams = request.nextUrl.searchParams;
+    const q = searchParams.get('q');
+
+    let leads = await prisma.lead.findMany({
       where: whereClause,
       include: {
         stage: true,
@@ -38,6 +41,21 @@ export async function GET(request) {
       },
       orderBy: { createdAt: 'desc' }
     });
+
+    if (q) {
+      const lowerQ = q.toLowerCase();
+      leads = leads.filter(lead => {
+        let cDataStr = typeof lead.customData === 'string' ? lead.customData : JSON.stringify(lead.customData || {});
+        return (
+          (lead.firstName && lead.firstName.toLowerCase().includes(lowerQ)) ||
+          (lead.lastName && lead.lastName.toLowerCase().includes(lowerQ)) ||
+          (lead.email && lead.email.toLowerCase().includes(lowerQ)) ||
+          (lead.phone && lead.phone.toLowerCase().includes(lowerQ)) ||
+          cDataStr.toLowerCase().includes(lowerQ)
+        );
+      });
+    }
+
     return NextResponse.json(leads);
   } catch (error) {
     console.error("Error fetching leads:", error);
