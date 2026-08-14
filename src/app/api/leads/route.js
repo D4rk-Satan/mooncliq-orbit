@@ -56,7 +56,7 @@ export async function POST(request) {
     }
 
     const data = await request.json();
-    const { firstName, lastName, email, phone, owner, stageId, customData, blueprintId } = data;
+    const { firstName, lastName, email, phone, owner, stageId, customData, blueprintId, ...rest } = data;
 
     const newLead = await prisma.lead.create({
       data: {
@@ -68,7 +68,7 @@ export async function POST(request) {
         email,
         phone,
         owner,
-        customData: customData || {}
+        customData: { ...(customData || {}), ...rest }
       },
       include: {
         stage: true,
@@ -107,7 +107,7 @@ export async function PATCH(request) {
     }
 
     const data = await request.json();
-    const { leadId, stageId, customData, tags, transitionId } = data;
+    const { leadId, stageId, customData, tags, transitionId, firstName, lastName, email, phone, ...rest } = data;
 
     if (!leadId) {
       return NextResponse.json({ error: "Missing leadId" }, { status: 400 });
@@ -131,7 +131,15 @@ export async function PATCH(request) {
 
     let updateData = {};
     if (stageId) updateData.stageId = stageId;
-    if (customData) updateData.customData = customData;
+    if (firstName !== undefined) updateData.firstName = firstName;
+    if (lastName !== undefined) updateData.lastName = lastName;
+    if (email !== undefined) updateData.email = email;
+    if (phone !== undefined) updateData.phone = phone;
+    
+    let currentCustomData = typeof existingLead.customData === 'string' ? JSON.parse(existingLead.customData || "{}") : (existingLead.customData || {});
+    if (customData || Object.keys(rest).length > 0) {
+      updateData.customData = { ...currentCustomData, ...(customData || {}), ...rest };
+    }
     if (tags !== undefined) {
       if (Array.isArray(tags)) {
         updateData.tags = {

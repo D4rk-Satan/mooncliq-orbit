@@ -27,6 +27,10 @@ export default function LeadModule() {
   const [isImporting, setIsImporting] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   
+  // ListView Filter State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterStageId, setFilterStageId] = useState("");
+
   const fileInputRef = useRef(null);
   const menuRef = useRef(null);
 
@@ -462,57 +466,186 @@ export default function LeadModule() {
     );
   };
 
-  const renderListView = () => (
-    <div className="table-container" style={{ overflowY: 'auto', flex: 1 }}>
-      <table className="data-table">
-        <thead>
-          <tr>
-            <th style={{ width: '40px', textAlign: 'center' }}>
-              <input
-                type="checkbox"
-                checked={leads.length > 0 && selectedLeadIds.length === leads.length}
-                onChange={selectAllLeads}
-                style={{ cursor: 'pointer' }}
-              />
-            </th>
-            <th>Name</th>
-            <th>Company</th>
-            <th>Email</th>
-            <th>Owner</th>
-            <th>Stage</th>
-            <th>Created</th>
-          </tr>
-        </thead>
-        <tbody>
-          {leads.map((lead) => (
-            <tr key={lead.id} style={{ background: selectedLeadIds.includes(lead.id) ? '#f1f5f9' : 'transparent' }}>
-              <td style={{ textAlign: 'center' }}>
-                <input
-                  type="checkbox"
-                  checked={selectedLeadIds.includes(lead.id)}
-                  onChange={(e) => toggleLeadSelection(lead.id, e)}
-                  style={{ cursor: 'pointer' }}
-                />
-              </td>
-              <td className="font-medium cursor-pointer" onClick={() => setSelectedLead(lead)}>{lead.firstName} {lead.lastName}</td>
-              <td>{lead.customData?.companyName || '-'}</td>
-              <td>{lead.email || '-'}</td>
-              <td>{lead.owner || '-'}</td>
-              <td>
-                <span className="badge" style={{ backgroundColor: lead.stage?.color || '#eee' }}>
-                  {lead.stage?.name || 'Unknown'}
-                </span>
-              </td>
-              <td className="text-muted">{new Date(lead.createdAt).toLocaleDateString()}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <div className="table-footer">
-        Showing {leads.length} of {leads.length} records
+  const renderListView = () => {
+    const getInitials = (name) => (name || '').split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) || '?';
+    
+    // Generate a consistent pastel color based on name
+    const getAvatarColor = (name) => {
+      const colors = ['#818cf8', '#38bdf8', '#fbbf24', '#f87171', '#34d399', '#a78bfa'];
+      if (!name) return colors[0];
+      let hash = 0;
+      for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+      return colors[Math.abs(hash) % colors.length];
+    };
+
+    // Apply Filters
+    const filteredLeads = leads.filter(lead => {
+      let cData = {};
+      try { cData = typeof lead.customData === 'string' ? JSON.parse(lead.customData) : (lead.customData || {}); } catch(e) {}
+      
+      const matchesSearch = searchQuery === "" || 
+        `${lead.firstName} ${lead.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (lead.email && lead.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (cData.companyName && cData.companyName.toLowerCase().includes(searchQuery.toLowerCase()));
+      
+      const matchesStage = filterStageId === "" || lead.stageId === filterStageId;
+      
+      return matchesSearch && matchesStage;
+    });
+
+    const activeStage = blueprint?.stages?.find(s => s.id === filterStageId);
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, backgroundColor: '#f8fafc', padding: '1.5rem', overflow: 'hidden' }}>
+        
+        {/* Top Filter Bar */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+          <div style={{ position: 'relative', width: '280px' }}>
+            <svg style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input 
+              type="text" 
+              placeholder="Search leads..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{ width: '100%', padding: '8px 12px 8px 36px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '0.9rem' }}
+            />
+          </div>
+          
+          <select 
+            value={filterStageId}
+            onChange={(e) => setFilterStageId(e.target.value)}
+            style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '0.9rem', backgroundColor: '#fff', cursor: 'pointer', minWidth: '120px' }}
+          >
+            <option value="">All Stages</option>
+            {(blueprint?.stages || []).map(stage => (
+              <option key={stage.id} value={stage.id}>{stage.name}</option>
+            ))}
+          </select>
+
+          <button style={{ padding: '8px 12px', borderRadius: '8px', border: '1px dashed #cbd5e1', backgroundColor: 'transparent', color: '#64748b', fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            + Add filter
+          </button>
+
+          {/* Active Filter Pill */}
+          {activeStage && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '6px 12px', borderRadius: '16px', backgroundColor: '#0f172a', color: '#fff', fontSize: '0.85rem', fontWeight: 500 }}>
+              Stage: {activeStage.name}
+              <span onClick={() => setFilterStageId("")} style={{ cursor: 'pointer', opacity: 0.7 }}>✕</span>
+            </div>
+          )}
+        </div>
+
+        {/* Table Container */}
+        <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05)' }}>
+          <div style={{ overflowY: 'auto', flex: 1 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+              <thead style={{ position: 'sticky', top: 0, backgroundColor: '#ffffff', zIndex: 10 }}>
+                <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                  <th style={{ padding: '1rem', width: '40px', textAlign: 'center' }}>
+                    <input
+                      type="checkbox"
+                      checked={filteredLeads.length > 0 && selectedLeadIds.length === filteredLeads.length}
+                      onChange={selectAllLeads}
+                      style={{ cursor: 'pointer', width: '16px', height: '16px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    />
+                  </th>
+                  {['NAME', 'COMPANY', 'EMAIL', 'OWNER', 'STAGE', 'CREATED'].map(header => (
+                    <th key={header} style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: 600, color: '#64748b', letterSpacing: '0.05em', cursor: 'pointer' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        {header}
+                        <span style={{ opacity: 0.5, fontSize: '0.7rem' }}>↑↓</span>
+                      </div>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filteredLeads.map((lead) => {
+                  let cData = {};
+                  try { cData = typeof lead.customData === 'string' ? JSON.parse(lead.customData) : (lead.customData || {}); } catch(e) {}
+                  return (
+                  <tr 
+                    key={lead.id} 
+                    style={{ 
+                      borderBottom: '1px solid #f1f5f9',
+                      background: selectedLeadIds.includes(lead.id) ? '#f8fafc' : 'transparent',
+                      transition: 'background-color 0.15s',
+                      cursor: 'pointer'
+                    }}
+                    onClick={() => setSelectedLead(lead)}
+                    onMouseEnter={(e) => { if (!selectedLeadIds.includes(lead.id)) e.currentTarget.style.background = '#f8fafc' }}
+                    onMouseLeave={(e) => { if (!selectedLeadIds.includes(lead.id)) e.currentTarget.style.background = 'transparent' }}
+                  >
+                    <td 
+                      style={{ padding: '1rem', textAlign: 'center' }} 
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedLeadIds.includes(lead.id)}
+                        onChange={(e) => toggleLeadSelection(lead.id, e)}
+                        style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                      />
+                    </td>
+                    <td style={{ padding: '1rem', fontWeight: 600, color: '#0f172a', fontSize: '0.9rem' }}>
+                      {lead.firstName} {lead.lastName}
+                    </td>
+                    <td style={{ padding: '1rem', color: '#64748b', fontSize: '0.9rem' }}>
+                      { (() => {
+                          try {
+                            const cData = typeof lead.customData === 'string' ? JSON.parse(lead.customData) : (lead.customData || {});
+                            return cData.companyName || '-';
+                          } catch(e) {
+                            return '-';
+                          }
+                      })() }
+                    </td>
+                    <td style={{ padding: '1rem', color: '#64748b', fontSize: '0.9rem' }}>{lead.email || '-'}</td>
+                    <td style={{ padding: '1rem' }}>
+                      {lead.owner ? (
+                        <div style={{ 
+                          width: '28px', height: '28px', borderRadius: '50%', backgroundColor: getAvatarColor(lead.owner),
+                          color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 600
+                        }} title={lead.owner}>
+                          {getInitials(lead.owner)}
+                        </div>
+                      ) : (
+                        <span style={{ color: '#94a3b8' }}>-</span>
+                      )}
+                    </td>
+                    <td style={{ padding: '1rem' }}>
+                      <div style={{ 
+                        display: 'inline-flex', padding: '4px 12px', borderRadius: '20px', 
+                        backgroundColor: lead.stage?.color || '#3b82f6', color: '#ffffff', 
+                        fontSize: '0.75rem', fontWeight: 600 
+                      }}>
+                        {lead.stage?.name || 'Unknown'}
+                      </div>
+                    </td>
+                    <td style={{ padding: '1rem', color: '#64748b', fontSize: '0.9rem' }}>
+                      {new Date(lead.createdAt).toLocaleDateString('en-GB')}
+                    </td>
+                  </tr>
+                )})}
+              </tbody>
+            </table>
+          </div>
+          
+          {/* Footer Pagination */}
+          <div style={{ padding: '1rem', borderTop: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#ffffff' }}>
+            <div style={{ color: '#64748b', fontSize: '0.85rem' }}>
+              Showing 1-{filteredLeads.length} of {leads.length}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <button style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e2e8f0', borderRadius: '8px', background: '#fff', cursor: 'pointer', color: '#64748b' }}>{'<'}</button>
+              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#0f172a', margin: '0 0.5rem' }}>1 / 1</span>
+              <button style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e2e8f0', borderRadius: '8px', background: '#fff', cursor: 'pointer', color: '#64748b' }}>{'>'}</button>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <>

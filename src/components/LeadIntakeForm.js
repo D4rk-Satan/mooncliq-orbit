@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import DynamicField from "./FieldRegistry";
 import useClientScripts from "@/hooks/useClientScripts";
 import FormSkeleton from "./skeletons/FormSkeleton";
@@ -8,6 +8,7 @@ import FormSkeleton from "./skeletons/FormSkeleton";
 export default function LeadIntakeForm({ isOpen, onClose, onSave }) {
   const [blueprint, setBlueprint] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentStep, setCurrentStep] = useState(0);
 
   // Standard fields
   const [standardData, setStandardData] = useState({
@@ -29,9 +30,28 @@ export default function LeadIntakeForm({ isOpen, onClose, onSave }) {
     blueprint, setBlueprint
   });
 
+  const { visibleFields, orderedSections } = useMemo(() => {
+    if (!blueprint?.fields) return { visibleFields: [], orderedSections: [] };
+    const vf = blueprint.fields.filter(f => !f.isHidden && !standardFieldStates?.[f.name]?.isHidden);
+    
+    console.log("DEBUG: All Blueprint Fields:", blueprint.fields.map(f => ({ name: f.name, isHidden: f.isHidden, sectionName: f.sectionName })));
+    console.log("DEBUG: standardFieldStates for email:", standardFieldStates?.['email']);
+    console.log("DEBUG: Visible Fields Final:", vf.map(f => f.name));
+
+    let os = [];
+    if (blueprint?.layoutConfig && Array.isArray(blueprint.layoutConfig) && blueprint.layoutConfig.length > 0) {
+      os = [...blueprint.layoutConfig].sort((a, b) => a.order - b.order);
+    } else {
+      const uniqueNames = [...new Set(vf.map(f => f.sectionName || 'General Information'))];
+      os = uniqueNames.map(name => ({ name, columns: 2 }));
+    }
+    return { visibleFields: vf, orderedSections: os };
+  }, [blueprint, standardFieldStates]);
+
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
+      setCurrentStep(0); // Reset step when opening
       fetchBlueprint();
     } else {
       document.body.style.overflow = "auto";
@@ -75,7 +95,7 @@ export default function LeadIntakeForm({ isOpen, onClose, onSave }) {
 
     setTimeout(() => executeScript("onChange", name), 0);
 
-    console.log('LeadIntakeForm handleCustomChange:', { name, value, record, mappings }); if (record && mappings && mappings.length > 0) {
+    if (record && mappings && mappings.length > 0) {
       mappings.forEach(mapping => {
         if (!mapping.sourceField || !mapping.targetField) return;
         let cData = {};
@@ -99,6 +119,13 @@ export default function LeadIntakeForm({ isOpen, onClose, onSave }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // If not on the last step, just go to next step
+    if (currentStep < orderedSections.length - 1) {
+      setCurrentStep(prev => prev + 1);
+      return;
+    }
+
     const canSave = await executeScript("onSave");
     if (!canSave) return;
 
@@ -110,13 +137,14 @@ export default function LeadIntakeForm({ isOpen, onClose, onSave }) {
     // Reset
     setStandardData({ firstName: "", lastName: "", email: "", phone: "", owner: "", stageId: blueprint?.stages?.[0]?.id || "" });
     setCustomData({});
+    setCurrentStep(0);
     onClose();
   };
 
   return (
     <>
       <div className={`slide-backdrop ${isOpen ? 'open' : ''}`} onClick={onClose}></div>
-      <div className={`modal-card ${isOpen ? 'open' : ''}`} style={{ width: '700px', maxWidth: '95vw', maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div className={`modal-card ${isOpen ? 'open' : ''}`} style={{ width: '750px', maxWidth: '95vw', maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', borderRadius: '16px' }}>
 
         {isLoading ? (
           <div className="p-8 text-center" style={{ margin: 'auto' }}>
@@ -125,63 +153,102 @@ export default function LeadIntakeForm({ isOpen, onClose, onSave }) {
           </div>
         ) : (
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-            <div className="slide-header" style={{ flexShrink: 0, backgroundColor: 'var(--card-bg)', zIndex: 10 }}>
-              <div>
-                <span className="slide-eyebrow">NEW {blueprint?.moduleType?.toUpperCase() || 'LEAD'}</span>
+            <div className="slide-header" style={{ flexShrink: 0, backgroundColor: '#ffffff', zIndex: 10, display: 'flex', flexDirection: 'column', borderBottom: '1px solid #f1f5f9' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: orderedSections.length > 1 ? '1.5rem' : '0' }}>
+                <span className="slide-eyebrow" style={{ color: 'var(--primary)', letterSpacing: '0.1em', fontWeight: 700 }}>NEW {blueprint?.moduleType?.toUpperCase() || 'LEAD'}</span>
+                <button type="button" className="btn-close" onClick={onClose}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
               </div>
-              <button type="button" className="btn-close" onClick={onClose}>✕</button>
+              
+              {/* Stepper Header */}
+              {orderedSections.length > 1 && (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', padding: '0 1rem' }}>
+                  {orderedSections.map((sec, idx) => (
+                    <React.Fragment key={idx}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <div style={{
+                          width: '28px', height: '28px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: '0.85rem', fontWeight: 600,
+                          backgroundColor: idx < currentStep ? '#D4F870' : idx === currentStep ? '#111827' : '#ffffff',
+                          color: idx < currentStep ? '#111827' : idx === currentStep ? '#ffffff' : '#94a3b8',
+                          border: idx > currentStep ? '2px solid #e2e8f0' : 'none',
+                          boxShadow: idx === currentStep ? '0 4px 10px rgba(0,0,0,0.1)' : 'none'
+                        }}>
+                          {idx < currentStep ? (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                          ) : (
+                            idx + 1
+                          )}
+                        </div>
+                        <span style={{ fontSize: '0.9rem', fontWeight: idx === currentStep ? 600 : 500, color: idx <= currentStep ? '#111827' : '#94a3b8' }}>
+                          {sec.name}
+                        </span>
+                      </div>
+                      {idx < orderedSections.length - 1 && (
+                        <div style={{ flex: 1, height: '2px', backgroundColor: idx < currentStep ? '#D4F870' : '#e2e8f0', minWidth: '30px', margin: '0 1rem' }} />
+                      )}
+                    </React.Fragment>
+                  ))}
+                </div>
+              )}
             </div>
 
-            <div className="slide-content">
-              {blueprint?.fields && (() => {
-                const visibleFields = blueprint.fields.filter(f => !f.isHidden && !standardFieldStates?.[f.name]?.isHidden);
+            <div className="slide-content" style={{ padding: '2rem 2.5rem', backgroundColor: '#ffffff' }}>
+              {orderedSections.length > 0 && (() => {
+                const section = orderedSections[currentStep];
+                const sectionFields = visibleFields.filter(f => (f.sectionName || 'General Information') === section.name)
+                  .sort((a, b) => (a.sectionOrder || 0) - (b.sectionOrder || 0));
 
-                let orderedSections = [];
-                if (blueprint?.layoutConfig && Array.isArray(blueprint.layoutConfig) && blueprint.layoutConfig.length > 0) {
-                  orderedSections = [...blueprint.layoutConfig].sort((a, b) => a.order - b.order);
-                } else {
-                  const uniqueNames = [...new Set(visibleFields.map(f => f.sectionName || 'General Information'))];
-                  orderedSections = uniqueNames.map(name => ({ name, columns: 2 }));
-                }
+                if (sectionFields.length === 0) return (
+                  <div style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>No fields in this section</div>
+                );
 
-                return orderedSections.map(section => {
-                  const sectionFields = visibleFields.filter(f => (f.sectionName || 'General Information') === section.name)
-                    .sort((a, b) => (a.sectionOrder || 0) - (b.sectionOrder || 0));
-
-                  if (sectionFields.length === 0) return null;
-
-                  return (
-                    <div className="data-section" key={section.name || section.id}>
-                      <h3 className="section-heading">{section.name}</h3>
-                      <div className="form-group-grid" style={{ display: 'grid', gridTemplateColumns: `repeat(${section.columns || 2}, 1fr)`, gap: '1.5rem' }}>
-                        {sectionFields.map(field => {
-                          const stateOverride = standardFieldStates?.[field.name];
-                          const modifiedField = {
-                            ...field,
-                            isRequired: stateOverride?.isRequired !== undefined ? stateOverride.isRequired : field.isRequired
-                          };
-                          return (
-                            <DynamicField
-                              formData={{ ...standardData, ...customData }}
-                              key={field.id}
-                              field={modifiedField}
-                              value={field.isSystemField ? standardData[field.name] : customData[field.name]}
-                              onChange={(name, value, record, mappings) => handleFieldChange(field, name, value, record, mappings)}
-                              error={fieldErrors?.[field.name]}
-                              readOnly={fieldReadonlyStates?.[field.name]}
-                            />
-                          );
-                        })}
-                      </div>
+                return (
+                  <div className="data-section" key={section.name || section.id} style={{ border: 'none', padding: 0, margin: 0, boxShadow: 'none' }}>
+                    <div className="form-group-grid" style={{ display: 'grid', gridTemplateColumns: `repeat(${section.columns || 2}, 1fr)`, gap: '1.5rem 2rem' }}>
+                      {sectionFields.map(field => {
+                        const stateOverride = standardFieldStates?.[field.name];
+                        const modifiedField = {
+                          ...field,
+                          isRequired: stateOverride?.isRequired !== undefined ? stateOverride.isRequired : field.isRequired
+                        };
+                        return (
+                          <DynamicField
+                            formData={{ ...standardData, ...customData }}
+                            key={field.id}
+                            field={modifiedField}
+                            value={field.isSystemField ? standardData[field.name] : customData[field.name]}
+                            onChange={(name, value, record, mappings) => handleFieldChange(field, name, value, record, mappings)}
+                            error={fieldErrors?.[field.name]}
+                            readOnly={fieldReadonlyStates?.[field.name]}
+                          />
+                        );
+                      })}
                     </div>
-                  );
-                });
+                  </div>
+                );
               })()}
             </div>
 
-            <div className="slide-footer" style={{ borderTop: '1px solid #e2e8f0', flexShrink: 0, backgroundColor: 'var(--card-bg)', zIndex: 10 }}>
-              <button type="button" className="btn-outline" onClick={onClose}>Cancel</button>
-              <button type="submit" className="btn-primary" style={{ marginLeft: 'auto' }}>Save Lead</button>
+            <div className="slide-footer" style={{ borderTop: '1px solid #f1f5f9', flexShrink: 0, backgroundColor: '#ffffff', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.25rem 2.5rem' }}>
+              {currentStep > 0 ? (
+                <button type="button" onClick={() => setCurrentStep(prev => prev - 1)} style={{ borderRadius: '12px', padding: '0.6rem 1.5rem', border: '1px solid #e2e8f0', backgroundColor: 'transparent', color: '#64748b', fontWeight: 600, cursor: 'pointer' }}>
+                  Back
+                </button>
+              ) : (
+                <button type="button" onClick={onClose} style={{ borderRadius: '12px', padding: '0.6rem 1.5rem', border: '1px solid #e2e8f0', backgroundColor: 'transparent', color: '#64748b', fontWeight: 600, cursor: 'pointer' }}>
+                  Cancel
+                </button>
+              )}
+              
+              <span style={{ fontSize: '0.85rem', color: '#94a3b8', fontWeight: 500 }}>
+                Step {currentStep + 1} of {orderedSections.length || 1}
+              </span>
+
+              <button type="submit" style={{ borderRadius: '12px', padding: '0.6rem 1.5rem', backgroundColor: '#111827', color: 'white', fontWeight: 600, border: 'none', cursor: 'pointer', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+                {currentStep === orderedSections.length - 1 ? 'Save Lead' : 'Next'}
+              </button>
             </div>
           </form>
         )}

@@ -14,6 +14,22 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
   const [checklistState, setChecklistState] = useState({});
   const [tagBuilder, setTagBuilder] = useState({ isOpen: false });
   const [localTags, setLocalTags] = useState([]);
+  const [activeTab, setActiveTab] = useState('Details');
+  
+  // Edit State
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState({});
+  const [isSaving, setIsSaving] = useState(false);
+  const [shakeTrigger, setShakeTrigger] = useState(0);
+  const [isShaking, setIsShaking] = useState(false);
+
+  useEffect(() => {
+    if (shakeTrigger > 0) {
+      setIsShaking(true);
+      const timer = setTimeout(() => setIsShaking(false), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [shakeTrigger]);
 
   useEffect(() => {
     if (isOpen) {
@@ -22,6 +38,9 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
       document.body.style.overflow = "auto";
       setModalMode(null);
       setActiveTransition(null);
+      setActiveTab('Details');
+      setIsEditing(false);
+      setEditData({});
     }
 
     if (lead) {
@@ -43,8 +62,14 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
 
   const currentStageId = lead.stageId;
   const currentStage = blueprint.stages.find(s => s.id === currentStageId);
-  const stageColor = currentStage?.color;
+  const stageColor = currentStage?.color || '#0ea5e9';
   const stageName = currentStage?.name || "Unknown";
+
+  const getInitials = (firstName, lastName) => {
+    const f = firstName ? firstName.charAt(0).toUpperCase() : '';
+    const l = lastName ? lastName.charAt(0).toUpperCase() : '';
+    return (f + l) || '?';
+  };
 
   const availableTransitions = blueprint.transitions.filter(t => {
     // 0. Permission Check
@@ -60,7 +85,6 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
     if (t.executionCriteria && t.executionCriteria.conditions && t.executionCriteria.conditions.length > 0) {
       return evaluateExecutionCriteria(lead, t.executionCriteria);
     }
-
 
     return true; // If no criteria, button is visible
   });
@@ -157,7 +181,7 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
     
     let newData = { ...targetData, [name]: value };
 
-    console.log('SlideOverPanel handleTransitionFieldChange:', {name, value, record, mappings}); if (record && mappings && mappings.length > 0) {
+    if (record && mappings && mappings.length > 0) {
       mappings.forEach(mapping => {
         if (!mapping.sourceField || !mapping.targetField) return;
         let cData = {};
@@ -173,9 +197,145 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
     setTargetData(newData);
   };
 
+  const handleSaveEdit = async () => {
+    setIsSaving(true);
+    try {
+      const { fetchAuthSession } = await import('aws-amplify/auth');
+      const session = await fetchAuthSession();
+      const token = session.tokens?.idToken?.toString();
+
+      const res = await fetch('/api/leads', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : ''
+        },
+        body: JSON.stringify({ leadId: lead.id, ...editData })
+      });
+
+      if (res.ok && onLeadUpdate) {
+        const updatedLead = await res.json();
+        onLeadUpdate(updatedLead);
+        setIsEditing(false);
+      }
+    } catch (e) {
+      console.error("Failed to save lead edit", e);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const renderTabContent = () => {
+    if (activeTab === 'Details') {
+      const standardFields = ['firstName', 'lastName', 'email', 'phone', 'owner'];
+      
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', position: 'relative', paddingBottom: isEditing ? '80px' : '0' }}>
+          {blueprint.fields.map(field => {
+            const isStandard = standardFields.includes(field.name);
+            let value = isStandard ? lead[field.name] : lead.customData?.[field.name];
+            let editValue = isStandard ? editData[field.name] : editData.customData?.[field.name];
+            
+            if (value === undefined || value === null || value === "") {
+              value = "-";
+            }
+
+            return (
+              <div key={field.id}>
+                {isEditing ? (
+                  <div style={{ marginBottom: '1rem' }}>
+                    <DynamicField 
+                      field={field}
+                      value={editValue || ""}
+                      onChange={(name, value) => {
+                        if (isStandard) {
+                          setEditData(prev => ({ ...prev, [field.name]: value }));
+                        } else {
+                          setEditData(prev => ({ ...prev, customData: { ...(prev.customData || {}), [field.name]: value } }));
+                        }
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#94a3b8', marginBottom: '0.5rem' }}>{field.label}</div>
+                    <div style={{ fontSize: '1rem', color: '#0f172a', fontWeight: 500, wordBreak: 'break-word' }}>{value}</div>
+                  </>
+                )}
+              </div>
+            );
+          })}
+          {(!blueprint.fields || blueprint.fields.length === 0) && (
+            <div style={{ color: '#94a3b8', fontSize: '0.9rem', fontStyle: 'italic' }}>No fields configured in blueprint.</div>
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <div style={{ textAlign: 'center', padding: '4rem 0', color: '#94a3b8' }}>
+        <p>No data available for {activeTab}</p>
+      </div>
+    );
+  };
+
   return (
     <>
-      <div className={`slide-backdrop ${isOpen ? 'open' : ''}`} onClick={onClose}></div>
+      <style>{`
+        @keyframes shake-banner {
+          0%, 100% { transform: translateX(-50%); }
+          10%, 30%, 50%, 70%, 90% { transform: translateX(calc(-50% - 8px)); }
+          20%, 40%, 60%, 80% { transform: translateX(calc(-50% + 8px)); }
+        }
+        @keyframes slideDown {
+          from { transform: translate(-50%, -100%); opacity: 0; }
+          to { transform: translate(-50%, 0); opacity: 1; }
+        }
+      `}</style>
+      
+      {isEditing && (
+        <div style={{
+          position: 'fixed', top: '20px', left: '50%', transform: 'translateX(-50%)',
+          backgroundColor: '#0f172a', color: 'white', padding: '12px 24px',
+          borderRadius: '50px', display: 'flex', alignItems: 'center', gap: '24px',
+          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+          zIndex: 9999, fontWeight: 500, fontSize: '0.95rem',
+          animation: isShaking ? 'shake-banner 0.4s ease-in-out' : 'slideDown 0.3s ease-out forwards'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#f59e0b' }}></span>
+            Unsaved changes
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <button
+              onClick={() => setIsEditing(false)}
+              disabled={isSaving}
+              style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontWeight: 500, padding: '4px 8px', transition: 'color 0.2s' }}
+              onMouseEnter={e => e.target.style.color = 'white'}
+              onMouseLeave={e => e.target.style.color = '#94a3b8'}
+            >
+              Discard
+            </button>
+            <button
+              onClick={handleSaveEdit}
+              disabled={isSaving}
+              style={{ backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '24px', padding: '6px 16px', cursor: 'pointer', fontWeight: 600, transition: 'background-color 0.2s', display: 'flex', alignItems: 'center', gap: '8px' }}
+              onMouseEnter={e => e.target.style.backgroundColor = '#059669'}
+              onMouseLeave={e => e.target.style.backgroundColor = '#10b981'}
+            >
+              {isSaving ? 'Saving...' : 'Save'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className={`slide-backdrop ${isOpen ? 'open' : ''}`} onClick={() => {
+        if (isEditing) {
+          setShakeTrigger(prev => prev + 1);
+        } else {
+          onClose();
+        }
+      }} style={{ zIndex: 990 }}></div>
 
       {/* TAG BUILDER MODAL */}
       {tagBuilder.isOpen && (
@@ -249,112 +409,135 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
         </div>
       )}
 
-      <div className={`modal-card ${isOpen ? 'open' : ''}`} style={{ display: 'flex', flexDirection: 'column', backgroundColor: 'var(--card-bg)', backgroundImage: stageColor ? `linear-gradient(${stageColor}1A, ${stageColor}1A)` : 'none' }}>
-        <div className="slide-header" style={{ borderBottom: `2px solid ${stageColor || '#e2e8f0'}`, paddingBottom: '0.75rem' }}>
-          <div>
-            <span className="slide-eyebrow">BLUEPRINT STAGE: {stageName}</span>
-            <h2 className="slide-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-              {lead.firstName} {lead.lastName}
-              {localTags.map((t, idx) => (
-                <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', fontWeight: 600, color: 'white', background: t.color, padding: '0.2rem 0.6rem', borderRadius: '12px' }}>
-                  {t.name}
-                  {(!currentUser || currentUser.profile?.canAccessSettings || currentUser.profile?.permissions?.[blueprint.moduleType]?.edit) && (
-                    <button
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        const newTags = localTags.filter((_, i) => i !== idx);
-                        setLocalTags(newTags);
-
-                        try {
-                          const { fetchAuthSession } = await import('aws-amplify/auth');
-                          const session = await fetchAuthSession();
-                          const token = session.tokens?.idToken?.toString();
-
-                          const res = await fetch('/api/leads', {
-                            method: 'PATCH',
-                            headers: {
-                              'Content-Type': 'application/json',
-                              'Authorization': token ? `Bearer ${token}` : ''
-                            },
-                            body: JSON.stringify({ leadId: lead.id, tags: newTags.map(t => t.id) })
-                          });
-
-                          if (res.ok && onLeadUpdate) {
-                            const updatedLead = await res.json();
-                            onLeadUpdate(updatedLead);
-                          }
-                        } catch (err) {
-                          console.error("Failed to remove tag", err);
-                        }
-                      }}
-                      style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.8)', cursor: 'pointer', padding: 0, fontSize: '0.8rem', display: 'flex', alignItems: 'center' }}
-                      aria-label="Remove tag"
-                    >✕</button>
-                  )}
-                </span>
-              ))}
-              {(!currentUser || currentUser.profile?.canAccessSettings || currentUser.profile?.permissions?.[blueprint.moduleType]?.edit) && (
-                <button onClick={() => setTagBuilder({ isOpen: true })} style={{ background: 'none', border: '1px dashed #cbd5e1', color: '#64748b', fontSize: '0.75rem', fontWeight: 500, padding: '0.2rem 0.6rem', borderRadius: '12px', cursor: 'pointer' }}>+ Add Tag</button>
-              )}
-            </h2>
-          </div>
-          <button className="btn-close" onClick={onClose} aria-label="Close panel">✕</button>
-        </div>
-
-        <div className="slide-content" style={{ flex: 1, overflowY: 'auto', position: 'relative' }}>
-
-          <div className="data-section">
-            <h3 className="section-heading">Contact Information</h3>
-            <div className="data-grid-2col">
-              <div className="data-block">
-                <span className="data-label">Email</span>
-                <span className="data-value">{lead.email || "-"}</span>
+      <div className={`modal-card ${isOpen ? 'open' : ''}`} style={{ 
+        display: 'flex', flexDirection: 'column', backgroundColor: '#ffffff', 
+        width: '600px', maxWidth: '100vw', right: isOpen ? '0' : '-600px',
+        top: 0, bottom: 0, height: '100vh', maxHeight: '100vh', borderRadius: '0',
+        left: 'auto', transform: 'none', /* Override modal-card centering */
+        boxShadow: '-4px 0 24px rgba(0,0,0,0.1)', zIndex: 995, position: 'fixed',
+        transition: 'right 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+      }}>
+        <div style={{ display: 'flex', flexDirection: 'column', padding: '2rem 2rem 0 2rem' }}>
+          
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', gap: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div style={{ 
+                width: '48px', height: '48px', borderRadius: '50%', 
+                backgroundColor: `${stageColor}20`, color: stageColor, 
+                display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                fontSize: '1.1rem', fontWeight: 600, letterSpacing: '1px' 
+              }}>
+                {getInitials(lead.firstName, lead.lastName)}
               </div>
-              <div className="data-block">
-                <span className="data-label">Phone</span>
-                <span className="data-value">{lead.phone || "-"}</span>
-              </div>
-              <div className="data-block">
-                <span className="data-label">Owner</span>
-                <span className="data-value">{lead.owner || "-"}</span>
-              </div>
-              <div className="data-block">
-                <span className="data-label">Created At</span>
-                <span className="data-value">{new Date(lead.createdAt).toLocaleDateString()}</span>
+              <div>
+                <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  {lead.firstName} {lead.lastName}
+                  <span style={{ fontSize: '0.7rem', fontWeight: 600, color: stageColor, backgroundColor: `${stageColor}15`, padding: '0.2rem 0.6rem', borderRadius: '12px' }}>
+                    {stageName}
+                  </span>
+                </h2>
               </div>
             </div>
+            <button 
+              style={{ background: 'none', border: 'none', cursor: isEditing ? 'not-allowed' : 'pointer', color: '#94a3b8', fontSize: '1.25rem', opacity: isEditing ? 0.5 : 1 }} 
+              onClick={() => {
+                if (isEditing) {
+                  setShakeTrigger(prev => prev + 1);
+                } else {
+                  onClose();
+                }
+              }}
+            >✕</button>
           </div>
 
-          <div className="data-section">
-            <h3 className="section-heading">Dynamic Fields (Blueprint)</h3>
-            <div className="data-grid-2col">
-              {blueprint.fields.map(field => (
-                <div className="data-block" key={field.id}>
-                  <span className="data-label">{field.label}</span>
-                  <span className="data-value">{lead.customData?.[field.name] || "-"}</span>
-                </div>
-              ))}
-              {blueprint.fields.length === 0 && (
-                <span className="text-muted text-sm">No custom fields defined.</span>
-              )}
-            </div>
+          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
+            <button style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '48px', height: '36px', borderRadius: '18px', border: '1px solid #e2e8f0', backgroundColor: '#ffffff', color: '#64748b', cursor: 'pointer', flexShrink: 0 }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+            </button>
+            <button style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '48px', height: '36px', borderRadius: '18px', border: '1px solid #e2e8f0', backgroundColor: '#ffffff', color: '#64748b', cursor: 'pointer' }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+            </button>
+            <button style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '48px', height: '36px', borderRadius: '18px', border: '1px solid #e2e8f0', backgroundColor: '#ffffff', color: '#64748b', cursor: 'pointer' }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+            </button>
+            {!isEditing && (
+              <button 
+                onClick={() => {
+                  setIsEditing(true);
+                  setEditData({ ...lead, customData: { ...(lead.customData || {}) } });
+                }}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0 1.25rem', height: '36px', borderRadius: '18px', border: 'none', backgroundColor: '#0f172a', color: '#ffffff', fontWeight: 600, cursor: 'pointer', fontSize: '0.9rem' }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                Edit
+              </button>
+            )}
+          </div>
+          
+          <div style={{ display: 'flex', gap: '1.5rem', borderBottom: '1px solid #e2e8f0', flexWrap: 'wrap' }}>
+            {['Details', 'Activity', 'Notes', 'Files', 'Related'].map(tab => (
+              <button
+                key={tab}
+                onClick={() => {
+                  if (isEditing) {
+                    setShakeTrigger(prev => prev + 1);
+                  } else {
+                    setActiveTab(tab);
+                  }
+                }}
+                style={{
+                  background: 'none', border: 'none', padding: '0.75rem 0', cursor: isEditing ? 'not-allowed' : 'pointer',
+                  fontSize: '0.9rem', fontWeight: activeTab === tab ? 600 : 500,
+                  color: activeTab === tab ? '#0f172a' : '#64748b',
+                  opacity: (isEditing && activeTab !== tab) ? 0.4 : 1,
+                  borderBottom: activeTab === tab ? '2px solid #0f172a' : '2px solid transparent',
+                  marginBottom: '-1px', transition: 'all 0.2s', whiteSpace: 'nowrap'
+                }}
+              >
+                {tab} {tab === 'Files' || tab === 'Related' ? '(2)' : ''}
+              </button>
+            ))}
           </div>
         </div>
 
-        <div className="slide-footer" style={{ flexWrap: 'wrap', gap: '0.5rem', background: '#f8fafc', borderTop: '1px solid #e2e8f0', padding: '1.5rem' }}>
+        <div className="slide-content" style={{ flex: 1, overflowY: 'auto', padding: '2rem' }}>
+          {renderTabContent()}
+          
+          {localTags.length > 0 && (
+            <div style={{ marginTop: '2.5rem' }}>
+              <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#94a3b8', marginBottom: '0.75rem' }}>Tags</div>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                {localTags.map((t, idx) => (
+                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', fontWeight: 600, color: '#0f172a', background: `${t.color}20`, border: `1px solid ${t.color}`, padding: '0.25rem 0.75rem', borderRadius: '16px' }}>
+                    {t.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="slide-footer" style={{ borderTop: '1px solid #e2e8f0', padding: '1.25rem 2rem', background: '#ffffff' }}>
           {availableTransitions.length === 0 ? (
             <p className="text-muted text-sm" style={{ width: '100%', textAlign: 'center', margin: 0 }}>No transitions available for this stage.</p>
           ) : (
-            availableTransitions.map(t => (
-              <button
-                key={t.id}
-                onClick={() => handleTransitionClick(t)}
-                className={t.isGlobal ? "btn-outline" : "btn-primary"}
-                style={{ flex: '1 1 auto', textAlign: 'center', minWidth: '120px' }}
-              >
-                {t.name}
-              </button>
-            ))
+            <div style={{ display: 'flex', gap: '0.75rem', overflowX: 'auto', paddingBottom: '4px' }}>
+              {availableTransitions.map(t => (
+                <button
+                  key={t.id}
+                  onClick={() => handleTransitionClick(t)}
+                  style={{
+                    flex: '1 0 auto', padding: '0.6rem 1.2rem', borderRadius: '8px',
+                    fontSize: '0.9rem', fontWeight: 600, cursor: 'pointer',
+                    background: t.isGlobal ? '#f8fafc' : '#0f172a',
+                    color: t.isGlobal ? '#334155' : '#ffffff',
+                    border: t.isGlobal ? '1px solid #e2e8f0' : 'none',
+                  }}
+                >
+                  {t.name}
+                </button>
+              ))}
+            </div>
           )}
         </div>
       </div>
