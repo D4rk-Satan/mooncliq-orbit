@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import DynamicField from "./FieldRegistry";
 import { evaluateExecutionCriteria } from "../utils/ruleEngine";
 
-export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags = [], currentUser, onTransition, onLeadUpdate, pendingTransition }) {
+export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags = [], currentUser, onTransition, onLeadUpdate, pendingTransition, onEditClick }) {
   const [modalMode, setModalMode] = useState(null); // null | 'missing' | 'security' | 'confirm'
   const [activeTransition, setActiveTransition] = useState(null);
   const [formData, setFormData] = useState({});
@@ -16,20 +16,7 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
   const [localTags, setLocalTags] = useState([]);
   const [activeTab, setActiveTab] = useState('Details');
   
-  // Edit State
-  const [isEditing, setIsEditing] = useState(false);
-  const [editData, setEditData] = useState({});
-  const [isSaving, setIsSaving] = useState(false);
-  const [shakeTrigger, setShakeTrigger] = useState(0);
-  const [isShaking, setIsShaking] = useState(false);
 
-  useEffect(() => {
-    if (shakeTrigger > 0) {
-      setIsShaking(true);
-      const timer = setTimeout(() => setIsShaking(false), 500);
-      return () => clearTimeout(timer);
-    }
-  }, [shakeTrigger]);
 
   useEffect(() => {
     if (isOpen) {
@@ -39,8 +26,6 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
       setModalMode(null);
       setActiveTransition(null);
       setActiveTab('Details');
-      setIsEditing(false);
-      setEditData({});
     }
 
     if (lead) {
@@ -197,44 +182,17 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
     setTargetData(newData);
   };
 
-  const handleSaveEdit = async () => {
-    setIsSaving(true);
-    try {
-      const { fetchAuthSession } = await import('aws-amplify/auth');
-      const session = await fetchAuthSession();
-      const token = session.tokens?.idToken?.toString();
 
-      const res = await fetch('/api/leads', {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': token ? `Bearer ${token}` : ''
-        },
-        body: JSON.stringify({ leadId: lead.id, ...editData })
-      });
-
-      if (res.ok && onLeadUpdate) {
-        const updatedLead = await res.json();
-        onLeadUpdate(updatedLead);
-        setIsEditing(false);
-      }
-    } catch (e) {
-      console.error("Failed to save lead edit", e);
-    } finally {
-      setIsSaving(false);
-    }
-  };
 
   const renderTabContent = () => {
     if (activeTab === 'Details') {
       const standardFields = ['firstName', 'lastName', 'email', 'phone', 'owner'];
       
       return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', position: 'relative', paddingBottom: isEditing ? '80px' : '0' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', position: 'relative', paddingBottom: '0' }}>
           {blueprint.fields.map(field => {
             const isStandard = standardFields.includes(field.name);
             let value = isStandard ? lead[field.name] : lead.customData?.[field.name];
-            let editValue = isStandard ? editData[field.name] : editData.customData?.[field.name];
             
             if (value === undefined || value === null || value === "") {
               value = "-";
@@ -242,26 +200,8 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
 
             return (
               <div key={field.id}>
-                {isEditing ? (
-                  <div style={{ marginBottom: '1rem' }}>
-                    <DynamicField 
-                      field={field}
-                      value={editValue || ""}
-                      onChange={(name, value) => {
-                        if (isStandard) {
-                          setEditData(prev => ({ ...prev, [field.name]: value }));
-                        } else {
-                          setEditData(prev => ({ ...prev, customData: { ...(prev.customData || {}), [field.name]: value } }));
-                        }
-                      }}
-                    />
-                  </div>
-                ) : (
-                  <>
-                    <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#94a3b8', marginBottom: '0.5rem' }}>{field.label}</div>
-                    <div style={{ fontSize: '1rem', color: '#0f172a', fontWeight: 500, wordBreak: 'break-word' }}>{value}</div>
-                  </>
-                )}
+                <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#94a3b8', marginBottom: '0.5rem' }}>{field.label}</div>
+                <div style={{ fontSize: '1rem', color: '#0f172a', fontWeight: 500, wordBreak: 'break-word' }}>{value}</div>
               </div>
             );
           })}
@@ -281,61 +221,9 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
 
   return (
     <>
-      <style>{`
-        @keyframes shake-banner {
-          0%, 100% { transform: translateX(-50%); }
-          10%, 30%, 50%, 70%, 90% { transform: translateX(calc(-50% - 8px)); }
-          20%, 40%, 60%, 80% { transform: translateX(calc(-50% + 8px)); }
-        }
-        @keyframes slideDown {
-          from { transform: translate(-50%, -100%); opacity: 0; }
-          to { transform: translate(-50%, 0); opacity: 1; }
-        }
-      `}</style>
-      
-      {isEditing && (
-        <div style={{
-          position: 'fixed', top: '20px', left: '50%', transform: 'translateX(-50%)',
-          backgroundColor: '#0f172a', color: 'white', padding: '12px 24px',
-          borderRadius: '50px', display: 'flex', alignItems: 'center', gap: '24px',
-          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
-          zIndex: 9999, fontWeight: 500, fontSize: '0.95rem',
-          animation: isShaking ? 'shake-banner 0.4s ease-in-out' : 'slideDown 0.3s ease-out forwards'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#f59e0b' }}></span>
-            Unsaved changes
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <button
-              onClick={() => setIsEditing(false)}
-              disabled={isSaving}
-              style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontWeight: 500, padding: '4px 8px', transition: 'color 0.2s' }}
-              onMouseEnter={e => e.target.style.color = 'white'}
-              onMouseLeave={e => e.target.style.color = '#94a3b8'}
-            >
-              Discard
-            </button>
-            <button
-              onClick={handleSaveEdit}
-              disabled={isSaving}
-              style={{ backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '24px', padding: '6px 16px', cursor: 'pointer', fontWeight: 600, transition: 'background-color 0.2s', display: 'flex', alignItems: 'center', gap: '8px' }}
-              onMouseEnter={e => e.target.style.backgroundColor = '#059669'}
-              onMouseLeave={e => e.target.style.backgroundColor = '#10b981'}
-            >
-              {isSaving ? 'Saving...' : 'Save'}
-            </button>
-          </div>
-        </div>
-      )}
 
-      <div className={`slide-backdrop ${isOpen ? 'open' : ''}`} onClick={() => {
-        if (isEditing) {
-          setShakeTrigger(prev => prev + 1);
-        } else {
-          onClose();
-        }
-      }} style={{ zIndex: 990 }}></div>
+
+      <div className={`slide-backdrop ${isOpen ? 'open' : ''}`} onClick={onClose} style={{ zIndex: 990 }}></div>
 
       {/* TAG BUILDER MODAL */}
       {tagBuilder.isOpen && (
@@ -439,14 +327,8 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
               </div>
             </div>
             <button 
-              style={{ background: 'none', border: 'none', cursor: isEditing ? 'not-allowed' : 'pointer', color: '#94a3b8', fontSize: '1.25rem', opacity: isEditing ? 0.5 : 1 }} 
-              onClick={() => {
-                if (isEditing) {
-                  setShakeTrigger(prev => prev + 1);
-                } else {
-                  onClose();
-                }
-              }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', fontSize: '1.25rem' }} 
+              onClick={onClose}
             >✕</button>
           </div>
 
@@ -460,36 +342,24 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
             <button style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '48px', height: '36px', borderRadius: '18px', border: '1px solid #e2e8f0', backgroundColor: '#ffffff', color: '#64748b', cursor: 'pointer' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
             </button>
-            {!isEditing && (
-              <button 
-                onClick={() => {
-                  setIsEditing(true);
-                  setEditData({ ...lead, customData: { ...(lead.customData || {}) } });
-                }}
-                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0 1.25rem', height: '36px', borderRadius: '18px', border: 'none', backgroundColor: '#0f172a', color: '#ffffff', fontWeight: 600, cursor: 'pointer', fontSize: '0.9rem' }}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                Edit
-              </button>
-            )}
+            <button 
+              onClick={() => onEditClick(lead)}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0 1.25rem', height: '36px', borderRadius: '18px', border: 'none', backgroundColor: '#0f172a', color: '#ffffff', fontWeight: 600, cursor: 'pointer', fontSize: '0.9rem' }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+              Edit
+            </button>
           </div>
           
           <div style={{ display: 'flex', gap: '1.5rem', borderBottom: '1px solid #e2e8f0', flexWrap: 'wrap' }}>
             {['Details', 'Activity', 'Notes', 'Files', 'Related'].map(tab => (
               <button
                 key={tab}
-                onClick={() => {
-                  if (isEditing) {
-                    setShakeTrigger(prev => prev + 1);
-                  } else {
-                    setActiveTab(tab);
-                  }
-                }}
+                onClick={() => setActiveTab(tab)}
                 style={{
-                  background: 'none', border: 'none', padding: '0.75rem 0', cursor: isEditing ? 'not-allowed' : 'pointer',
+                  background: 'none', border: 'none', padding: '0.75rem 0', cursor: 'pointer',
                   fontSize: '0.9rem', fontWeight: activeTab === tab ? 600 : 500,
                   color: activeTab === tab ? '#0f172a' : '#64748b',
-                  opacity: (isEditing && activeTab !== tab) ? 0.4 : 1,
                   borderBottom: activeTab === tab ? '2px solid #0f172a' : '2px solid transparent',
                   marginBottom: '-1px', transition: 'all 0.2s', whiteSpace: 'nowrap'
                 }}
