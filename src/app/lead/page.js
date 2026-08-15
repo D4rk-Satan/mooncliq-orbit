@@ -26,9 +26,61 @@ export default function LeadModule() {
   const [isBulkTagPickerOpen, setIsBulkTagPickerOpen] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  
+
   // ListView Filter State
   const [searchQuery, setSearchQuery] = useState("");
+  const defaultCols = ['firstName', 'companyName', 'email', 'owner', 'stage', 'createdAt'];
+  const [visibleColumns, setVisibleColumns] = useState([]);
+  const [isManageColsMenuOpen, setIsManageColsMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('mooncliq_lead_cols');
+    if (saved) {
+      try { setVisibleColumns(JSON.parse(saved)); } catch(e) { setVisibleColumns(defaultCols); }
+    } else {
+      setVisibleColumns(defaultCols);
+    }
+  }, []);
+
+  const handleColToggle = (colName) => {
+    let newCols = [...visibleColumns];
+    if (newCols.includes(colName)) {
+      newCols = newCols.filter(c => c !== colName);
+    } else {
+      if (newCols.length >= 7) {
+        alert("Maximum 7 columns allowed");
+        return;
+      }
+      newCols.push(colName);
+    }
+    setVisibleColumns(newCols);
+    localStorage.setItem('mooncliq_lead_cols', JSON.stringify(newCols));
+  };
+
+  const handleDragStartCol = (e, idx) => {
+    e.dataTransfer.setData('colIdx', idx);
+  };
+  const handleDropCol = (e, dropIdx) => {
+    const dragIdx = parseInt(e.dataTransfer.getData('colIdx'));
+    if (isNaN(dragIdx) || dragIdx === dropIdx) return;
+    const newCols = [...visibleColumns];
+    const [dragged] = newCols.splice(dragIdx, 1);
+    newCols.splice(dropIdx, 0, dragged);
+    setVisibleColumns(newCols);
+    localStorage.setItem('mooncliq_lead_cols', JSON.stringify(newCols));
+  };
+
+  const getFieldInfo = (fieldName) => {
+    const defaultLabels = {
+      firstName: 'NAME', companyName: 'COMPANY', email: 'EMAIL', owner: 'OWNER', stage: 'STAGE', createdAt: 'CREATED'
+    };
+    if (defaultLabels[fieldName]) return defaultLabels[fieldName];
+    const blueprintField = (blueprint?.fields || []).find(f => f.name === fieldName);
+    return blueprintField ? blueprintField.label.toUpperCase() : fieldName.toUpperCase();
+  };
+
+  const [sortConfig, setSortConfig] = useState({ key: "createdAt", direction: "desc" });
+  const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
   const [filterStageId, setFilterStageId] = useState("");
 
   const fileInputRef = useRef(null);
@@ -149,14 +201,14 @@ export default function LeadModule() {
     }
   };
 
-  
+
   const fetchOnlyLeads = async (q = '') => {
     try {
       const { fetchAuthSession } = await import('aws-amplify/auth');
       const { tokens } = await fetchAuthSession();
       const token = tokens.idToken.toString();
       const headers = { Authorization: `Bearer ${token}` };
-      
+
       const url = q ? `/api/leads?q=${encodeURIComponent(q)}` : '/api/leads';
       const res = await fetch(url, { headers });
       if (res.ok) {
@@ -382,13 +434,13 @@ export default function LeadModule() {
     return (
       <div className="kanban-board">
         {columns.map(col => (
-            <div
-              key={col.stage.id}
-              className="kanban-column"
-              onDrop={(e) => handleDrop(e, col.stage.id)}
-              onDragOver={(e) => e.preventDefault()}
-              style={{ padding: '0 0.5rem', border: 'none', display: 'flex', flexDirection: 'column', minWidth: '320px' }}
-            >
+          <div
+            key={col.stage.id}
+            className="kanban-column"
+            onDrop={(e) => handleDrop(e, col.stage.id)}
+            onDragOver={(e) => e.preventDefault()}
+            style={{ padding: '0 0.5rem', border: 'none', display: 'flex', flexDirection: 'column', minWidth: '320px' }}
+          >
             <div className="kanban-column-header" style={{ backgroundColor: getColumnColor(col.stage.color), borderRadius: '24px', color: '#ffffff', border: 'none', padding: '0.75rem 1.25rem', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
               <h3 style={{ margin: 0, color: '#ffffff', fontSize: '1rem', fontWeight: 600 }}>{col.stage.name}</h3>
               <span className="kanban-count" style={{ backgroundColor: 'rgba(255, 255, 255, 0.25)', color: '#ffffff', border: 'none', borderRadius: '50%', width: '26px', height: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 600 }}>{col.leads.length}</span>
@@ -492,7 +544,37 @@ export default function LeadModule() {
 
   const renderListView = () => {
     const getInitials = (name) => (name || '').split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) || '?';
-    
+
+    const renderCellContent = (lead, colName) => {
+      let cData = {};
+      try { cData = typeof lead.customData === 'string' ? JSON.parse(lead.customData) : (lead.customData || {}); } catch(e){}
+
+      let val = '';
+      const standardFields = ['id', 'firstName', 'lastName', 'email', 'phone', 'owner', 'stage', 'createdAt', 'updatedAt', 'organizationId'];
+
+      if (colName === 'firstName') val = `${lead.firstName || ''} ${lead.lastName || ''}`.trim();
+      else if (colName === 'companyName') val = cData.companyName || '-';
+      else if (colName === 'owner') return lead.owner ? (
+        <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: getAvatarColor(lead.owner), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 600 }} title={lead.owner}>
+          {getInitials(lead.owner)}
+        </div>
+      ) : <span style={{ color: '#94a3b8' }}>-</span>;
+      else if (colName === 'stage') return (
+        <div style={{ display: 'inline-flex', padding: '4px 12px', borderRadius: '20px', backgroundColor: lead.stage?.color || '#3b82f6', color: '#ffffff', fontSize: '0.75rem', fontWeight: 600 }}>
+          {lead.stage?.name || 'Unknown'}
+        </div>
+      );
+      else if (colName === 'createdAt' || colName === 'updatedAt') val = new Date(lead[colName]).toLocaleDateString('en-GB');
+      else if (standardFields.includes(colName)) val = lead[colName] || '-';
+      else val = cData[colName] || '-';
+
+      return (
+        <div style={{ maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={val}>
+          {val}
+        </div>
+      );
+    };
+
     // Generate a consistent pastel color based on name
     const getAvatarColor = (name) => {
       const colors = ['#818cf8', '#38bdf8', '#fbbf24', '#f87171', '#34d399', '#a78bfa'];
@@ -505,116 +587,100 @@ export default function LeadModule() {
     // Apply Filters
     const filteredLeads = leads.filter(lead => {
       let cData = {};
-      try { cData = typeof lead.customData === 'string' ? JSON.parse(lead.customData) : (lead.customData || {}); } catch(e) {}
-      
-      
-      
-      const matchesStage = filterStageId === "" || lead.stageId === filterStageId;
-      
-      return matchesStage;
-    });
+      try { cData = typeof lead.customData === 'string' ? JSON.parse(lead.customData) : (lead.customData || {}); } catch (e) { }
 
-    const activeStage = blueprint?.stages?.find(s => s.id === filterStageId);
+
+
+      const matchesStage = filterStageId === "" || lead.stageId === filterStageId;
+
+      return matchesStage;
+    }).sort((a, b) => {
+      let aVal = a[sortConfig.key];
+      let bVal = b[sortConfig.key];
+
+      const standardFields = ['firstName', 'lastName', 'email', 'phone', 'owner', 'createdAt'];
+      if (!standardFields.includes(sortConfig.key)) {
+        try { aVal = (typeof a.customData === 'string' ? JSON.parse(a.customData) : (a.customData || {}))[sortConfig.key]; } catch (e) { }
+        try { bVal = (typeof b.customData === 'string' ? JSON.parse(b.customData) : (b.customData || {}))[sortConfig.key]; } catch (e) { }
+      }
+
+      if (aVal === bVal) return 0;
+      if (!aVal) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (!bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+
+      if (typeof aVal === 'string' && typeof bVal === 'string') {
+        const dateA = new Date(aVal);
+        const dateB = new Date(bVal);
+        if (!isNaN(dateA) && !isNaN(dateB)) {
+          return sortConfig.direction === 'asc' ? dateA - dateB : dateB - dateA;
+        }
+        return sortConfig.direction === 'asc' ? aVal.toLowerCase().localeCompare(bVal.toLowerCase()) : bVal.toLowerCase().localeCompare(aVal.toLowerCase());
+      }
+      return sortConfig.direction === 'asc' ? (aVal > bVal ? 1 : -1) : (aVal < bVal ? 1 : -1);
+    });
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', flex: 1, backgroundColor: '#f8fafc', padding: '1.5rem', overflow: 'hidden' }}>
-        
+
         {/* Table Container */}
         <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05)' }}>
           <div style={{ overflowY: 'auto', flex: 1 }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
               <thead style={{ position: 'sticky', top: 0, backgroundColor: '#ffffff', zIndex: 10 }}>
-                <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
-                  <th style={{ padding: '1rem', width: '40px', textAlign: 'center' }}>
-                    <input
-                      type="checkbox"
-                      checked={filteredLeads.length > 0 && selectedLeadIds.length === filteredLeads.length}
-                      onChange={selectAllLeads}
-                      style={{ cursor: 'pointer', width: '16px', height: '16px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
-                    />
-                  </th>
-                  {['NAME', 'COMPANY', 'EMAIL', 'OWNER', 'STAGE', 'CREATED'].map(header => (
-                    <th key={header} style={{ padding: '1rem', fontSize: '0.75rem', fontWeight: 600, color: '#64748b', letterSpacing: '0.05em', cursor: 'pointer' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        {header}
-                        <span style={{ opacity: 0.5, fontSize: '0.7rem' }}>↑↓</span>
-                      </div>
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filteredLeads.map((lead) => {
-                  let cData = {};
-                  try { cData = typeof lead.customData === 'string' ? JSON.parse(lead.customData) : (lead.customData || {}); } catch(e) {}
-                  return (
-                  <tr 
-                    key={lead.id} 
-                    style={{ 
-                      borderBottom: '1px solid #f1f5f9',
-                      background: selectedLeadIds.includes(lead.id) ? '#f8fafc' : 'transparent',
-                      transition: 'background-color 0.15s',
-                      cursor: 'pointer'
-                    }}
-                    onClick={() => setSelectedLead(lead)}
-                    onMouseEnter={(e) => { if (!selectedLeadIds.includes(lead.id)) e.currentTarget.style.background = '#f8fafc' }}
-                    onMouseLeave={(e) => { if (!selectedLeadIds.includes(lead.id)) e.currentTarget.style.background = 'transparent' }}
-                  >
-                    <td 
-                      style={{ padding: '1rem', textAlign: 'center' }} 
-                      onClick={(e) => e.stopPropagation()}
-                    >
+                  <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                    <th style={{ padding: "0.75rem 1rem", width: "40px", textAlign: "center" }}>
                       <input
                         type="checkbox"
-                        checked={selectedLeadIds.includes(lead.id)}
-                        onChange={(e) => toggleLeadSelection(lead.id, e)}
-                        style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                        checked={filteredLeads.length > 0 && selectedLeadIds.length === filteredLeads.length}
+                        onChange={selectAllLeads}
+                        style={{ cursor: 'pointer', width: '16px', height: '16px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
                       />
-                    </td>
-                    <td style={{ padding: '1rem', fontWeight: 600, color: '#0f172a', fontSize: '0.9rem' }}>
-                      {lead.firstName} {lead.lastName}
-                    </td>
-                    <td style={{ padding: '1rem', color: '#64748b', fontSize: '0.9rem' }}>
-                      { (() => {
-                          try {
-                            const cData = typeof lead.customData === 'string' ? JSON.parse(lead.customData) : (lead.customData || {});
-                            return cData.companyName || '-';
-                          } catch(e) {
-                            return '-';
-                          }
-                      })() }
-                    </td>
-                    <td style={{ padding: '1rem', color: '#64748b', fontSize: '0.9rem' }}>{lead.email || '-'}</td>
-                    <td style={{ padding: '1rem' }}>
-                      {lead.owner ? (
-                        <div style={{ 
-                          width: '28px', height: '28px', borderRadius: '50%', backgroundColor: getAvatarColor(lead.owner),
-                          color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 600
-                        }} title={lead.owner}>
-                          {getInitials(lead.owner)}
+                    </th>
+                    {visibleColumns.map((colName, idx) => (
+                      <th key={colName + idx} style={{ padding: "0.75rem 1rem", fontSize: "0.75rem", fontWeight: 600, color: "#64748b", letterSpacing: "0.05em", cursor: "pointer" }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          {getFieldInfo(colName)}
                         </div>
-                      ) : (
-                        <span style={{ color: '#94a3b8' }}>-</span>
-                      )}
-                    </td>
-                    <td style={{ padding: '1rem' }}>
-                      <div style={{ 
-                        display: 'inline-flex', padding: '4px 12px', borderRadius: '20px', 
-                        backgroundColor: lead.stage?.color || '#3b82f6', color: '#ffffff', 
-                        fontSize: '0.75rem', fontWeight: 600 
-                      }}>
-                        {lead.stage?.name || 'Unknown'}
-                      </div>
-                    </td>
-                    <td style={{ padding: '1rem', color: '#64748b', fontSize: '0.9rem' }}>
-                      {new Date(lead.createdAt).toLocaleDateString('en-GB')}
-                    </td>
+                      </th>
+                    ))}
                   </tr>
-                )})}
-              </tbody>
+                </thead>
+                <tbody>
+                  {filteredLeads.map((lead) => (
+                    <tr
+                      key={lead.id}
+                      style={{
+                        borderBottom: '1px solid #f1f5f9',
+                        background: selectedLeadIds.includes(lead.id) ? '#f8fafc' : 'transparent',
+                        transition: 'background-color 0.15s',
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => setSelectedLead(lead)}
+                      onMouseEnter={(e) => { if (!selectedLeadIds.includes(lead.id)) e.currentTarget.style.background = '#f8fafc' }}
+                      onMouseLeave={(e) => { if (!selectedLeadIds.includes(lead.id)) e.currentTarget.style.background = 'transparent' }}
+                    >
+                      <td
+                        style={{ padding: '1rem', textAlign: 'center' }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedLeadIds.includes(lead.id)}
+                          onChange={(e) => toggleLeadSelection(lead.id, e)}
+                          style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                        />
+                      </td>
+                      {visibleColumns.map((colName, idx) => (
+                        <td key={colName + idx} style={{ padding: "0.75rem 1rem", color: colName === 'firstName' ? '#0f172a' : '#64748b', fontWeight: colName === 'firstName' ? 600 : 400, fontSize: "0.9rem" }}>
+                          {renderCellContent(lead, colName)}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
             </table>
           </div>
-          
+
           {/* Footer Pagination */}
           <div style={{ padding: '1rem', borderTop: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#ffffff' }}>
             <div style={{ color: '#64748b', fontSize: '0.85rem' }}>
@@ -631,59 +697,61 @@ export default function LeadModule() {
     );
   };
 
+  const activeStage = blueprint?.stages?.find(s => s.id === filterStageId);
+
   return (
     <>
 
       <main className="dashboard-main">
         <header className="dashboard-header">
           <h1>Leads</h1>
-{/* Top Filter Bar */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0', flex: 1, justifyContent: 'center', flexWrap: 'wrap' }}>
-          <div style={{ position: 'relative', width: '280px' }}>
-            <svg style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-            <input 
-              type="text" 
-              placeholder="Search leads..." 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ width: '100%', padding: '8px 12px 8px 36px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '0.9rem' }}
-            />
-          </div>
-          
-          <select 
-            value={filterStageId}
-            onChange={(e) => setFilterStageId(e.target.value)}
-            style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '0.9rem', backgroundColor: '#fff', cursor: 'pointer', minWidth: '120px' }}
-          >
-            <option value="">All Stages</option>
-            {(blueprint?.stages || []).map(stage => (
-              <option key={stage.id} value={stage.id}>{stage.name}</option>
-            ))}
-          </select>
-
-          <button style={{ padding: '8px 12px', borderRadius: '8px', border: '1px dashed #cbd5e1', backgroundColor: 'transparent', color: '#64748b', fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            + Add filter
-          </button>
-
-          {/* Active Filter Pill */}
-          {activeStage && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '6px 12px', borderRadius: '16px', backgroundColor: '#0f172a', color: '#fff', fontSize: '0.85rem', fontWeight: 500 }}>
-              Stage: {activeStage.name}
-              <span onClick={() => setFilterStageId("")} style={{ cursor: 'pointer', opacity: 0.7 }}>✕</span>
+          {/* Top Filter Bar */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0', flex: 1, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <div style={{ position: 'relative', width: '280px' }}>
+              <svg style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <input
+                type="text"
+                placeholder="Search leads..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{ width: '100%', padding: '8px 12px 8px 36px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '0.9rem' }}
+              />
             </div>
-          )}
-        </div>
 
-        
+            <select
+              value={filterStageId}
+              onChange={(e) => setFilterStageId(e.target.value)}
+              style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '0.9rem', backgroundColor: '#fff', cursor: 'pointer', minWidth: '120px' }}
+            >
+              <option value="">All Stages</option>
+              {(blueprint?.stages || []).map(stage => (
+                <option key={stage.id} value={stage.id}>{stage.name}</option>
+              ))}
+            </select>
+
+            <button style={{ padding: '8px 12px', borderRadius: '8px', border: '1px dashed #cbd5e1', backgroundColor: 'transparent', color: '#64748b', fontSize: '0.9rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              + Add filter
+            </button>
+
+            {/* Active Filter Pill */}
+            {activeStage && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '6px 12px', borderRadius: '16px', backgroundColor: '#0f172a', color: '#fff', fontSize: '0.85rem', fontWeight: 500 }}>
+                Stage: {activeStage.name}
+                <span onClick={() => setFilterStageId("")} style={{ cursor: 'pointer', opacity: 0.7 }}>✕</span>
+              </div>
+            )}
+          </div>
+
+
           <div className="header-actions" style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
             {(currentUser?.profile?.canAccessSettings || currentUser?.profile?.permissions?.Lead?.create) && (
               <>
-                <input 
-                  type="file" 
-                  accept=".csv" 
-                  ref={fileInputRef} 
-                  style={{ display: 'none' }} 
-                  onChange={handleImportFile} 
+                <input
+                  type="file"
+                  accept=".csv"
+                  ref={fileInputRef}
+                  style={{ display: 'none' }}
+                  onChange={handleImportFile}
                 />
                 <button className="btn-primary" onClick={() => setIsFormOpen(true)}>
                   + Add Lead
@@ -692,8 +760,8 @@ export default function LeadModule() {
             )}
 
             <div style={{ position: 'relative' }} ref={menuRef}>
-              <button 
-                className="btn-outline" 
+              <button
+                className="btn-outline"
                 style={{ padding: '0.5rem 0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
               >
@@ -703,26 +771,26 @@ export default function LeadModule() {
                   <circle cx="12" cy="19" r="1"></circle>
                 </svg>
               </button>
-              
+
               {isMenuOpen && (
-                <div 
-                  style={{ 
-                    position: 'absolute', right: 0, top: '100%', marginTop: '0.5rem', 
-                    backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', 
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', minWidth: '160px', 
+                <div
+                  style={{
+                    position: 'absolute', right: 0, top: '100%', marginTop: '0.5rem',
+                    backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '8px',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', minWidth: '160px',
                     zIndex: 50, padding: '0.5rem'
                   }}
                 >
                   {leads.length > 0 && (
                     <>
                       <div style={{ padding: '0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>View Mode</div>
-                      <button 
+                      <button
                         style={{ display: 'block', width: '100%', textAlign: 'left', padding: '0.5rem', borderRadius: '4px', backgroundColor: viewMode === 'kanban' ? '#f1f5f9' : 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.875rem' }}
                         onClick={() => { setViewMode('kanban'); setIsMenuOpen(false); }}
                       >
                         Kanban Board
                       </button>
-                      <button 
+                      <button
                         style={{ display: 'block', width: '100%', textAlign: 'left', padding: '0.5rem', borderRadius: '4px', backgroundColor: viewMode === 'list' ? '#f1f5f9' : 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.875rem' }}
                         onClick={() => { setViewMode('list'); setIsMenuOpen(false); }}
                       >
@@ -731,11 +799,87 @@ export default function LeadModule() {
                       <div style={{ height: '1px', backgroundColor: '#e2e8f0', margin: '0.5rem 0' }}></div>
                     </>
                   )}
-                  
+
                   <div style={{ padding: '0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>Data</div>
                   
-                  {(currentUser?.profile?.canAccessSettings || currentUser?.profile?.permissions?.Lead?.create) && (
+                  <div style={{ position: 'relative', marginBottom: '0.25rem' }}>
                     <button 
+                      style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', textAlign: 'left', padding: '0.5rem', borderRadius: '4px', backgroundColor: isManageColsMenuOpen ? '#f1f5f9' : 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.875rem' }}
+                      onClick={(e) => { e.stopPropagation(); setIsManageColsMenuOpen(!isManageColsMenuOpen); setIsSortMenuOpen(false); }}
+                    >
+                      Manage Columns
+                      <span>{isManageColsMenuOpen ? '▼' : '◀'}</span>
+                    </button>
+                    
+                    {isManageColsMenuOpen && (
+                      <div style={{ position: 'absolute', right: '100%', top: '-32px', marginRight: '8px', padding: '0.5rem', maxHeight: '350px', width: '280px', overflowY: 'auto', backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)', zIndex: 60 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 0.25rem 0.5rem 0.25rem', borderBottom: '1px solid #f1f5f9', marginBottom: '0.5rem' }}>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8' }}>VISIBLE COLUMNS ({visibleColumns.length}/7)</span>
+                        </div>
+                        {[{name: 'createdAt', label: 'Created Date'}, {name: 'firstName', label: 'First Name'}, {name: 'companyName', label: 'Company'}, ...(blueprint?.fields || [])].reduce((acc, curr) => { if (!acc.find(i => i.name === curr.name)) acc.push(curr); return acc; }, []).map((field, idx) => {
+                          const isSelected = visibleColumns.includes(field.name);
+                          return (
+                            <div 
+                              key={field.name + idx} 
+                              draggable={isSelected}
+                              onDragStart={(e) => { if(isSelected) handleDragStartCol(e, visibleColumns.indexOf(field.name)); }}
+                              onDragOver={(e) => e.preventDefault()}
+                              onDrop={(e) => { if(isSelected) handleDropCol(e, visibleColumns.indexOf(field.name)); }}
+                              onClick={(e) => { e.stopPropagation(); handleColToggle(field.name); }}
+                              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', fontSize: '0.85rem', cursor: 'pointer', backgroundColor: isSelected ? '#d9f99d' : 'transparent', borderRadius: '6px', transition: 'all 0.1s', marginBottom: '2px', opacity: (visibleColumns.length >= 7 && !isSelected) ? 0.5 : 1 }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                {isSelected && <span style={{ cursor: 'grab', color: '#65a30d', fontWeight: 'bold' }}>⋮⋮</span>}
+                                <span style={{ color: '#0f172a', fontWeight: isSelected ? 600 : 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '180px' }} title={field.label}>{field.label}</span>
+                              </div>
+                              {isSelected ? (
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000000" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                              ) : (
+                                <div style={{ width: '14px', height: '14px', border: '1px solid #cbd5e1', borderRadius: '2px' }}></div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ position: 'relative' }}>
+                    <button
+                      style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', textAlign: 'left', padding: '0.5rem', borderRadius: '4px', backgroundColor: isSortMenuOpen ? '#f1f5f9' : 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.875rem' }}
+                      onClick={(e) => { e.stopPropagation(); setIsSortMenuOpen(!isSortMenuOpen); }}
+                    >
+                      Sort Leads By...
+                      <span>{isSortMenuOpen ? '▼' : '◀'}</span>
+                    </button>
+
+                    {isSortMenuOpen && (
+                      <div style={{ position: 'absolute', right: '100%', top: '-32px', marginRight: '8px', padding: '0.5rem', maxHeight: '350px', width: '280px', overflowY: 'auto', backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)', zIndex: 60 }}>
+                        <div style={{ padding: '0 0.25rem 0.5rem 0.25rem', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', borderBottom: '1px solid #f1f5f9', marginBottom: '0.5rem' }}>SORT FIELDS</div>
+                        {[{ name: 'createdAt', label: 'Created Date' }, { name: 'firstName', label: 'First Name' }, { name: 'companyName', label: 'Company' }, ...(blueprint?.fields || [])].reduce((acc, curr) => { if (!acc.find(i => i.name === curr.name)) acc.push(curr); return acc; }, []).map((field, idx) => {
+                          const isSelected = sortConfig.key === field.name;
+                          return (
+                            <div
+                              key={field.name + idx}
+                              onClick={(e) => { e.stopPropagation(); setSortConfig({ key: field.name, direction: isSelected && sortConfig.direction === 'asc' ? 'desc' : 'asc' }); }}
+                              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', fontSize: '0.85rem', cursor: 'pointer', backgroundColor: isSelected ? '#d9f99d' : 'transparent', borderRadius: '6px', transition: 'all 0.1s', marginBottom: '2px' }}
+                            >
+                              <span style={{ color: '#0f172a', fontWeight: isSelected ? 600 : 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '200px' }} title={field.label}>{field.label}</span>
+                              {isSelected && (
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={sortConfig.direction === 'asc' ? '#000000' : '#84cc16'} strokeWidth={sortConfig.direction === 'asc' ? '4' : '3'} strokeLinecap="round" strokeLinejoin="round"><path d="M18 15l-6-6-6 6" /></svg>
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={sortConfig.direction === 'desc' ? '#000000' : '#84cc16'} strokeWidth={sortConfig.direction === 'desc' ? '4' : '3'} strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {(currentUser?.profile?.canAccessSettings || currentUser?.profile?.permissions?.Lead?.create) && (
+                    <button
                       style={{ display: 'block', width: '100%', textAlign: 'left', padding: '0.5rem', borderRadius: '4px', backgroundColor: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.875rem' }}
                       onClick={() => { fileInputRef.current?.click(); setIsMenuOpen(false); }}
                       disabled={isImporting}
@@ -743,9 +887,9 @@ export default function LeadModule() {
                       {isImporting ? 'Importing...' : 'Import Leads'}
                     </button>
                   )}
-                  
+
                   {(currentUser?.profile?.canAccessSettings || currentUser?.profile?.permissions?.Lead?.view) && (
-                    <button 
+                    <button
                       style={{ display: 'block', width: '100%', textAlign: 'left', padding: '0.5rem', borderRadius: '4px', backgroundColor: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.875rem' }}
                       onClick={() => { handleExport(); setIsMenuOpen(false); }}
                     >

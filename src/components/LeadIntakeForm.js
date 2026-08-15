@@ -33,10 +33,7 @@ export default function LeadIntakeForm({ isOpen, onClose, onSave }) {
   const { visibleFields, orderedSections } = useMemo(() => {
     if (!blueprint?.fields) return { visibleFields: [], orderedSections: [] };
     const vf = blueprint.fields.filter(f => !f.isHidden && !standardFieldStates?.[f.name]?.isHidden);
-    
-    console.log("DEBUG: All Blueprint Fields:", blueprint.fields.map(f => ({ name: f.name, isHidden: f.isHidden, sectionName: f.sectionName })));
-    console.log("DEBUG: standardFieldStates for email:", standardFieldStates?.['email']);
-    console.log("DEBUG: Visible Fields Final:", vf.map(f => f.name));
+
 
     let os = [];
     if (blueprint?.layoutConfig && Array.isArray(blueprint.layoutConfig) && blueprint.layoutConfig.length > 0) {
@@ -119,7 +116,7 @@ export default function LeadIntakeForm({ isOpen, onClose, onSave }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // If not on the last step, just go to next step
     if (currentStep < orderedSections.length - 1) {
       setCurrentStep(prev => prev + 1);
@@ -160,7 +157,7 @@ export default function LeadIntakeForm({ isOpen, onClose, onSave }) {
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                 </button>
               </div>
-              
+
               {/* Stepper Header */}
               {orderedSections.length > 1 && (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', padding: '0 1rem' }}>
@@ -241,7 +238,7 @@ export default function LeadIntakeForm({ isOpen, onClose, onSave }) {
                   Cancel
                 </button>
               )}
-              
+
               <span style={{ fontSize: '0.85rem', color: '#94a3b8', fontWeight: 500 }}>
                 Step {currentStep + 1} of {orderedSections.length || 1}
               </span>
