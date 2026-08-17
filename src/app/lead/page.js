@@ -80,6 +80,14 @@ export default function LeadModule() {
   const [fbValue, setFbValue] = useState('');
   const filterBuilderRef = useRef(null);
 
+  const [activeCardMenuId, setActiveCardMenuId] = useState(null);
+
+  useEffect(() => {
+    const handleGlobalClick = () => setActiveCardMenuId(null);
+    if (activeCardMenuId) document.addEventListener('click', handleGlobalClick);
+    return () => document.removeEventListener('click', handleGlobalClick);
+  }, [activeCardMenuId]);
+
   useEffect(() => {
     function handleClickOutsideFB(event) {
       if (filterBuilderRef.current && !filterBuilderRef.current.contains(event.target)) {
@@ -673,34 +681,79 @@ export default function LeadModule() {
                             onClick={(e) => e.stopPropagation()}
                             style={{ cursor: 'pointer', marginTop: '6px' }}
                           />
-                          <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: col.stage.color ? `${col.stage.color}25` : '#e2e8f0', color: col.stage.color || '#333', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem', fontWeight: 600, flexShrink: 0 }}>
-                            {lead.firstName?.charAt(0)}{lead.lastName?.charAt(0)}
-                          </div>
+
                           <div style={{ display: 'flex', flexDirection: 'column' }}>
                             <h4 className="card-title" style={{ margin: 0, fontSize: '0.95rem', color: '#111827', fontWeight: 600 }}>{title}</h4>
                             <span style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '2px' }}>{subtitle}</span>
                           </div>
                         </div>
-                        <button className="card-menu-btn" onClick={(e) => { e.stopPropagation(); }}>
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
-                        </button>
-                      </div>
+                        <div style={{ position: 'relative' }}>
+                          <button
+                            className="card-menu-btn"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveCardMenuId(activeCardMenuId === lead.id ? null : lead.id);
+                            }}
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
+                          </button>
 
-                      {leadTags.length > 0 && (
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', marginTop: '1rem', marginBottom: '0.5rem' }}>
-                          {leadTags.map((t, i) => (
-                            <span key={i} style={{ fontSize: '0.65rem', fontWeight: 600, color: 'white', background: t.color, padding: '0.15rem 0.4rem', borderRadius: '8px' }}>
-                              {t.name}
-                            </span>
-                          ))}
+                          {activeCardMenuId === lead.id && (
+                            <div
+                              style={{
+                                position: 'absolute', right: 0, top: '100%',
+                                backgroundColor: 'white', border: '1px solid #e2e8f0',
+                                borderRadius: '8px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
+                                zIndex: 50, minWidth: '120px', padding: '0.25rem', marginTop: '4px'
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveCardMenuId(null);
+                                  setLeadToEdit(lead);
+                                  setIsEditModalOpen(true);
+                                }}
+                                style={{
+                                  width: '100%', display: 'flex', alignItems: 'center', gap: '0.5rem',
+                                  padding: '0.5rem 0.75rem', background: 'transparent', border: 'none',
+                                  textAlign: 'left', cursor: 'pointer', fontSize: '0.85rem', color: '#334155',
+                                  borderRadius: '6px', transition: 'all 0.2s'
+                                }}
+                                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#d9f99d'; e.currentTarget.style.color = '#0f172a'; }}
+                                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#334155'; }}
+                              >
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                Edit
+                              </button>
+                            </div>
+                          )}
                         </div>
-                      )}
+
+                      </div>
 
                       <div className="card-footer-bottom" style={{ marginTop: '1rem', paddingTop: '0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div className="date-badge" style={{ backgroundColor: '#f1f5f9', color: '#64748b', padding: '0.25rem 0.6rem', borderRadius: '8px', border: 'none', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem', fontWeight: 500 }}>
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
                           {formattedDate}
                         </div>
+
+                        {/* NAYA SMART TAG LOGIC */}
+                        {leadTags.length > 0 && (
+                          <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
+                            <span style={{ fontSize: '0.65rem', fontWeight: 600, color: 'white', background: leadTags[0].color, padding: '0.15rem 0.4rem', borderRadius: '6px' }}>
+                              {leadTags[0].name}
+                            </span>
+                            {leadTags.length > 1 && (
+                              <span style={{ fontSize: '0.65rem', fontWeight: 600, color: '#64748b', background: '#e2e8f0', padding: '0.15rem 0.4rem', borderRadius: '6px' }}>
+                                +{leadTags.length - 1}
+                              </span>
+                            )}
+                          </div>
+                        )}
+
+
 
                         <div className="card-icons" style={{ display: 'flex', gap: '0.75rem', color: '#94a3b8' }}>
                           <div className="card-icon-item" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem' }}>
@@ -791,12 +844,20 @@ export default function LeadModule() {
                     />
                   </th>
                   {visibleColumns.map((colName, idx) => (
-                    <th key={colName + idx} style={{ padding: "0.75rem 1rem", fontSize: "0.75rem", fontWeight: 600, color: "#64748b", letterSpacing: "0.05em", cursor: "pointer" }}>
+                    <th
+                      key={colName + idx}
+                      draggable={true}
+                      onDragStart={(e) => handleDragStartCol(e, idx)}
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={(e) => handleDropCol(e, idx)}
+                      style={{ padding: "0.75rem 1rem", fontSize: "0.75rem", fontWeight: 600, color: "#64748b", letterSpacing: "0.05em", cursor: "grab" }}
+                    >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                         {getFieldInfo(colName)}
                       </div>
                     </th>
                   ))}
+
                 </tr>
               </thead>
               <tbody>
@@ -1039,10 +1100,13 @@ export default function LeadModule() {
                     <div style={{ marginBottom: '4px' }}>
                       <div
                         onClick={(e) => { e.stopPropagation(); setOpenAccordion(openAccordion === 'view' ? null : 'view'); }}
-                        style={{ padding: '0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#0f172a', textTransform: 'uppercase', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', backgroundColor: openAccordion === 'view' ? '#f1f5f9' : 'transparent', borderRadius: '4px' }}
+                        style={{ padding: '0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#0f172a', textTransform: 'uppercase', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', backgroundColor: openAccordion === 'view' ? '#d9f99d' : 'transparent', borderRadius: '4px' }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#d9f99d'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = openAccordion === 'data' ? '#d9f99d' : 'transparent'}
+
                       >
-                        <span>👁️ View Mode</span>
-                        <span style={{ transform: openAccordion === 'view' ? 'rotate(90deg)' : 'rotate(0deg)', transition: '0.2s' }}>▶</span>
+                        <span>View Mode</span>
+
                       </div>
 
                       {openAccordion === 'view' && (
@@ -1070,10 +1134,11 @@ export default function LeadModule() {
                   <div style={{ marginBottom: '4px' }}>
                     <div
                       onClick={(e) => { e.stopPropagation(); setOpenAccordion(openAccordion === 'data' ? null : 'data'); setIsManageColsMenuOpen(false); setIsSortMenuOpen(false); }}
-                      style={{ padding: '0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#0f172a', textTransform: 'uppercase', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', backgroundColor: openAccordion === 'data' ? '#f1f5f9' : 'transparent', borderRadius: '4px' }}
+                      style={{ padding: '0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#0f172a', textTransform: 'uppercase', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', backgroundColor: openAccordion === 'data' ? '#d9f99d' : 'transparent', borderRadius: '4px' }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#d9f99d'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = openAccordion === 'data' ? '#d9f99d' : 'transparent'}
                     >
-                      <span>⚙️ Manage Data</span>
-                      <span style={{ transform: openAccordion === 'data' ? 'rotate(90deg)' : 'rotate(0deg)', transition: '0.2s' }}>▶</span>
+                      <span>Manage Data</span>
                     </div>
 
                     {openAccordion === 'data' && (
@@ -1085,7 +1150,6 @@ export default function LeadModule() {
                               onClick={(e) => { e.stopPropagation(); setIsManageColsMenuOpen(!isManageColsMenuOpen); setIsSortMenuOpen(false); }}
                             >
                               Columns
-                              <span>{isManageColsMenuOpen ? '▼' : '◀'}</span>
                             </button>
 
                             {/* Manage Columns Popup Logic Remains Same */}
@@ -1105,89 +1169,89 @@ export default function LeadModule() {
                           </>
                         )}
 
-                    <button
-                      style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', textAlign: 'left', padding: '0.5rem', borderRadius: '4px', backgroundColor: isSortMenuOpen ? '#f1f5f9' : 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.85rem' }}
-                      onClick={(e) => { e.stopPropagation(); setIsSortMenuOpen(!isSortMenuOpen); setIsManageColsMenuOpen(false); }}
-                    >
-                      Sort Leads
-                      <span>{isSortMenuOpen ? '▼' : '◀'}</span>
-                    </button>
+                        <button
+                          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', textAlign: 'left', padding: '0.5rem', borderRadius: '4px', backgroundColor: isSortMenuOpen ? '#f1f5f9' : 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.85rem' }}
+                          onClick={(e) => { e.stopPropagation(); setIsSortMenuOpen(!isSortMenuOpen); setIsManageColsMenuOpen(false); }}
+                        >
+                          Sort Leads
+                        </button>
 
-                    {/* Sort Leads Popup Logic Remains Same */}
-                    {isSortMenuOpen && (
-                      <div style={{ position: 'absolute', right: '100%', top: '32px', marginRight: '8px', padding: '0.5rem', maxHeight: '350px', width: '280px', overflowY: 'auto', backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', zIndex: 60 }}>
-                        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', marginBottom: '0.5rem' }}>SORT FIELDS</div>
-                        {[{ name: 'createdAt', label: 'Created Date' }, { name: 'firstName', label: 'First Name' }, { name: 'companyName', label: 'Company' }, ...(blueprint?.fields || [])].reduce((acc, curr) => { if (!acc.find(i => i.name === curr.name)) acc.push(curr); return acc; }, []).map((field, idx) => {
-                          const isSelected = sortConfig.key === field.name;
-                          return (
-                            <div key={field.name + idx} onClick={(e) => { e.stopPropagation(); setSortConfig({ key: field.name, direction: isSelected && sortConfig.direction === 'asc' ? 'desc' : 'asc' }); }} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px', fontSize: '0.85rem', cursor: 'pointer', backgroundColor: isSelected ? '#d9f99d' : 'transparent', borderRadius: '6px' }}>
-                              {field.label} {isSelected ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}
-                            </div>
-                          );
-                        })}
+                        {/* Sort Leads Popup Logic Remains Same */}
+                        {isSortMenuOpen && (
+                          <div style={{ position: 'absolute', right: '100%', top: '32px', marginRight: '8px', padding: '0.5rem', maxHeight: '350px', width: '280px', overflowY: 'auto', backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', zIndex: 60 }}>
+                            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', marginBottom: '0.5rem' }}>SORT FIELDS</div>
+                            {[{ name: 'createdAt', label: 'Created Date' }, { name: 'firstName', label: 'First Name' }, { name: 'companyName', label: 'Company' }, ...(blueprint?.fields || [])].reduce((acc, curr) => { if (!acc.find(i => i.name === curr.name)) acc.push(curr); return acc; }, []).map((field, idx) => {
+                              const isSelected = sortConfig.key === field.name;
+                              return (
+                                <div key={field.name + idx} onClick={(e) => { e.stopPropagation(); setSortConfig({ key: field.name, direction: isSelected && sortConfig.direction === 'asc' ? 'desc' : 'asc' }); }} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px', fontSize: '0.85rem', cursor: 'pointer', backgroundColor: isSelected ? '#d9f99d' : 'transparent', borderRadius: '6px' }}>
+                                  {field.label} {isSelected ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
-                    )}
-                </div>
 
                   {/* Section 3: Imports/Exports */}
-              {(currentUser?.profile?.canAccessSettings || currentUser?.profile?.permissions?.Lead?.create || currentUser?.profile?.permissions?.Lead?.view) && (
-                <>
-                  <div style={{ height: '1px', backgroundColor: '#e2e8f0', margin: '0.5rem 0' }}></div>
-                  <div style={{ marginBottom: '4px' }}>
-                    <div
-                      onClick={(e) => { e.stopPropagation(); setOpenAccordion(openAccordion === 'actions' ? null : 'actions'); }}
-                      style={{ padding: '0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#0f172a', textTransform: 'uppercase', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', backgroundColor: openAccordion === 'actions' ? '#f1f5f9' : 'transparent', borderRadius: '4px' }}
-                    >
-                      <span>📁 Actions</span>
-                      <span style={{ transform: openAccordion === 'actions' ? 'rotate(90deg)' : 'rotate(0deg)', transition: '0.2s' }}>▶</span>
-                    </div>
+                  {(currentUser?.profile?.canAccessSettings || currentUser?.profile?.permissions?.Lead?.create || currentUser?.profile?.permissions?.Lead?.view) && (
+                    <>
+                      <div style={{ height: '1px', backgroundColor: '#e2e8f0', margin: '0.5rem 0' }}></div>
+                      <div style={{ marginBottom: '4px' }}>
+                        <div
+                          onClick={(e) => { e.stopPropagation(); setOpenAccordion(openAccordion === 'actions' ? null : 'actions'); }}
+                          style={{ padding: '0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#0f172a', textTransform: 'uppercase', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', backgroundColor: openAccordion === 'actions' ? '#d9f99d' : 'transparent', borderRadius: '4px' }}
+                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#d9f99d'}
+                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = openAccordion === 'actions' ? '#d9f99d' : 'transparent'}
+                        >
+                          <span>Actions</span>
+                        </div>
 
-                    {openAccordion === 'actions' && (
-                      <div style={{ paddingLeft: '0.5rem', marginTop: '4px', borderLeft: '2px solid #e2e8f0', marginLeft: '6px' }}>
-                        {(currentUser?.profile?.canAccessSettings || currentUser?.profile?.permissions?.Lead?.create) && (
-                          <button
-                            style={{ display: 'block', width: '100%', textAlign: 'left', padding: '0.5rem', borderRadius: '4px', backgroundColor: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.85rem' }}
-                            onClick={() => { fileInputRef.current?.click(); setIsMenuOpen(false); }}
-                            disabled={isImporting}
-                          >
-                            {isImporting ? 'Importing...' : '📥 Import Leads'}
-                          </button>
-                        )}
+                        {openAccordion === 'actions' && (
+                          <div style={{ paddingLeft: '0.5rem', marginTop: '4px', borderLeft: '2px solid #e2e8f0', marginLeft: '6px' }}>
+                            {(currentUser?.profile?.canAccessSettings || currentUser?.profile?.permissions?.Lead?.create) && (
+                              <button
+                                style={{ display: 'block', width: '100%', textAlign: 'left', padding: '0.5rem', borderRadius: '4px', backgroundColor: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.85rem' }}
+                                onClick={() => { fileInputRef.current?.click(); setIsMenuOpen(false); }}
+                                disabled={isImporting}
+                              >
+                                {isImporting ? 'Importing...' : 'Import Leads'}
+                              </button>
+                            )}
 
-                        {(currentUser?.profile?.canAccessSettings || currentUser?.profile?.permissions?.Lead?.view) && (
-                          <button
-                            style={{ display: 'block', width: '100%', textAlign: 'left', padding: '0.5rem', borderRadius: '4px', backgroundColor: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.85rem' }}
-                            onClick={() => { handleExport(); setIsMenuOpen(false); }}
-                          >
-                            📤 Export Leads
-                          </button>
+                            {(currentUser?.profile?.canAccessSettings || currentUser?.profile?.permissions?.Lead?.view) && (
+                              <button
+                                style={{ display: 'block', width: '100%', textAlign: 'left', padding: '0.5rem', borderRadius: '4px', backgroundColor: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.85rem' }}
+                                onClick={() => { handleExport(); setIsMenuOpen(false); }}
+                              >
+                                Export Leads
+                              </button>
+                            )}
+                          </div>
                         )}
                       </div>
-                    )}
-                  </div>
-                </>
+                    </>
+                  )}
+                </div>
               )}
+
             </div>
-              )}
-
           </div>
+        </header>
+
+        <div className="module-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          {isLoading ? (
+            <div className="p-8 text-center" style={{ margin: 'auto' }}>
+              <TableSkeleton />
+            </div>
+          ) : leads.length === 0 ? (
+            renderEmptyState()
+          ) : (
+            viewMode === 'kanban' ? renderKanbanView() : renderListView()
+          )}
         </div>
-      </header>
-
-      <div className="module-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        {isLoading ? (
-          <div className="p-8 text-center" style={{ margin: 'auto' }}>
-            <TableSkeleton />
-          </div>
-        ) : leads.length === 0 ? (
-          renderEmptyState()
-        ) : (
-          viewMode === 'kanban' ? renderKanbanView() : renderListView()
-        )}
-      </div>
-    </main >
+      </main >
 
       <LeadIntakeForm
         isOpen={isFormOpen}
@@ -1206,160 +1270,184 @@ export default function LeadModule() {
         tags={tags}
         currentUser={currentUser}
         onTransition={handleTransition}
-        onLeadUpdate={handleLeadUpdate}
-        onEditClick={(lead) => {
-          setSelectedLead(null);
-          setIsEditModalOpen(true);
-          setLeadToEdit(lead);
+        onLeadUpdate={(updatedLead) => {
+          setLeads(prev => prev.map(l => l.id === updatedLead.id ? updatedLead : l));
+          setSelectedLead(updatedLead);
         }}
         pendingTransition={pendingTransition}
+        onEditClick={(lead) => {
+          setLeadToEdit(lead);
+          setIsEditModalOpen(true);
+        }}
+        onNext={() => {
+          const leads = viewMode === 'kanban' ? filteredLeads.filter(l => l.stageId === selectedLead.stageId) : filteredLeads;
+          const currentIndex = leads.findIndex(l => l.id === selectedLead.id);
+          if (currentIndex !== -1 && currentIndex < leads.length - 1) setSelectedLead(leads[currentIndex + 1]);
+        }}
+        onPrev={() => {
+          const leads = viewMode === 'kanban' ? filteredLeads.filter(l => l.stageId === selectedLead.stageId) : filteredLeads;
+          const currentIndex = leads.findIndex(l => l.id === selectedLead.id);
+          if (currentIndex > 0) setSelectedLead(leads[currentIndex - 1]);
+        }}
+        hasNext={(() => {
+          if (!selectedLead) return false;
+          const leads = viewMode === 'kanban' ? filteredLeads.filter(l => l.stageId === selectedLead.stageId) : filteredLeads;
+          return leads.findIndex(l => l.id === selectedLead.id) < leads.length - 1;
+        })()}
+        hasPrev={(() => {
+          if (!selectedLead) return false;
+          const leads = viewMode === 'kanban' ? filteredLeads.filter(l => l.stageId === selectedLead.stageId) : filteredLeads;
+          return leads.findIndex(l => l.id === selectedLead.id) > 0;
+        })()}
+
       />
 
-  {/* FLOATING BULK ACTION BAR */ }
-  {
-    selectedLeadIds.length > 0 && (
-      <div style={{
-        position: 'fixed',
-        bottom: '2rem',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        background: '#0f172a',
-        color: 'white',
-        padding: '1rem 1.5rem',
-        borderRadius: '12px',
-        boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.2)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '1.5rem',
-        zIndex: 100
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <span style={{
-            background: '#334155',
+
+      {/* FLOATING BULK ACTION BAR */}
+      {
+        selectedLeadIds.length > 0 && (
+          <div style={{
+            position: 'fixed',
+            bottom: '2rem',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: '#0f172a',
             color: 'white',
-            width: '24px',
-            height: '24px',
+            padding: '1rem 1.5rem',
+            borderRadius: '12px',
+            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.2)',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: '50%',
-            fontSize: '0.85rem',
-            fontWeight: 600
+            gap: '1.5rem',
+            zIndex: 100
           }}>
-            {selectedLeadIds.length}
-          </span>
-          <span style={{ fontWeight: 500 }}>Leads Selected</span>
-        </div>
-
-        <div style={{ width: '1px', height: '24px', background: '#334155' }}></div>
-
-        <div style={{ display: 'flex', gap: '0.75rem', position: 'relative' }}>
-          <button
-            onClick={() => setIsBulkTagPickerOpen(!isBulkTagPickerOpen)}
-            style={{
-              background: 'rgba(255,255,255,0.1)',
-              border: '1px solid rgba(255,255,255,0.2)',
-              color: 'white',
-              padding: '0.5rem 1rem',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              transition: 'all 0.2s',
-              fontWeight: 500
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
-            onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
-            Apply Tag
-          </button>
-
-          {isBulkTagPickerOpen && (
-            <div style={{
-              position: 'absolute',
-              bottom: 'calc(100% + 0.5rem)',
-              left: 0,
-              background: 'white',
-              borderRadius: '8px',
-              boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
-              width: '240px',
-              maxHeight: '300px',
-              overflowY: 'auto',
-              border: '1px solid #e2e8f0',
-              color: '#0f172a'
-            }}>
-              <div style={{ padding: '0.75rem', borderBottom: '1px solid #f1f5f9', fontWeight: 600, fontSize: '0.85rem', color: '#64748b' }}>
-                SELECT A TAG
-              </div>
-              {tags.length === 0 ? (
-                <div style={{ padding: '1rem', fontSize: '0.85rem', color: '#64748b', textAlign: 'center' }}>
-                  No tags available
-                </div>
-              ) : (
-                tags.map(tag => (
-                  <div
-                    key={tag.id}
-                    onClick={() => handleBulkTagApply(tag)}
-                    style={{
-                      padding: '0.75rem 1rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.75rem',
-                      cursor: 'pointer',
-                      borderBottom: '1px solid #f8fafc'
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
-                    onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
-                  >
-                    <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: tag.color }}></div>
-                    <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>{tag.name}</span>
-                  </div>
-                ))
-              )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <span style={{
+                background: '#334155',
+                color: 'white',
+                width: '24px',
+                height: '24px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: '50%',
+                fontSize: '0.85rem',
+                fontWeight: 600
+              }}>
+                {selectedLeadIds.length}
+              </span>
+              <span style={{ fontWeight: 500 }}>Leads Selected</span>
             </div>
-          )}
 
-          <button
-            onClick={() => setSelectedLeadIds([])}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: '#94a3b8',
-              padding: '0.5rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transition: 'color 0.2s'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.color = 'white'}
-            onMouseLeave={(e) => e.currentTarget.style.color = '#94a3b8'}
-          >
-            ✕
-          </button>
-        </div>
-      </div>
-    )
-  }
+            <div style={{ width: '1px', height: '24px', background: '#334155' }}></div>
 
-  {/* NEW: Edit Lead Modal */ }
-  <EditLeadModal
-    isOpen={isEditModalOpen}
-    onClose={() => { setIsEditModalOpen(false); setLeadToEdit(null); }}
-    lead={leadToEdit}
-    blueprint={blueprint}
-    currentUser={currentUser}
-    onLeadUpdate={(updatedLead) => {
-      // Update lead in state
-      setLeads(prev => prev.map(l => l.id === updatedLead.id ? updatedLead : l));
-      // If slide-over is open and viewing this lead, update it
-      if (selectedLead && selectedLead.id === updatedLead.id) {
-        setSelectedLead(updatedLead);
+            <div style={{ display: 'flex', gap: '0.75rem', position: 'relative' }}>
+              <button
+                onClick={() => setIsBulkTagPickerOpen(!isBulkTagPickerOpen)}
+                style={{
+                  background: 'rgba(255,255,255,0.1)',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  color: 'white',
+                  padding: '0.5rem 1rem',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  transition: 'all 0.2s',
+                  fontWeight: 500
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+                Apply Tag
+              </button>
+
+              {isBulkTagPickerOpen && (
+                <div style={{
+                  position: 'absolute',
+                  bottom: 'calc(100% + 0.5rem)',
+                  left: 0,
+                  background: 'white',
+                  borderRadius: '8px',
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+                  width: '240px',
+                  maxHeight: '300px',
+                  overflowY: 'auto',
+                  border: '1px solid #e2e8f0',
+                  color: '#0f172a'
+                }}>
+                  <div style={{ padding: '0.75rem', borderBottom: '1px solid #f1f5f9', fontWeight: 600, fontSize: '0.85rem', color: '#64748b' }}>
+                    SELECT A TAG
+                  </div>
+                  {tags.length === 0 ? (
+                    <div style={{ padding: '1rem', fontSize: '0.85rem', color: '#64748b', textAlign: 'center' }}>
+                      No tags available
+                    </div>
+                  ) : (
+                    tags.map(tag => (
+                      <div
+                        key={tag.id}
+                        onClick={() => handleBulkTagApply(tag)}
+                        style={{
+                          padding: '0.75rem 1rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.75rem',
+                          cursor: 'pointer',
+                          borderBottom: '1px solid #f8fafc'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
+                      >
+                        <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: tag.color }}></div>
+                        <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>{tag.name}</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+
+              <button
+                onClick={() => setSelectedLeadIds([])}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#94a3b8',
+                  padding: '0.5rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'color 0.2s'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.color = 'white'}
+                onMouseLeave={(e) => e.currentTarget.style.color = '#94a3b8'}
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        )
       }
-    }}
-  />
+
+      {/* NEW: Edit Lead Modal */}
+      <EditLeadModal
+        isOpen={isEditModalOpen}
+        onClose={() => { setIsEditModalOpen(false); setLeadToEdit(null); }}
+        lead={leadToEdit}
+        blueprint={blueprint}
+        currentUser={currentUser}
+        onLeadUpdate={(updatedLead) => {
+          // Update lead in state
+          setLeads(prev => prev.map(l => l.id === updatedLead.id ? updatedLead : l));
+          // If slide-over is open and viewing this lead, update it
+          if (selectedLead && selectedLead.id === updatedLead.id) {
+            setSelectedLead(updatedLead);
+          }
+        }}
+      />
     </>
   );
 }

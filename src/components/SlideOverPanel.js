@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import DynamicField from "./FieldRegistry";
 import { evaluateExecutionCriteria } from "../utils/ruleEngine";
 
-export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags = [], currentUser, onTransition, onLeadUpdate, pendingTransition, onEditClick }) {
+export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags = [], currentUser, onTransition, onLeadUpdate, pendingTransition, onEditClick, onNext, onPrev, hasNext, hasPrev }) {
   const [modalMode, setModalMode] = useState(null); // null | 'missing' | 'security' | 'confirm'
   const [activeTransition, setActiveTransition] = useState(null);
   const [formData, setFormData] = useState({});
@@ -15,7 +15,7 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
   const [tagBuilder, setTagBuilder] = useState({ isOpen: false });
   const [localTags, setLocalTags] = useState([]);
   const [activeTab, setActiveTab] = useState('Details');
-  
+
 
 
   useEffect(() => {
@@ -42,6 +42,20 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
       handleTransitionClick(pendingTransition);
     }
   }, [isOpen, lead, pendingTransition]);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (!isOpen) return;
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+        if (hasNext && onNext) onNext();
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        if (hasPrev && onPrev) onPrev();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, hasNext, hasPrev, onNext, onPrev]);
+
 
   if (!isOpen || !lead || !blueprint) return null;
 
@@ -163,7 +177,7 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
   const handleTransitionFieldChange = (name, value, record = null, mappings = [], isSecurity = false) => {
     const targetData = isSecurity ? securityData : formData;
     const setTargetData = isSecurity ? setSecurityData : setFormData;
-    
+
     let newData = { ...targetData, [name]: value };
 
     if (record && mappings && mappings.length > 0) {
@@ -172,7 +186,7 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
         let cData = {};
         try {
           cData = typeof record.customData === 'string' ? JSON.parse(record.customData || '{}') : (record.customData || {});
-        } catch(e) {}
+        } catch (e) { }
         const sourceVal = record[mapping.sourceField] || cData[mapping.sourceField];
         if (sourceVal !== undefined) {
           newData[mapping.targetField] = sourceVal;
@@ -187,13 +201,13 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
   const renderTabContent = () => {
     if (activeTab === 'Details') {
       const standardFields = ['firstName', 'lastName', 'email', 'phone', 'owner'];
-      
+
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', position: 'relative', paddingBottom: '0' }}>
           {blueprint.fields.map(field => {
             const isStandard = standardFields.includes(field.name);
             let value = isStandard ? lead[field.name] : lead.customData?.[field.name];
-            
+
             if (value === undefined || value === null || value === "") {
               value = "-";
             }
@@ -297,8 +311,8 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
         </div>
       )}
 
-      <div className={`modal-card ${isOpen ? 'open' : ''}`} style={{ 
-        display: 'flex', flexDirection: 'column', backgroundColor: '#ffffff', 
+      <div className={`modal-card ${isOpen ? 'open' : ''}`} style={{
+        display: 'flex', flexDirection: 'column', backgroundColor: '#ffffff',
         width: '600px', maxWidth: '100vw', right: isOpen ? '0' : '-600px',
         top: 0, bottom: 0, height: '100vh', maxHeight: '100vh', borderRadius: '0',
         left: 'auto', transform: 'none', /* Override modal-card centering */
@@ -306,14 +320,14 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
         transition: 'right 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
       }}>
         <div style={{ display: 'flex', flexDirection: 'column', padding: '2rem 2rem 0 2rem' }}>
-          
+
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', gap: '1rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <div style={{ 
-                width: '48px', height: '48px', borderRadius: '50%', 
-                backgroundColor: `${stageColor}20`, color: stageColor, 
-                display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                fontSize: '1.1rem', fontWeight: 600, letterSpacing: '1px' 
+              <div style={{
+                width: '48px', height: '48px', borderRadius: '50%',
+                backgroundColor: `${stageColor}20`, color: stageColor,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '1.1rem', fontWeight: 600, letterSpacing: '1px'
               }}>
                 {getInitials(lead.firstName, lead.lastName)}
               </div>
@@ -326,11 +340,34 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
                 </h2>
               </div>
             </div>
-            <button 
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', fontSize: '1.25rem' }} 
-              onClick={onClose}
-            >✕</button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: '6px', overflow: 'hidden' }}>
+                <button
+                  onClick={onPrev}
+                  disabled={!hasPrev}
+                  style={{ background: 'none', border: 'none', cursor: hasPrev ? 'pointer' : 'not-allowed', color: hasPrev ? '#64748b' : '#cbd5e1', padding: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  title="Previous Lead"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                </button>
+                <div style={{ width: '1px', background: '#e2e8f0' }}></div>
+                <button
+                  onClick={onNext}
+                  disabled={!hasNext}
+                  style={{ background: 'none', border: 'none', cursor: hasNext ? 'pointer' : 'not-allowed', color: hasNext ? '#64748b' : '#cbd5e1', padding: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  title="Next Lead"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </button>
+              </div>
+              <button
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', fontSize: '1.25rem', padding: '0.25rem' }}
+                onClick={onClose}
+                title="Close"
+              >✕</button>
+            </div>
           </div>
+
 
           <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
             <button style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '48px', height: '36px', borderRadius: '18px', border: '1px solid #e2e8f0', backgroundColor: '#ffffff', color: '#64748b', cursor: 'pointer', flexShrink: 0 }}>
@@ -342,7 +379,7 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
             <button style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '48px', height: '36px', borderRadius: '18px', border: '1px solid #e2e8f0', backgroundColor: '#ffffff', color: '#64748b', cursor: 'pointer' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
             </button>
-            <button 
+            <button
               onClick={() => onEditClick(lead)}
               style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0 1.25rem', height: '36px', borderRadius: '18px', border: 'none', backgroundColor: '#0f172a', color: '#ffffff', fontWeight: 600, cursor: 'pointer', fontSize: '0.9rem' }}
             >
@@ -350,7 +387,7 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
               Edit
             </button>
           </div>
-          
+
           <div style={{ display: 'flex', gap: '1.5rem', borderBottom: '1px solid #e2e8f0', flexWrap: 'wrap' }}>
             {['Details', 'Activity', 'Notes', 'Files', 'Related'].map(tab => (
               <button
@@ -372,7 +409,7 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
 
         <div className="slide-content" style={{ flex: 1, overflowY: 'auto', padding: '2rem' }}>
           {renderTabContent()}
-          
+
           {localTags.length > 0 && (
             <div style={{ marginTop: '2.5rem' }}>
               <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#94a3b8', marginBottom: '0.75rem' }}>Tags</div>
