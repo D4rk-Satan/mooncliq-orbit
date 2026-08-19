@@ -27,7 +27,8 @@
 
 body {
   color: rgb(var(--foreground-rgb));
-  background-color: #fafaf9; /* Clean off-white background */
+  background-color: #fafaf9;
+  /* Clean off-white background */
   min-height: 100vh;
   font-family: var(--font-inter), sans-serif;
 }
@@ -148,11 +149,13 @@ body {
 }
 
 .req-item.met {
-  color: #16a34a; /* Tailwind green-600 */
+  color: #16a34a;
+  /* Tailwind green-600 */
 }
 
 .req-item.unmet {
-  color: #94a3b8; /* Tailwind slate-400 */
+  color: #94a3b8;
+  /* Tailwind slate-400 */
 }
 
 .req-icon {
@@ -213,8 +216,10 @@ body {
   display: flex;
   height: 100vh;
   overflow: hidden;
-  background-color: #f6f7f2; /* Pale beige/greenish tint */
-  color: #111827; /* Darker text */
+  background-color: #f6f7f2;
+  /* Pale beige/greenish tint */
+  color: #111827;
+  /* Darker text */
 }
 
 .dashboard-sidebar {
@@ -626,7 +631,7 @@ body {
 .toggle-btn.active {
   background: white;
   color: #0f172a;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .kanban-board {
@@ -641,29 +646,29 @@ body {
 }
 
 .kanban-column {
-    flex: 0 0 300px;
-    background-color: rgba(248, 250, 252, 0.5);
-    display: flex;
-    flex-direction: column;
-    max-height: 100%;
-    border-radius: 10px;
-  }
-  
-  .kanban-column-header {
-    padding: 0.75rem 1rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-radius: 10px 10px 0 0;
-    margin-bottom: 0.5rem;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    backdrop-filter: blur(8px);
-    background-color: rgba(255, 255, 255, 0.7);
-    border-top: 3px solid #64748b;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-  }
+  flex: 0 0 300px;
+  background-color: rgba(248, 250, 252, 0.5);
+  display: flex;
+  flex-direction: column;
+  max-height: 100%;
+  border-radius: 10px;
+}
+
+.kanban-column-header {
+  padding: 0.75rem 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: 10px 10px 0 0;
+  margin-bottom: 0.5rem;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  backdrop-filter: blur(8px);
+  background-color: rgba(255, 255, 255, 0.7);
+  border-top: 3px solid #64748b;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
 
 .kanban-column-header h3 {
   font-size: 1.05rem;
@@ -694,23 +699,23 @@ body {
 }
 
 .kanban-card {
-    background-color: white;
-    border-radius: 8px;
-    padding: 1.25rem;
-    border: 1px solid #e2e8f0;
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    position: relative;
-  }
-  
-  .kanban-card:hover {
-    border-color: #D4F870;
-    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
-    transform: translateY(-4px);
-  }
+  background-color: white;
+  border-radius: 8px;
+  padding: 1.25rem;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  position: relative;
+}
+
+.kanban-card:hover {
+  border-color: #D4F870;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  transform: translateY(-4px);
+}
 
 .card-header-top {
   display: flex;
@@ -790,7 +795,7 @@ body {
   padding: 1rem;
   color: #94a3b8;
   font-size: 0.875rem;
-  background-color: rgba(255,255,255,0.5);
+  background-color: rgba(255, 255, 255, 0.5);
 }
 
 /* Form Additions */
@@ -909,7 +914,8 @@ body {
   flex-direction: column;
   justify-content: space-between;
   height: 100px;
-  margin-bottom: 1.5rem; /* to align with bottom labels */
+  margin-bottom: 1.5rem;
+  /* to align with bottom labels */
   font-size: 0.75rem;
   color: #64748b;
   padding-right: 0.5rem;
@@ -925,13 +931,11 @@ body {
 }
 
 .report-bar.striped {
-  background: repeating-linear-gradient(
-    -45deg,
-    #cbd5e1,
-    #cbd5e1 2px,
-    transparent 2px,
-    transparent 4px
-  );
+  background: repeating-linear-gradient(-45deg,
+      #cbd5e1,
+      #cbd5e1 2px,
+      transparent 2px,
+      transparent 4px);
 }
 
 .report-bar-label {
@@ -944,7 +948,8 @@ body {
 .report-gauge-container {
   position: relative;
   width: 240px;
-  height: 120px; /* half circle */
+  height: 120px;
+  /* half circle */
   overflow: hidden;
   display: flex;
   justify-content: center;
@@ -962,9 +967,11 @@ body {
 .report-gauge-tick {
   position: absolute;
   top: 0;
-  left: 119px; /* center (240/2 - 1) */
+  left: 119px;
+  /* center (240/2 - 1) */
   width: 2px;
-  height: 120px; /* radius */
+  height: 120px;
+  /* radius */
   transform-origin: bottom center;
 }
 
@@ -974,7 +981,8 @@ body {
   top: 0;
   left: 0;
   width: 100%;
-  height: 18px; /* tick length */
+  height: 18px;
+  /* tick length */
 }
 
 .report-gauge-tick.active::after {
@@ -1092,7 +1100,7 @@ body {
 .progress-toggle button.active {
   background-color: #111827;
   color: #ffffff;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .progress-chart {
@@ -1110,10 +1118,14 @@ body {
 .progress-chart::before {
   content: '';
   position: absolute;
-  top: 0; left: 0; right: 0; bottom: 2rem;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 2rem;
   background-image: linear-gradient(to right, #e2e8f0 1px, transparent 1px);
   background-size: 25% 100%;
-  background-position: 12.5% 0; /* Center lines between columns */
+  background-position: 12.5% 0;
+  /* Center lines between columns */
   z-index: 0;
   opacity: 0.5;
 }
@@ -1146,7 +1158,8 @@ body {
   font-weight: 600;
   color: #111827;
   margin-bottom: 0.5rem;
-  height: 26px; /* Match badge height to keep alignment */
+  height: 26px;
+  /* Match badge height to keep alignment */
   display: flex;
   align-items: center;
 }
@@ -1165,13 +1178,29 @@ body {
   width: 100%;
 }
 
-.segment-1 { background-color: #e2e8f0; }
-.segment-2 { background-color: #cbd5e1; }
-.segment-3 { background-color: #94a3b8; }
+.segment-1 {
+  background-color: #e2e8f0;
+}
 
-.progress-bar-column.active .segment-1 { background-color: #cbd5e1; }
-.progress-bar-column.active .segment-2 { background-color: #94a3b8; }
-.progress-bar-column.active .segment-3 { background-color: #475569; }
+.segment-2 {
+  background-color: #cbd5e1;
+}
+
+.segment-3 {
+  background-color: #94a3b8;
+}
+
+.progress-bar-column.active .segment-1 {
+  background-color: #cbd5e1;
+}
+
+.progress-bar-column.active .segment-2 {
+  background-color: #94a3b8;
+}
+
+.progress-bar-column.active .segment-3 {
+  background-color: #475569;
+}
 
 .progress-day {
   font-size: 0.9rem;
@@ -1208,4 +1237,64 @@ body {
 .progress-report-footer .average {
   color: #111827;
   font-weight: 600;
+}
+
+/* ==============================Mobile Responsiveness =====================*/
+.mobile-header {
+  display: none;
+  padding: 16px;
+  background-color: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+  justify-content: space-between;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .mobile-header {
+    display: flex;
+  }
+
+  .dashboard-sidebar {
+    position: fixed !important;
+    left: -100%;
+    top: 0;
+    bottom: 0;
+    z-index: 9999;
+    width: 260px !important;
+    transition: left 0.3s ease-in-out !important;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.1);
+  }
+
+  /* jab mobile me menu open hoga*/
+  .dashboard-sidebar.mobile-open {
+    left: 0;
+  }
+
+  /* ---- Header Fix (Search bar 100% fit) ---- */
+  .dashboard-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 1rem !important;
+    padding: 1rem !important;
+    height: auto !important;
+  }
+
+  .dashboard-header>div {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex-wrap: wrap !important;
+  }
+
+  /* ---- List View Scroll Fix ---- */
+  .module-content {
+    overflow-x: auto !important;
+  }
+
+  /* ---- Hide View Toggler Button on Mobile ---- */
+  /* (Jisse user galti se bhi Kanban open na kar sake) */
+  .dashboard-header button[title="Kanban Board"],
+  .dashboard-header button:has(svg polyline[points="9 11 12 14 22 4"]) {
+    display: none !important;
+  }
+
 }

@@ -5,9 +5,13 @@ import Papa from "papaparse";
 import Sidebar from "../../components/Sidebar";
 import LeadIntakeForm from "../../components/LeadIntakeForm";
 import SlideOverPanel from "../../components/SlideOverPanel";
-import EditLeadModal from "../../components/EditLeadModal";
+import EntityEditModal from "../../components/EntityEditModal";
 import { useRouter } from "next/navigation";
 import TableSkeleton from "../../components/skeletons/TableSkeleton";
+import Badge from "../../components/ui/Badge";
+import Button from "../../components/ui/Button";
+import { useLeads } from "../../hooks/useLeads";
+import { useConfirm } from "../../contexts/ConfirmContext";
 
 const getColumnColor = (color) => color || "#e2e8f0";
 
@@ -52,11 +56,8 @@ const CustomDropdown = ({ value, options, onChange, placeholder }) => {
 };
 
 export default function LeadModule() {
-  const [leads, setLeads] = useState([]);
-  const [blueprint, setBlueprint] = useState(null);
-  const [tags, setTags] = useState([]);
-  const [currentUser, setCurrentUser] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { leads, setLeads, blueprint, tags, currentUser, isLoading, fetchOnlyLeads, setSearchQuery, searchQuery } = useLeads();
+  const { showConfirm } = useConfirm();
   const [viewMode, setViewMode] = useState("kanban"); // "kanban" or "list"
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState(null);
@@ -71,7 +72,6 @@ export default function LeadModule() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [openAccordion, setOpenAccordion] = useState(null);
   // ListView Filter State
-  const [searchQuery, setSearchQuery] = useState("");
   const [activeFilters, setActiveFilters] = useState([]);
   const [filterLogic, setFilterLogic] = useState('AND');
   const [isFilterBuilderOpen, setIsFilterBuilderOpen] = useState(false);
@@ -87,6 +87,13 @@ export default function LeadModule() {
     if (activeCardMenuId) document.addEventListener('click', handleGlobalClick);
     return () => document.removeEventListener('click', handleGlobalClick);
   }, [activeCardMenuId]);
+
+  // Mobile par humesha List View dikhane ke liye
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      setViewMode('list');
+    }
+  }, []);
 
   useEffect(() => {
     function handleClickOutsideFB(event) {
@@ -191,7 +198,6 @@ export default function LeadModule() {
     try {
       const { getCurrentUser } = await import('aws-amplify/auth');
       await getCurrentUser();
-      fetchData();
     } catch (err) {
       router.push('/sign-in');
     }
@@ -201,43 +207,6 @@ export default function LeadModule() {
     const { fetchAuthSession } = await import('aws-amplify/auth');
     const { tokens } = await fetchAuthSession();
     return tokens.idToken.toString();
-  };
-
-  const fetchData = async () => {
-    setIsLoading(true);
-    try {
-      const token = await getAuthToken();
-      const headers = { Authorization: `Bearer ${token}` };
-
-      // Fetch User Profile
-      const meRes = await fetch('/api/me', { headers });
-      const meData = await meRes.json();
-      setCurrentUser(meData);
-
-      // Fetch Blueprint to get the dynamic stages
-      const bpRes = await fetch('/api/blueprint?moduleType=Lead', { headers });
-      const bpData = await bpRes.json();
-      setBlueprint(bpData);
-
-      // Fetch actual leads
-      const leadsRes = await fetch('/api/leads', { headers });
-      if (leadsRes.ok) {
-        const leadsData = await leadsRes.json();
-        setLeads(leadsData);
-      } else {
-        setLeads([]);
-      }
-
-      // Fetch organization tags
-      const tagsRes = await fetch('/api/tags?moduleType=Lead', { headers });
-      if (tagsRes.ok) {
-        setTags(await tagsRes.json());
-      }
-    } catch (err) {
-      console.error("Failed to load CRM data", err);
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   const handleAddLead = async (newLeadPayload) => {
@@ -282,29 +251,6 @@ export default function LeadModule() {
     }
   };
 
-
-  const fetchOnlyLeads = async (q = '') => {
-    try {
-      const { fetchAuthSession } = await import('aws-amplify/auth');
-      const { tokens } = await fetchAuthSession();
-      const token = tokens.idToken.toString();
-      const headers = { Authorization: `Bearer ${token}` };
-
-      const url = q ? `/api/leads?q=${encodeURIComponent(q)}` : '/api/leads';
-      const res = await fetch(url, { headers });
-      if (res.ok) {
-        const data = await res.json();
-        setLeads(data);
-      }
-    } catch (e) { console.error('Search fetch error:', e); }
-  };
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      fetchOnlyLeads(searchQuery);
-    }, 300);
-    return () => clearTimeout(handler);
-  }, [searchQuery]);
 
   const handleImportFile = async (e) => {
     const file = e.target.files[0];
@@ -496,9 +442,9 @@ export default function LeadModule() {
         <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#1e293b', marginBottom: '0.5rem' }}>There are no records in this view.</h3>
         <p className="text-muted" style={{ marginBottom: '1.5rem', color: '#64748b' }}>Get started by creating your first lead in the pipeline.</p>
         {(currentUser?.profile?.canAccessSettings || currentUser?.profile?.permissions?.Lead?.create) && (
-          <button className="btn-primary" onClick={() => setIsFormOpen(true)}>
-            + Add First Lead
-          </button>
+          <Button variant="primary" onClick={() => setIsFormOpen(true)}>
+            + Add Lead
+          </Button>
         )}
       </div>
     </div>
@@ -512,15 +458,6 @@ export default function LeadModule() {
     let cData = {};
     try { cData = typeof lead.customData === 'string' ? JSON.parse(lead.customData) : (lead.customData || {}); } catch (e) { }
 
-    let passesSearch = true;
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      passesSearch =
-        (lead.firstName || '').toLowerCase().includes(q) ||
-        (lead.lastName || '').toLowerCase().includes(q) ||
-        (lead.email || '').toLowerCase().includes(q);
-    }
-    if (!passesSearch) return false;
 
     let passesOldStage = filterStageId === "" || lead.stageId === filterStageId;
     if (!passesOldStage) return false;
@@ -742,14 +679,15 @@ export default function LeadModule() {
                         {/* NAYA SMART TAG LOGIC */}
                         {leadTags.length > 0 && (
                           <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
-                            <span style={{ fontSize: '0.65rem', fontWeight: 600, color: 'white', background: leadTags[0].color, padding: '0.15rem 0.4rem', borderRadius: '6px' }}>
+                            <Badge color={leadTags[0].color}>
                               {leadTags[0].name}
-                            </span>
+                            </Badge>
                             {leadTags.length > 1 && (
-                              <span style={{ fontSize: '0.65rem', fontWeight: 600, color: '#64748b', background: '#e2e8f0', padding: '0.15rem 0.4rem', borderRadius: '6px' }}>
+                              <Badge backgroundColor="#e2e8f0" textColor="#64748b">
                                 +{leadTags.length - 1}
-                              </span>
+                              </Badge>
                             )}
+
                           </div>
                         )}
 
@@ -926,7 +864,7 @@ export default function LeadModule() {
               <svg style={{ marginLeft: '12px', color: '#94a3b8' }} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
               <input
                 type="text"
-                placeholder="Search leads..."
+                placeholder="type 3 characters to search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 style={{ flex: 1, padding: '8px 12px', border: 'none', outline: 'none', fontSize: '0.9rem', backgroundColor: 'transparent' }}
@@ -1067,9 +1005,23 @@ export default function LeadModule() {
                   style={{ display: 'none' }}
                   onChange={handleImportFile}
                 />
-                <button className="btn-primary" onClick={() => setIsFormOpen(true)}>
+                {/*<Button variant="primary" onClick={() => setIsFormOpen(true)}>
                   + Add Lead
-                </button>
+                </Button>*/}
+                <Button variant="primary" onClick={() => {
+                  showConfirm({
+                    title: "Danger Alert!",
+                    message: "Kya aap sach mein ek nayi lead banana chahte hain?",
+                    confirmText: "Haan, Banao!",
+                    cancelText: "Nahi, Ruk Jao",
+                    isDestructive: false, // isko true karenge toh button red aayega
+                    onConfirm: () => setIsFormOpen(true)
+                  });
+                }}>
+                  + Add Lead
+                </Button>
+
+
               </>
             )}
 
@@ -1270,12 +1222,13 @@ export default function LeadModule() {
         tags={tags}
         currentUser={currentUser}
         onTransition={handleTransition}
-        onLeadUpdate={(updatedLead) => {
+        onUpdate={(updatedLead) => {
           setLeads(prev => prev.map(l => l.id === updatedLead.id ? updatedLead : l));
           setSelectedLead(updatedLead);
         }}
         pendingTransition={pendingTransition}
         onEditClick={(lead) => {
+          setSelectedLead(null);
           setLeadToEdit(lead);
           setIsEditModalOpen(true);
         }}
@@ -1433,18 +1386,19 @@ export default function LeadModule() {
       }
 
       {/* NEW: Edit Lead Modal */}
-      <EditLeadModal
+      <EntityEditModal
         isOpen={isEditModalOpen}
         onClose={() => { setIsEditModalOpen(false); setLeadToEdit(null); }}
-        lead={leadToEdit}
+        entity={leadToEdit}
         blueprint={blueprint}
         currentUser={currentUser}
-        onLeadUpdate={(updatedLead) => {
+        moduleName='leads'
+        onUpdate={(updatedEntity) => {
           // Update lead in state
-          setLeads(prev => prev.map(l => l.id === updatedLead.id ? updatedLead : l));
+          setLeads(prev => prev.map(l => l.id === updatedEntity.id ? updatedEntity : l));
           // If slide-over is open and viewing this lead, update it
-          if (selectedLead && selectedLead.id === updatedLead.id) {
-            setSelectedLead(updatedLead);
+          if (selectedLead && selectedLead.id === updatedEntity.id) {
+            setSelectedLead(updatedEntity);
           }
         }}
       />

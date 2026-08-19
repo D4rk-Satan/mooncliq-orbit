@@ -1,5 +1,6 @@
 import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
+import { ConfirmProvider } from "../contexts/ConfirmContext";
 
 const inter = Inter({ subsets: ["latin"], variable: '--font-inter' });
 const outfit = Outfit({ subsets: ["latin"], variable: '--font-outfit' });
@@ -22,7 +23,9 @@ export default function RootLayout({ children }) {
         <Toaster position="top-right" />
         <AmplifyProvider>
           <DashboardLayoutWrapper>
-            {children}
+            <ConfirmProvider>
+              {children}
+            </ConfirmProvider>
           </DashboardLayoutWrapper>
         </AmplifyProvider>
       </body>

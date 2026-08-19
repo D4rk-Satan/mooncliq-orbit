@@ -1,17 +1,17 @@
 import React, { useState, useEffect, useMemo } from 'react';
 
-const EditLeadModal = ({ isOpen, onClose, lead, blueprint, onLeadUpdate, currentUser }) => {
+const EntityEditModal = ({ isOpen, onClose, entity, blueprint, onUpdate, currentUser, moduleName }) => {
   const [editData, setEditData] = useState({});
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [shakeTrigger, setShakeTrigger] = useState(0);
 
   useEffect(() => {
-    if (isOpen && lead) {
-      setEditData({ ...lead, customData: { ...(lead.customData || {}) } });
+    if (isOpen && entity) {
+      setEditData({ ...entity, customData: { ...(entity.customData || {}) } });
       setHasUnsavedChanges(false);
     }
-  }, [isOpen, lead]);
+  }, [isOpen, entity]);
 
   const handleChange = (name, value, isStandard) => {
     setHasUnsavedChanges(true);
@@ -29,27 +29,30 @@ const EditLeadModal = ({ isOpen, onClose, lead, blueprint, onLeadUpdate, current
       const { tokens } = await fetchAuthSession();
       const token = tokens.idToken.toString();
 
-      const res = await fetch('/api/leads', {
+      const dynamicIdKey = moduleName.toLowerCase().slice(0, -1) + 'Id';
+
+      const res = await fetch(`/api/${moduleName.toLowerCase()}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': token ? `Bearer ${token}` : ''
         },
-        body: JSON.stringify({ leadId: lead.id, ...editData })
+        body: JSON.stringify({ [dynamicIdKey]: entity.id, ...editData })
       });
 
-      if (res.ok && onLeadUpdate) {
-        const updatedLead = await res.json();
-        onLeadUpdate(updatedLead);
+      if (res.ok && onUpdate) {
+        const updatedEntity = await res.json();
+        onUpdate(updatedEntity);
         setHasUnsavedChanges(false);
         onClose();
       }
     } catch (e) {
-      console.error("Failed to save lead edit", e);
+      console.error(`Failed to save ${moduleName} edit`, e);
     } finally {
       setIsSaving(false);
     }
   };
+
 
   const handleBackdropClick = () => {
     if (hasUnsavedChanges) {
@@ -77,11 +80,11 @@ const EditLeadModal = ({ isOpen, onClose, lead, blueprint, onLeadUpdate, current
   }, [blueprint]);
 
 
-  if (!isOpen || !lead) return null;
+  if (!isOpen || !entity) return null;
 
   const standardFields = ['firstName', 'lastName', 'email', 'phone', 'owner'];
-  const formattedDate = lead.updatedAt ? new Date(lead.updatedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true }) : '';
-  const updatedBy = lead.customData?.owner || 'System'; // placeholder, can be refined
+  const formattedDate = entity.updatedAt ? new Date(entity.updatedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true }) : '';
+  const updatedBy = entity.customData?.owner || 'System'; // placeholder, can be refined
 
   return (
     <>
@@ -152,7 +155,7 @@ const EditLeadModal = ({ isOpen, onClose, lead, blueprint, onLeadUpdate, current
         {/* Header */}
         <div style={{ padding: '24px 32px 16px 32px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
-            <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>EDIT LEAD</h2>
+            <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>EDIT </h2>
             <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: '#64748b' }}>
               Last updated {formattedDate}
             </p>
@@ -178,7 +181,7 @@ const EditLeadModal = ({ isOpen, onClose, lead, blueprint, onLeadUpdate, current
                 <h3 style={{ fontSize: '1rem', fontWeight: 600, color: '#0f172a', marginBottom: '16px', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
                   {section.name}
                 </h3>
-                <div style={{ display: 'grid', gridTemplateColumns: `repeat(${section.columns || 2}, 1fr)`, gap: '20px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: typeof window !== 'undefined' && window.innerWidth < 768 ? '1fr' : `repeat(${section.columns || 2}, 1fr)`, gap: '20px' }}>
 
                   {sectionFields.map(field => {
                     const isStandard = standardFields.includes(field.name);
@@ -225,4 +228,4 @@ const EditLeadModal = ({ isOpen, onClose, lead, blueprint, onLeadUpdate, current
   );
 };
 
-export default EditLeadModal;
+export default EntityEditModal;
