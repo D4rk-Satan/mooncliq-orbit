@@ -8,47 +8,27 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 
-
-export default function LeadIntakeForm({ isOpen, onClose, onSave }) {
+export default function DynamicIntakeForm({ moduleType, isOpen, onClose, onSave }) {
   const [blueprint, setBlueprint] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [currentStep, setCurrentStep] = useState(0);
 
-  // Standard fields
-  const [standardData, setStandardData] = useState({
-    fullName: "",
-    firstName: "",
-    lastName: "",
-    companyName: "",
-    street: "",
-    city: "",
-    state: "",
-    country: "",
-    zipCode: "",
-    email: "",
-    phone: "",
-    alternatePhone: "",
-    owner: "",
-    leadSource: "",
-    priority: "",
-    notes: "",
-    stageId: ""
-  });
-
-  // Dynamic fields
+  const [standardData, setStandardData] = useState({});
   const [customData, setCustomData] = useState({});
 
   const { executeScript, standardFieldStates, fieldErrors, fieldReadonlyStates } = useClientScripts({
-    moduleType: "Lead",
+    moduleType,
     standardData, setStandardData,
     customData, setCustomData,
     blueprint, setBlueprint
   });
 
-  const { visibleFields, orderedSections } = useMemo(() => {
-    if (!blueprint?.fields) return { visibleFields: [], orderedSections: [] };
-    const vf = blueprint.fields.filter(f => !f.isHidden && !standardFieldStates?.[f.name]?.isHidden);
+  const { visibleFields, orderedSections, systemFieldNames } = useMemo(() => {
+    if (!blueprint?.fields) return { visibleFields: [], orderedSections: [], systemFieldNames: [] };
 
+    // System fields array dynamically fetched from blueprint
+    const sysFields = blueprint.fields.filter(f => f.isSystemField).map(f => f.name);
+    const vf = blueprint.fields.filter(f => !f.isHidden && !standardFieldStates?.[f.name]?.isHidden);
 
     let os = [];
     if (blueprint?.layoutConfig && Array.isArray(blueprint.layoutConfig) && blueprint.layoutConfig.length > 0) {
@@ -57,14 +37,8 @@ export default function LeadIntakeForm({ isOpen, onClose, onSave }) {
       const uniqueNames = [...new Set(vf.map(f => f.sectionName || 'General Information'))];
       os = uniqueNames.map(name => ({ name, columns: 2 }));
     }
-    return { visibleFields: vf, orderedSections: os };
+    return { visibleFields: vf, orderedSections: os, systemFieldNames: sysFields };
   }, [blueprint, standardFieldStates]);
-  const standardFields = [
-    'fullName', 'firstName', 'lastName', 'companyName',
-    'street', 'city', 'state', 'country', 'zipCode',
-    'email', 'phone', 'alternatePhone',
-    'owner', 'leadSource', 'priority', 'notes', 'stageId'
-  ];
 
   const dynamicSchema = useMemo(() => {
     let schemaObj = {};
@@ -76,24 +50,24 @@ export default function LeadIntakeForm({ isOpen, onClose, onSave }) {
 
       if (field.isRequired) {
         fieldValidation = z.any().refine(val => val !== undefined && val !== null && String(val).trim() !== '', {
-          message: `${field.label} zaroori hai`
+          message: `${field.label} is required`
         });
       }
 
       if (type === 'email') {
-        fieldValidation = z.string().email("Sahi email daaliye").or(field.isRequired ? z.never() : z.literal('').or(z.undefined()));
+        fieldValidation = z.string().email("Invalid email format").or(field.isRequired ? z.never() : z.literal('').or(z.undefined()));
       } else if (type === 'phone') {
-        fieldValidation = z.string().regex(/^[\d\+\-\(\)\s]*$/, "Sahi phone number daaliye").or(field.isRequired ? z.never() : z.literal('').or(z.undefined()));
+        fieldValidation = z.string().regex(/^[\d\+\-\(\)\s]*$/, "Invalid phone format").or(field.isRequired ? z.never() : z.literal('').or(z.undefined()));
       } else if (type === 'url' || type === 'website') {
-        fieldValidation = z.string().url("Sahi URL daaliye").or(field.isRequired ? z.never() : z.literal('').or(z.undefined()));
+        fieldValidation = z.string().url("Invalid URL format").or(field.isRequired ? z.never() : z.literal('').or(z.undefined()));
       } else if (type === 'number' || type === 'currency') {
         fieldValidation = z.any().refine(val => {
           if (val === undefined || val === null || val === '') return !field.isRequired;
           return !isNaN(Number(val));
-        }, { message: "Number hona zaroori hai" });
+        }, { message: "Must be a valid number" });
       }
 
-      if (standardFields.includes(field.name)) {
+      if (systemFieldNames.includes(field.name)) {
         schemaObj[field.name] = fieldValidation;
       } else {
         customDataSchema[field.name] = fieldValidation;
@@ -104,23 +78,27 @@ export default function LeadIntakeForm({ isOpen, onClose, onSave }) {
       ...schemaObj,
       customData: z.object(customDataSchema).optional()
     });
-  }, [visibleFields]);
+  }, [visibleFields, systemFieldNames]);
 
-  const { control, handleSubmit, trigger, formState: { errors } } = useForm({
+  const { control, handleSubmit, trigger, formState: { errors }, reset } = useForm({
     resolver: zodResolver(dynamicSchema),
     defaultValues: { ...standardData, customData: customData }
   });
 
+  // Keep react-hook-form in sync when standardData or customData changes from API or Scripts
+  useEffect(() => {
+    reset({ ...standardData, customData: customData });
+  }, [standardData, customData, reset]);
 
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
-      setCurrentStep(0); // Reset step when opening
+      setCurrentStep(0);
       fetchBlueprint();
     } else {
       document.body.style.overflow = "auto";
     }
-  }, [isOpen]);
+  }, [isOpen, moduleType]);
 
   const getAuthToken = async () => {
     const { fetchAuthSession } = await import('aws-amplify/auth');
@@ -132,17 +110,29 @@ export default function LeadIntakeForm({ isOpen, onClose, onSave }) {
     setIsLoading(true);
     try {
       const token = await getAuthToken();
-      const res = await fetch('/api/blueprint?moduleType=Lead', {
+      const res = await fetch(`/api/blueprint?moduleType=${moduleType}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
       setBlueprint(data);
-      setTimeout(() => executeScript("onLoad"), 0);
+
+      // Setup Initial State based on system fields
+      let initStandard = {};
+      data.fields?.forEach(f => {
+        if (f.isSystemField) initStandard[f.name] = "";
+      });
+
+      // Default to first stage if module has stages
       if (data.stages && data.stages.length > 0) {
-        setStandardData(prev => ({ ...prev, stageId: data.stages[0].id })); // Default to first stage
+        initStandard.stageId = data.stages[0].id;
       }
+
+      setStandardData(initStandard);
+      setCustomData({});
+
+      setTimeout(() => executeScript("onLoad"), 0);
     } catch (err) {
-      console.error("Failed to load blueprint", err);
+      console.error(`Failed to load blueprint for ${moduleType}`, err);
     } finally {
       setIsLoading(false);
     }
@@ -159,6 +149,7 @@ export default function LeadIntakeForm({ isOpen, onClose, onSave }) {
 
     setTimeout(() => executeScript("onChange", name), 0);
 
+    // Auto-fill Logic
     if (record && mappings && mappings.length > 0) {
       mappings.forEach(mapping => {
         if (!mapping.sourceField || !mapping.targetField) return;
@@ -169,9 +160,7 @@ export default function LeadIntakeForm({ isOpen, onClose, onSave }) {
         const sourceVal = record[mapping.sourceField] || cData[mapping.sourceField];
 
         if (sourceVal !== undefined) {
-          // Check if target is a standard field
-          const standardKeys = ["firstName", "lastName", "email", "phone", "owner", "stageId", "companyName", "gstNo", "website", "address", "contactPerson", "name", "sku", "taskName", "startDateTime", "dueDateTime", "endDateTime", "repeat", "alert", "notes"];
-          if (standardKeys.includes(mapping.targetField)) {
+          if (systemFieldNames.includes(mapping.targetField)) {
             setStandardData(prev => ({ ...prev, [mapping.targetField]: sourceVal }));
           } else {
             setCustomData(prev => ({ ...prev, [mapping.targetField]: sourceVal }));
@@ -186,16 +175,15 @@ export default function LeadIntakeForm({ isOpen, onClose, onSave }) {
 
     const section = orderedSections[currentStep];
     const sectionFields = visibleFields.filter(f => (f.sectionName || 'General Information') === section.name);
-    const fieldsToValidate = sectionFields.map(f => standardFields.includes(f.name) ? f.name : `customData.${f.name}`);
+    const fieldsToValidate = sectionFields.map(f => systemFieldNames.includes(f.name) ? f.name : `customData.${f.name}`);
 
-    // Sirf is step ke fields validate honge
+    // Trigger validation ONLY for the current step's fields
     const isValid = await trigger(fieldsToValidate);
 
     if (isValid) {
       if (currentStep < orderedSections.length - 1) {
         setCurrentStep(prev => prev + 1);
       } else {
-        // Aakhri step pe form save hoga
         handleSubmit(async (formData) => {
           const canSave = await executeScript("onSave");
           if (!canSave) return;
@@ -205,23 +193,12 @@ export default function LeadIntakeForm({ isOpen, onClose, onSave }) {
             blueprintId: blueprint?.id
           });
 
-          // Reset
-          // Reset
-          setStandardData({
-            fullName: "", firstName: "", lastName: "", companyName: "",
-            street: "", city: "", state: "", country: "", zipCode: "",
-            email: "", phone: "", alternatePhone: "",
-            owner: "", leadSource: "", priority: "", notes: "",
-            stageId: blueprint?.stages?.[0]?.id || ""
-          });
-          setCustomData({});
           setCurrentStep(0);
           onClose();
         })();
       }
     }
   };
-
 
   return (
     <>
@@ -231,13 +208,15 @@ export default function LeadIntakeForm({ isOpen, onClose, onSave }) {
         {isLoading ? (
           <div className="p-8 text-center" style={{ margin: 'auto' }}>
             <FormSkeleton />
-            <p className="text-muted mt-2">Fetching Blueprint from Database</p>
+            <p className="text-muted mt-2">Fetching Blueprint for {moduleType}</p>
           </div>
         ) : (
           <form onSubmit={handleNextOrSave} style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
             <div className="slide-header" style={{ flexShrink: 0, backgroundColor: '#ffffff', zIndex: 10, display: 'flex', flexDirection: 'column', borderBottom: '1px solid #f1f5f9' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: orderedSections.length > 1 ? '1.5rem' : '0' }}>
-                <span className="slide-eyebrow" style={{ color: 'var(--primary)', letterSpacing: '0.1em', fontWeight: 700 }}>NEW {blueprint?.moduleType?.toUpperCase() || 'LEAD'}</span>
+                <span className="slide-eyebrow" style={{ color: 'var(--primary)', letterSpacing: '0.1em', fontWeight: 700 }}>
+                  NEW {blueprint?.moduleType?.toUpperCase() || moduleType.toUpperCase()}
+                </span>
                 <button type="button" className="btn-close" onClick={onClose}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                 </button>
@@ -276,7 +255,7 @@ export default function LeadIntakeForm({ isOpen, onClose, onSave }) {
               )}
             </div>
 
-            <div className="slide-content" style={{ padding: '2rem 2.5rem', backgroundColor: '#ffffff' }}>
+            <div className="slide-content" style={{ padding: '2rem 2.5rem', backgroundColor: '#ffffff', overflowY: 'auto' }}>
               {orderedSections.length > 0 && (() => {
                 const section = orderedSections[currentStep];
                 const sectionFields = visibleFields.filter(f => (f.sectionName || 'General Information') === section.name)
@@ -299,6 +278,7 @@ export default function LeadIntakeForm({ isOpen, onClose, onSave }) {
                           <Controller
                             name={field.isSystemField ? field.name : `customData.${field.name}`}
                             control={control}
+                            key={field.id || field.name}
                             render={({ field: controllerField, fieldState }) => (
                               <div style={{ width: '100%' }}>
                                 <DynamicField
@@ -307,8 +287,8 @@ export default function LeadIntakeForm({ isOpen, onClose, onSave }) {
                                   field={modifiedField}
                                   value={controllerField.value || ''}
                                   onChange={(name, val, record, mappings) => {
-                                    controllerField.onChange(val); // React Hook Form ko update karo
-                                    handleFieldChange(field, name, val, record, mappings); // Purana system update karo
+                                    controllerField.onChange(val);
+                                    handleFieldChange(field, name, val, record, mappings);
                                   }}
                                   error={fieldErrors?.[field.name] || fieldState.error?.message}
                                   readOnly={fieldReadonlyStates?.[field.name]}
@@ -316,7 +296,6 @@ export default function LeadIntakeForm({ isOpen, onClose, onSave }) {
                               </div>
                             )}
                           />
-
                         );
                       })}
                     </div>
@@ -341,7 +320,7 @@ export default function LeadIntakeForm({ isOpen, onClose, onSave }) {
               </span>
 
               <button type="submit" style={{ borderRadius: '12px', padding: '0.6rem 1.5rem', backgroundColor: '#111827', color: 'white', fontWeight: 600, border: 'none', cursor: 'pointer', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-                {currentStep === orderedSections.length - 1 ? 'Save Lead' : 'Next'}
+                {currentStep === orderedSections.length - 1 ? `Save ${moduleType}` : 'Next'}
               </button>
             </div>
           </form>

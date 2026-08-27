@@ -12,7 +12,7 @@ export async function GET(request) {
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    
+
     console.log("USER PROFILE CHECK:", {
       canAccessSettings: user.profile?.canAccessSettings,
       DealView: user.profile?.permissions?.Deal?.view,
@@ -24,7 +24,7 @@ export async function GET(request) {
     }
 
     const whereClause = { organizationId: user.organizationId };
-    
+
     // Apply Data Visibility Rules
     if (!user.profile?.canAccessSettings && user.profile?.permissions?.Deal?.visibility === 'private') {
       whereClause.owner = user.email; // Assuming owner field holds email
@@ -56,18 +56,39 @@ export async function POST(request) {
     }
 
     const data = await request.json();
-    const { firstName, lastName, email, phone, owner, stageId, customData, blueprintId } = data;
+    const {
+      dealName, companyName, address, convertedFromLead,
+      email, primaryContact, alternatePhone,
+      dealValue, probability, weightedValue, expectedCloseDate, actualCloseDate,
+      owner, dealSource, priority, nextStep, nextFollowUpDate, lossReason, products, notes,
+      stageId, customData, blueprintId
+    } = data;
 
     const newDeal = await prisma.deal.create({
       data: {
         organizationId: user.organizationId,
         blueprintId,
         stageId,
-        firstName,
-        lastName,
-        email,
-        phone,
         owner,
+        dealName,
+        companyName,
+        address,
+        convertedFromLead,
+        email,
+        primaryContact,
+        alternatePhone,
+        dealValue,
+        probability,
+        weightedValue,
+        expectedCloseDate: expectedCloseDate ? new Date(expectedCloseDate) : null,
+        actualCloseDate: actualCloseDate ? new Date(actualCloseDate) : null,
+        dealSource,
+        priority,
+        nextStep,
+        nextFollowUpDate: nextFollowUpDate ? new Date(nextFollowUpDate) : null,
+        lossReason,
+        products,
+        notes,
         customData: customData || {}
       },
       include: {
@@ -107,15 +128,16 @@ export async function PATCH(request) {
     }
 
     const data = await request.json();
-    const { DealId, stageId, customData, tags, transitionId } = data;
+    const { dealId, DealId, stageId, customData, tags, transitionId } = data;
 
-    if (!DealId) {
+    const finalDealId = dealId || DealId;
+    if (!finalDealId) {
       return NextResponse.json({ error: "Missing DealId" }, { status: 400 });
     }
 
     // Verify Deal belongs to user's org
-    const whereClause = { id: DealId, organizationId: user.organizationId };
-    
+    const whereClause = { id: finalDealId, organizationId: user.organizationId };
+
     // Apply Data Visibility Rules
     if (!user.profile?.canAccessSettings && user.profile?.permissions?.Deal?.visibility === 'private') {
       whereClause.owner = user.email;
@@ -151,20 +173,20 @@ export async function PATCH(request) {
           // We need to parse customData if we are modifying it
           let mergedCustomData = updateData.customData || (typeof existingDeal.customData === 'string' ? JSON.parse(existingDeal.customData || "{}") : existingDeal.customData);
           if (typeof mergedCustomData === 'string') {
-            try { mergedCustomData = JSON.parse(mergedCustomData); } catch(e) { mergedCustomData = {}; }
+            try { mergedCustomData = JSON.parse(mergedCustomData); } catch (e) { mergedCustomData = {}; }
           }
-          
+
           fieldUpdates.forEach(update => {
             const { field, value } = update;
             // standard fields
-            if (['firstName', 'lastName', 'email', 'phone', 'owner'].includes(field)) {
+            if (['dealName', 'companyName', 'dealValue', 'dealSource', 'stageId', 'owner', 'email', 'primaryContact'].includes(field)) {
               updateData[field] = value;
             } else {
               // custom dynamic fields
               mergedCustomData[field] = value;
             }
           });
-          
+
           updateData.customData = mergedCustomData;
         }
 
@@ -204,20 +226,20 @@ export async function PATCH(request) {
             // Compile the mapping data
             const mappedData = {};
             for (const map of (action.mappings || [])) {
-               let val = map.sourceField;
-               // parse dynamic variables e.g. {{Deal.firstName}}
-               val = val.replace(/\{\{[^}]+\}\}/g, (match) => {
-                 const matchContent = match.slice(2, -2).trim(); // Remove {{ and }}
-                 const parts = matchContent.split('.');
-                 const fieldName = parts.length > 1 ? parts[1] : parts[0];
-                 
-                 if (['firstName', 'lastName', 'email', 'phone', 'owner'].includes(fieldName)) {
-                   return existingDeal[fieldName] || updateData[fieldName] || '';
-                 }
-                 const cData = updateData.customData || (typeof existingDeal.customData === 'string' ? JSON.parse(existingDeal.customData || "{}") : existingDeal.customData) || {};
-                 return cData[fieldName] || '';
-               });
-               mappedData[map.targetField] = val;
+              let val = map.sourceField;
+              // parse dynamic variables e.g. {{Deal.firstName}}
+              val = val.replace(/\{\{[^}]+\}\}/g, (match) => {
+                const matchContent = match.slice(2, -2).trim(); // Remove {{ and }}
+                const parts = matchContent.split('.');
+                const fieldName = parts.length > 1 ? parts[1] : parts[0];
+
+                if (['firstName', 'lastName', 'email', 'phone', 'owner'].includes(fieldName)) {
+                  return existingDeal[fieldName] || updateData[fieldName] || '';
+                }
+                const cData = updateData.customData || (typeof existingDeal.customData === 'string' ? JSON.parse(existingDeal.customData || "{}") : existingDeal.customData) || {};
+                return cData[fieldName] || '';
+              });
+              mappedData[map.targetField] = val;
             }
 
             // Verify integrity
@@ -226,13 +248,13 @@ export async function PATCH(request) {
                 return NextResponse.json({ error: `Strict Data Integrity Error: Auto-Create failed. Target module '${action.targetModule}' requires field '${req}' but it was not mapped.` }, { status: 400 });
               }
             }
-            
+
             let targetStageId = targetBlueprint.stages[0]?.id;
             if (!targetStageId) {
-               const defaultStage = await prisma.stage.create({
-                 data: { blueprintId: targetBlueprint.id, name: 'New', orderIndex: 0 }
-               });
-               targetStageId = defaultStage.id;
+              const defaultStage = await prisma.stage.create({
+                data: { blueprintId: targetBlueprint.id, name: 'New', orderIndex: 0 }
+              });
+              targetStageId = defaultStage.id;
             }
 
             // Build Prisma payload
@@ -254,40 +276,40 @@ export async function PATCH(request) {
             // Execute Create
             let createdRecord;
             if (action.targetModule === 'Account') {
-               createdRecord = await prisma.account.create({ data: createPayload });
+              createdRecord = await prisma.account.create({ data: createPayload });
             } else if (action.targetModule === 'Task') {
-               createdRecord = await prisma.task.create({ data: createPayload });
+              createdRecord = await prisma.task.create({ data: createPayload });
             } else if (action.targetModule === 'Product') {
-               createdRecord = await prisma.product.create({ data: createPayload });
+              createdRecord = await prisma.product.create({ data: createPayload });
             } else if (action.targetModule === 'Deal') {
-               createdRecord = await prisma.deal.create({ data: createPayload });
+              createdRecord = await prisma.deal.create({ data: createPayload });
             } else if (action.targetModule === 'Lead') {
-               createdRecord = await prisma.lead.create({ data: createPayload });
+              createdRecord = await prisma.lead.create({ data: createPayload });
             }
 
             // Handle Auto Link
             if (action.autoLink && createdRecord) {
-               // Find if there is a Lookup field in Deal pointing to targetModule
-               const DealBlueprint = await prisma.blueprint.findFirst({
-                 where: { organizationId: user.organizationId, moduleType: 'Deal' },
-                 include: { fields: true }
-               });
-               
-               if (DealBlueprint) {
-                 const lookupField = DealBlueprint.fields.find(f => f.type === 'lookup' && f.targetModule === action.targetModule);
-                 if (lookupField) {
-                   let mergedCustomData = updateData.customData || (typeof existingDeal.customData === 'string' ? JSON.parse(existingDeal.customData || "{}") : existingDeal.customData);
-                   if (lookupField.isMultiSelect) {
-                     const existing = Array.isArray(mergedCustomData[lookupField.name]) ? mergedCustomData[lookupField.name] : [];
-                     if (!existing.includes(createdRecord.id)) {
-                       mergedCustomData[lookupField.name] = [...existing, createdRecord.id];
-                     }
-                   } else {
-                     mergedCustomData[lookupField.name] = createdRecord.id;
-                   }
-                   updateData.customData = mergedCustomData;
-                 }
-               }
+              // Find if there is a Lookup field in Deal pointing to targetModule
+              const DealBlueprint = await prisma.blueprint.findFirst({
+                where: { organizationId: user.organizationId, moduleType: 'Deal' },
+                include: { fields: true }
+              });
+
+              if (DealBlueprint) {
+                const lookupField = DealBlueprint.fields.find(f => f.type === 'lookup' && f.targetModule === action.targetModule);
+                if (lookupField) {
+                  let mergedCustomData = updateData.customData || (typeof existingDeal.customData === 'string' ? JSON.parse(existingDeal.customData || "{}") : existingDeal.customData);
+                  if (lookupField.isMultiSelect) {
+                    const existing = Array.isArray(mergedCustomData[lookupField.name]) ? mergedCustomData[lookupField.name] : [];
+                    if (!existing.includes(createdRecord.id)) {
+                      mergedCustomData[lookupField.name] = [...existing, createdRecord.id];
+                    }
+                  } else {
+                    mergedCustomData[lookupField.name] = createdRecord.id;
+                  }
+                  updateData.customData = mergedCustomData;
+                }
+              }
             }
           }
         }
@@ -295,13 +317,61 @@ export async function PATCH(request) {
     }
 
     const updatedDeal = await prisma.deal.update({
-      where: { id: DealId },
+      where: { id: finalDealId },
       data: updateData,
-      include: { 
+      include: {
         stage: true,
         tags: true
       }
     });
+
+    // --- NAYA LOGIC: PRODUCT TOTAL REVENUE AUTO-CALCULATE ---
+    if (updatedDeal.stage?.name === 'Closed Won' || updatedDeal.stage?.name === 'Close Won') {
+      try {
+        let dealProducts = typeof updatedDeal.products === 'string'
+          ? JSON.parse(updatedDeal.products || '[]')
+          : (updatedDeal.products || []);
+
+        if (Array.isArray(dealProducts) && dealProducts.length > 0) {
+          // Saari 'Won' deals uthao taaki proper sum nikal sake
+          const allWonDeals = await prisma.deal.findMany({
+            where: {
+              organizationId: user.organizationId,
+              stage: { name: { in: ['Closed Won', 'Close Won'] } }
+            },
+            select: { products: true }
+          });
+
+          // Har product ke liye revenue recalculate karo
+          for (const dp of dealProducts) {
+            if (dp.id) {
+              let sumRevenue = 0;
+              for (const wonDeal of allWonDeals) {
+                let wArr = typeof wonDeal.products === 'string'
+                  ? JSON.parse(wonDeal.products || '[]')
+                  : (wonDeal.products || []);
+
+                if (Array.isArray(wArr)) {
+                  const match = wArr.find(x => x.id === dp.id);
+                  if (match && match.total) {
+                    sumRevenue += Number(match.total);
+                  }
+                }
+              }
+              // Database me Product ki Total Revenue update karo
+              await prisma.product.update({
+                where: { id: dp.id },
+                data: { totalRevenue: sumRevenue }
+              });
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Revenue Calculation Error:", err);
+      }
+    }
+    // --------------------------------------------------------
+
 
     // Generate Audit Log
     await prisma.auditLog.create({

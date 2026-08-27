@@ -575,7 +575,7 @@ body {
   align-items: center;
   justify-content: center;
   flex: 1;
-  background-color: #f8fafc;
+  background-color: 'transparent';
 }
 
 .empty-state-content {
@@ -647,7 +647,7 @@ body {
 
 .kanban-column {
   flex: 0 0 300px;
-  background-color: rgba(248, 250, 252, 0.5);
+  background-color: transparent;
   display: flex;
   flex-direction: column;
   max-height: 100%;

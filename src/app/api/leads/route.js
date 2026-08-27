@@ -12,7 +12,7 @@ export async function GET(request) {
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    
+
     console.log("USER PROFILE CHECK:", {
       canAccessSettings: user.profile?.canAccessSettings,
       LeadView: user.profile?.permissions?.Lead?.view,
@@ -24,7 +24,7 @@ export async function GET(request) {
     }
 
     const whereClause = { organizationId: user.organizationId };
-    
+
     // Apply Data Visibility Rules
     if (!user.profile?.canAccessSettings && user.profile?.permissions?.Lead?.visibility === 'private') {
       whereClause.owner = user.email; // Assuming owner field holds email
@@ -47,13 +47,15 @@ export async function GET(request) {
       leads = leads.filter(lead => {
         let cDataStr = typeof lead.customData === 'string' ? lead.customData : JSON.stringify(lead.customData || {});
         return (
-          (lead.firstName && lead.firstName.toLowerCase().includes(lowerQ)) ||
-          (lead.lastName && lead.lastName.toLowerCase().includes(lowerQ)) ||
+          (lead.fullName && lead.fullName.toLowerCase().includes(lowerQ)) ||
+          (lead.companyName && lead.companyName.toLowerCase().includes(lowerQ)) ||
           (lead.email && lead.email.toLowerCase().includes(lowerQ)) ||
           (lead.phone && lead.phone.toLowerCase().includes(lowerQ)) ||
           cDataStr.toLowerCase().includes(lowerQ)
         );
       });
+
+
     }
 
     return NextResponse.json(leads);
@@ -74,18 +76,45 @@ export async function POST(request) {
     }
 
     const data = await request.json();
-    const { firstName, lastName, email, phone, owner, stageId, customData, blueprintId, ...rest } = data;
+    const {
+      fullName, email, phone, alternatePhone, owner, stageId,
+      companyName, street, city, state, country, zipCode,
+      leadSource, priority, notes, customData, blueprintId, ...rest
+    } = data;
+
+    // Default Stage Logic: Agar UI se stageId nahi mila, toh first stage uthao
+    let finalStageId = stageId;
+    if (!finalStageId && blueprintId) {
+      const bp = await prisma.blueprint.findUnique({
+        where: { id: blueprintId },
+        include: { stages: { orderBy: { orderIndex: 'asc' } } }
+      });
+      if (bp && bp.stages && bp.stages.length > 0) {
+        finalStageId = bp.stages[0].id;
+      }
+    }
 
     const newLead = await prisma.lead.create({
       data: {
         organizationId: user.organizationId,
         blueprintId,
-        stageId,
-        firstName,
-        lastName,
+        stageId: finalStageId, // <- Naya safe stage ID
+        // Naye System Fields yahan aayenge:
+        fullName,
+        companyName,
         email,
         phone,
+        alternatePhone,
+        street,
+        city,
+        state,
+        country,
+        zipCode,
         owner,
+        leadSource,
+        priority,
+        notes,
+
         customData: { ...(customData || {}), ...rest }
       },
       include: {
@@ -94,15 +123,17 @@ export async function POST(request) {
       }
     });
 
+
     // Generate Audit Log
     await prisma.auditLog.create({
       data: {
         organizationId: user.organizationId,
         leadId: newLead.id,
         actionType: "LeadCreated",
-        details: { stageId }
+        details: { stageId: finalStageId } // <- Yahan bhi Audit ke liye update kiya
       }
     });
+
 
     // Execute Backend Workflows (Async)
     executeBackendWorkflows(user.organizationId, 'Lead', 'Created', newLead);
@@ -125,7 +156,12 @@ export async function PATCH(request) {
     }
 
     const data = await request.json();
-    const { leadId, stageId, customData, tags, transitionId, firstName, lastName, email, phone, ...rest } = data;
+    const {
+      leadId, stageId, customData, tags, transitionId,
+      fullName, email, phone, alternatePhone, owner,
+      companyName, street, city, state, country, zipCode,
+      leadSource, priority, notes, ...rest
+    } = data;
 
     if (!leadId) {
       return NextResponse.json({ error: "Missing leadId" }, { status: 400 });
@@ -133,7 +169,7 @@ export async function PATCH(request) {
 
     // Verify lead belongs to user's org
     const whereClause = { id: leadId, organizationId: user.organizationId };
-    
+
     // Apply Data Visibility Rules
     if (!user.profile?.canAccessSettings && user.profile?.permissions?.Lead?.visibility === 'private') {
       whereClause.owner = user.email;
@@ -149,11 +185,24 @@ export async function PATCH(request) {
 
     let updateData = {};
     if (stageId) updateData.stageId = stageId;
-    if (firstName !== undefined) updateData.firstName = firstName;
-    if (lastName !== undefined) updateData.lastName = lastName;
     if (email !== undefined) updateData.email = email;
     if (phone !== undefined) updateData.phone = phone;
-    
+
+    // Naye Hardcoded Fields
+    if (fullName !== undefined) updateData.fullName = fullName;
+    if (companyName !== undefined) updateData.companyName = companyName;
+    if (alternatePhone !== undefined) updateData.alternatePhone = alternatePhone;
+    if (street !== undefined) updateData.street = street;
+    if (city !== undefined) updateData.city = city;
+    if (state !== undefined) updateData.state = state;
+    if (country !== undefined) updateData.country = country;
+    if (zipCode !== undefined) updateData.zipCode = zipCode;
+    if (owner !== undefined) updateData.owner = owner;
+    if (leadSource !== undefined) updateData.leadSource = leadSource;
+    if (priority !== undefined) updateData.priority = priority;
+    if (notes !== undefined) updateData.notes = notes;
+
+
     let currentCustomData = typeof existingLead.customData === 'string' ? JSON.parse(existingLead.customData || "{}") : (existingLead.customData || {});
     if (customData || Object.keys(rest).length > 0) {
       updateData.customData = { ...currentCustomData, ...(customData || {}), ...rest };
@@ -177,9 +226,9 @@ export async function PATCH(request) {
           // We need to parse customData if we are modifying it
           let mergedCustomData = updateData.customData || (typeof existingLead.customData === 'string' ? JSON.parse(existingLead.customData || "{}") : existingLead.customData);
           if (typeof mergedCustomData === 'string') {
-            try { mergedCustomData = JSON.parse(mergedCustomData); } catch(e) { mergedCustomData = {}; }
+            try { mergedCustomData = JSON.parse(mergedCustomData); } catch (e) { mergedCustomData = {}; }
           }
-          
+
           fieldUpdates.forEach(update => {
             const { field, value } = update;
             // standard fields
@@ -190,7 +239,7 @@ export async function PATCH(request) {
               mergedCustomData[field] = value;
             }
           });
-          
+
           updateData.customData = mergedCustomData;
         }
 
@@ -238,20 +287,20 @@ export async function PATCH(request) {
             // Compile the mapping data
             const mappedData = {};
             for (const map of (action.mappings || [])) {
-               let val = map.sourceField;
-               // parse dynamic variables e.g. {{Lead.firstName}}
-               val = val.replace(/\{\{[^}]+\}\}/g, (match) => {
-                 const matchContent = match.slice(2, -2).trim(); // Remove {{ and }}
-                 const parts = matchContent.split('.');
-                 const fieldName = parts.length > 1 ? parts[1] : parts[0];
-                 
-                 if (['firstName', 'lastName', 'email', 'phone', 'owner'].includes(fieldName)) {
-                   return existingLead[fieldName] || updateData[fieldName] || '';
-                 }
-                 const cData = updateData.customData || (typeof existingLead.customData === 'string' ? JSON.parse(existingLead.customData || "{}") : existingLead.customData) || {};
-                 return cData[fieldName] || '';
-               });
-               mappedData[map.targetField] = val;
+              let val = map.sourceField;
+              // parse dynamic variables e.g. {{Lead.firstName}}
+              val = val.replace(/\{\{[^}]+\}\}/g, (match) => {
+                const matchContent = match.slice(2, -2).trim(); // Remove {{ and }}
+                const parts = matchContent.split('.');
+                const fieldName = parts.length > 1 ? parts[1] : parts[0];
+
+                if (['firstName', 'lastName', 'email', 'phone', 'owner'].includes(fieldName)) {
+                  return existingLead[fieldName] || updateData[fieldName] || '';
+                }
+                const cData = updateData.customData || (typeof existingLead.customData === 'string' ? JSON.parse(existingLead.customData || "{}") : existingLead.customData) || {};
+                return cData[fieldName] || '';
+              });
+              mappedData[map.targetField] = val;
             }
 
             // Verify integrity
@@ -262,13 +311,13 @@ export async function PATCH(request) {
                 return NextResponse.json({ error: `Strict Data Integrity Error: Auto-Create failed. Target module '${action.targetModule}' requires field '${req}' but it was not mapped.` }, { status: 400 });
               }
             }
-            
+
             let targetStageId = targetBlueprint.stages[0]?.id;
             if (!targetStageId) {
-               const defaultStage = await prisma.stage.create({
-                 data: { blueprintId: targetBlueprint.id, name: 'New', orderIndex: 0, requiredFields: [] }
-               });
-               targetStageId = defaultStage.id;
+              const defaultStage = await prisma.stage.create({
+                data: { blueprintId: targetBlueprint.id, name: 'New', orderIndex: 0, requiredFields: [] }
+              });
+              targetStageId = defaultStage.id;
             }
 
             // Build Prisma payload
@@ -290,41 +339,41 @@ export async function PATCH(request) {
             // Execute Create
             let createdRecord;
             if (action.targetModule === 'Account') {
-               createdRecord = await prisma.account.create({ data: createPayload });
+              createdRecord = await prisma.account.create({ data: createPayload });
             } else if (action.targetModule === 'Task') {
-               createdRecord = await prisma.task.create({ data: createPayload });
+              createdRecord = await prisma.task.create({ data: createPayload });
             } else if (action.targetModule === 'Product') {
-               createdRecord = await prisma.product.create({ data: createPayload });
+              createdRecord = await prisma.product.create({ data: createPayload });
             } else if (action.targetModule === 'Deal') {
-               createdRecord = await prisma.deal.create({ data: createPayload });
+              createdRecord = await prisma.deal.create({ data: createPayload });
             } else if (action.targetModule === 'Lead') {
-               createdRecord = await prisma.lead.create({ data: createPayload });
+              createdRecord = await prisma.lead.create({ data: createPayload });
             }
 
             // Handle Auto Link
             if (action.autoLink && createdRecord) {
-               // Find if there is a Lookup field in Lead pointing to targetModule
-               const leadBlueprint = await prisma.blueprint.findFirst({
-                 where: { organizationId: user.organizationId, moduleType: 'Lead' },
-                 include: { fields: true }
-               });
-               
-               if (leadBlueprint) {
-                 const lookupField = leadBlueprint.fields.find(f => f.type === 'lookup' && f.targetModule === action.targetModule);
-                 if (lookupField) {
-                   let mergedCustomData = updateData.customData || (typeof existingLead.customData === 'string' ? JSON.parse(existingLead.customData || "{}") : existingLead.customData);
-                   const displayName = createdRecord.firstName ? `${createdRecord.firstName} ${createdRecord.lastName || ''}`.trim() : createdRecord.taskName || createdRecord.name || createdRecord.companyName || createdRecord.id;
-                   if (lookupField.isMultiSelect) {
-                     const existing = Array.isArray(mergedCustomData[lookupField.name]) ? mergedCustomData[lookupField.name] : [];
-                     if (!existing.some(e => e.id === createdRecord.id)) {
-                       mergedCustomData[lookupField.name] = [...existing, { id: createdRecord.id, name: displayName }];
-                     }
-                   } else {
-                     mergedCustomData[lookupField.name] = { id: createdRecord.id, name: displayName };
-                   }
-                   updateData.customData = mergedCustomData;
-                 }
-               }
+              // Find if there is a Lookup field in Lead pointing to targetModule
+              const leadBlueprint = await prisma.blueprint.findFirst({
+                where: { organizationId: user.organizationId, moduleType: 'Lead' },
+                include: { fields: true }
+              });
+
+              if (leadBlueprint) {
+                const lookupField = leadBlueprint.fields.find(f => f.type === 'lookup' && f.targetModule === action.targetModule);
+                if (lookupField) {
+                  let mergedCustomData = updateData.customData || (typeof existingLead.customData === 'string' ? JSON.parse(existingLead.customData || "{}") : existingLead.customData);
+                  const displayName = createdRecord.firstName ? `${createdRecord.firstName} ${createdRecord.lastName || ''}`.trim() : createdRecord.taskName || createdRecord.name || createdRecord.companyName || createdRecord.id;
+                  if (lookupField.isMultiSelect) {
+                    const existing = Array.isArray(mergedCustomData[lookupField.name]) ? mergedCustomData[lookupField.name] : [];
+                    if (!existing.some(e => e.id === createdRecord.id)) {
+                      mergedCustomData[lookupField.name] = [...existing, { id: createdRecord.id, name: displayName }];
+                    }
+                  } else {
+                    mergedCustomData[lookupField.name] = { id: createdRecord.id, name: displayName };
+                  }
+                  updateData.customData = mergedCustomData;
+                }
+              }
             }
           }
         }
@@ -334,7 +383,7 @@ export async function PATCH(request) {
     const updatedLead = await prisma.lead.update({
       where: { id: leadId },
       data: updateData,
-      include: { 
+      include: {
         stage: true,
         tags: true
       }

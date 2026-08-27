@@ -1,4 +1,20 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+
+const standardFields = [
+  // Lead Fields
+  'fullName', 'companyName', 'email', 'phone', 'alternatePhone',
+  'street', 'city', 'state', 'country', 'zipCode',
+  'owner', 'leadSource', 'priority', 'notes',
+
+  // Deal Fields (Naye wale)
+  'dealName', 'convertedFromLead', 'primaryContact',
+  'dealValue', 'probability', 'weightedValue', 'expectedCloseDate', 'actualCloseDate',
+  'dealSource', 'nextStep', 'nextFollowUpDate', 'lossReason', 'stageId'
+];
+
 
 const EntityEditModal = ({ isOpen, onClose, entity, blueprint, onUpdate, currentUser, moduleName }) => {
   const [editData, setEditData] = useState({});
@@ -22,7 +38,7 @@ const EntityEditModal = ({ isOpen, onClose, entity, blueprint, onUpdate, current
     }
   };
 
-  const handleSave = async () => {
+  const handleSave = async (formData) => {
     setIsSaving(true);
     try {
       const { fetchAuthSession } = await import('aws-amplify/auth');
@@ -37,7 +53,7 @@ const EntityEditModal = ({ isOpen, onClose, entity, blueprint, onUpdate, current
           'Content-Type': 'application/json',
           'Authorization': token ? `Bearer ${token}` : ''
         },
-        body: JSON.stringify({ [dynamicIdKey]: entity.id, ...editData })
+        body: JSON.stringify({ [dynamicIdKey]: entity.id, ...formData })
       });
 
       if (res.ok && onUpdate) {
@@ -78,11 +94,62 @@ const EntityEditModal = ({ isOpen, onClose, entity, blueprint, onUpdate, current
     }
     return { visibleFields: vf, orderedSections: os };
   }, [blueprint]);
+  // 1. Dynamic Zod Schema banana
+  const dynamicSchema = useMemo(() => {
+    let schemaObj = {};
+    let customDataSchema = {};
 
+    visibleFields.forEach(field => {
+      let fieldValidation = z.any().optional();
+      const type = field.type?.toLowerCase();
 
+      if (field.isRequired) {
+        fieldValidation = z.any().refine(val => val !== undefined && val !== null && String(val).trim() !== '', {
+          message: `${field.label} zaroori hai`
+        });
+      }
+
+      if (type === 'email') {
+        fieldValidation = z.string().email("Sahi email daaliye").or(field.isRequired ? z.never() : z.literal('').or(z.undefined()));
+      } else if (type === 'phone') {
+        fieldValidation = z.string().regex(/^[\d\+\-\(\)\s]*$/, "Sahi phone number daaliye").or(field.isRequired ? z.never() : z.literal('').or(z.undefined()));
+      } else if (type === 'url' || type === 'website') {
+        fieldValidation = z.string().url("Sahi URL daaliye").or(field.isRequired ? z.never() : z.literal('').or(z.undefined()));
+      } else if (type === 'number' || type === 'currency') {
+        fieldValidation = z.any().refine(val => {
+          if (val === undefined || val === null || val === '') return !field.isRequired;
+          return !isNaN(Number(val));
+        }, { message: "Number hona zaroori hai" });
+      }
+
+      if (standardFields.includes(field.name)) {
+        schemaObj[field.name] = fieldValidation;
+      } else {
+        customDataSchema[field.name] = fieldValidation;
+      }
+    });
+
+    return z.object({
+      ...schemaObj,
+      customData: z.object(customDataSchema).optional()
+    });
+  }, [visibleFields, standardFields]);
+
+  // 2. React Hook Form Setup
+  const { register, handleSubmit, formState: { errors }, reset } = useForm({
+    resolver: zodResolver(dynamicSchema),
+    defaultValues: { ...(entity || {}), customData: entity?.customData || {} } // Puraana data form me daal diya
+    // Puraana data form me daal diya
+  });
+
+  useEffect(() => {
+    if (isOpen && entity) {
+      reset({ ...entity, customData: entity?.customData || {} });
+    }
+  }, [isOpen, entity, reset]);
   if (!isOpen || !entity) return null;
 
-  const standardFields = ['firstName', 'lastName', 'email', 'phone', 'owner'];
+
   const formattedDate = entity.updatedAt ? new Date(entity.updatedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true }) : '';
   const updatedBy = entity.customData?.owner || 'System'; // placeholder, can be refined
 
@@ -140,12 +207,13 @@ const EntityEditModal = ({ isOpen, onClose, entity, blueprint, onUpdate, current
                 Discard
               </button>
               <button
-                onClick={handleSave}
+                onClick={handleSubmit(handleSave)}
                 disabled={isSaving}
                 style={{ backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '24px', padding: '6px 16px', cursor: 'pointer', fontWeight: 600, transition: 'background-color 0.2s', display: 'flex', alignItems: 'center', gap: '8px' }}
                 onMouseEnter={e => e.target.style.backgroundColor = '#059669'}
                 onMouseLeave={e => e.target.style.backgroundColor = '#10b981'}
               >
+
                 {isSaving ? 'Saving...' : 'Save Changes'}
               </button>
             </div>
@@ -193,10 +261,9 @@ const EntityEditModal = ({ isOpen, onClose, entity, blueprint, onUpdate, current
                           {field.label} {field.isRequired && <span style={{ color: '#ef4444' }}>*</span>}
                         </label>
 
-                        {field.type === 'Select' ? (
+                        {field.type?.toLowerCase() === 'select' ? (
                           <select
-                            value={value || ''}
-                            onChange={(e) => handleChange(field.name, e.target.value, isStandard)}
+                            {...register(isStandard ? field.name : `customData.${field.name}`)}
                             style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', backgroundColor: '#f8fafc', color: '#0f172a', fontSize: '0.9rem', outline: 'none', cursor: 'pointer' }}
                           >
                             <option value="">Select...</option>
@@ -206,14 +273,18 @@ const EntityEditModal = ({ isOpen, onClose, entity, blueprint, onUpdate, current
                           </select>
                         ) : (
                           <input
-                            type={field.type === 'Number' ? 'number' : field.type === 'Email' ? 'email' : 'text'}
-                            value={value || ''}
-                            onChange={(e) => handleChange(field.name, e.target.value, isStandard)}
+                            type={field.type?.toLowerCase() === 'number' ? 'number' : field.type?.toLowerCase() === 'email' ? 'email' : 'text'}
+                            {...register(isStandard ? field.name : `customData.${field.name}`)}
                             style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', backgroundColor: '#f8fafc', color: '#0f172a', fontSize: '0.9rem', outline: 'none' }}
                           />
                         )}
+
+                        {/* Zod Validation Error Message yahan dikhega 👇 */}
+                        {errors[field.name] && <span style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px', display: 'block' }}>{errors[field.name].message}</span>}
+                        {errors.customData?.[field.name] && <span style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px', display: 'block' }}>{errors.customData[field.name].message}</span>}
                       </div>
                     );
+
                   })}
 
                 </div>

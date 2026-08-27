@@ -70,40 +70,34 @@ export default function TaskAlertDropdown({ field, value, onChange }) {
         </div>
       )}
 
-      {showModal && typeof document !== 'undefined' && createPortal(
-        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ backgroundColor: 'var(--card-bg)', padding: '2rem', borderRadius: '12px', width: '400px', boxShadow: '0 10px 40px rgba(0, 0, 0, 0.15)', opacity: 1, pointerEvents: 'auto' }}>
-            <h3 className="text-xl font-semibold mb-4">Custom Alert</h3>
-            
-            <div className="form-group mb-4">
-              <label className="form-label">Remind me before</label>
-              <div style={{ display: 'flex', gap: '1rem' }}>
-                <input 
-                  type="number" 
-                  min="1" 
-                  className="form-input" 
-                  value={customValue} 
-                  onChange={e => setCustomValue(e.target.value)} 
-                />
-                <select 
-                  className="form-input bg-white" 
-                  value={customUnit} 
-                  onChange={e => setCustomUnit(e.target.value)}
-                >
-                  <option value="Minutes">minute(s)</option>
-                  <option value="Hours">hour(s)</option>
-                  <option value="Days">day(s)</option>
-                </select>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '2rem' }}>
-              <button type="button" className="btn-outline" onClick={() => setShowModal(false)}>Cancel</button>
-              <button type="button" className="btn-primary" onClick={handleCustomSave}>Save</button>
-            </div>
+      {showModal && (
+        <div style={{ marginTop: '10px', padding: '12px', border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: '#f8fafc' }}>
+          <label style={{ fontSize: '13px', fontWeight: '500', color: '#475569', marginBottom: '8px', display: 'block' }}>Set Custom Alert</label>
+          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '12px' }}>
+            <input 
+              type="number" 
+              min="1" 
+              className="form-input" 
+              style={{ width: '80px' }}
+              value={customValue} 
+              onChange={e => setCustomValue(e.target.value)} 
+            />
+            <select 
+              className="form-input bg-white" 
+              style={{ flex: 1 }}
+              value={customUnit} 
+              onChange={e => setCustomUnit(e.target.value)}
+            >
+              <option value="Minutes">minute(s)</option>
+              <option value="Hours">hour(s)</option>
+              <option value="Days">day(s)</option>
+            </select>
           </div>
-        </div>,
-        document.body
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+            <button type="button" className="btn-outline" style={{ padding: '6px 12px', fontSize: '12px', minHeight: 'auto' }} onClick={() => setShowModal(false)}>Cancel</button>
+            <button type="button" className="btn-primary" style={{ padding: '6px 12px', fontSize: '12px', minHeight: 'auto' }} onClick={handleCustomSave}>Save Alert</button>
+          </div>
+        </div>
       )}
     </div>
   );

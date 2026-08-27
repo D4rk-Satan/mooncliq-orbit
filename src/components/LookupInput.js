@@ -38,13 +38,13 @@ export default function LookupInput({ field, value, onChange }) {
     return record.name || (record.customData && record.customData.companyName) || record.taskName || (record.firstName ? record.firstName + ' ' + (record.lastName || '') : '') || record.email || 'Unknown';
   };
 
-  
+
   const evaluateFilters = (record) => {
     if (!field.filters || !Array.isArray(field.filters) || field.filters.length === 0) return true;
     return field.filters.every(filter => {
       if (!filter.field || !filter.operator) return true;
       const recordValue = String(record[filter.field] || (record.customData && record.customData[filter.field]) || '').toLowerCase();
-      
+
       let filterValue = '';
       if (filter.matchType === 'field') {
         if (!formData || !filter.value) return true; // Can't evaluate without form data or target field
@@ -52,7 +52,7 @@ export default function LookupInput({ field, value, onChange }) {
       } else {
         filterValue = String(filter.value || '').toLowerCase();
       }
-      
+
       switch (filter.operator) {
         case 'is': return recordValue === filterValue;
         case 'is_not': return recordValue !== filterValue;
@@ -88,8 +88,8 @@ export default function LookupInput({ field, value, onChange }) {
         const data = await res.json();
         // Filter locally for now
         const filtered = data.filter(item => {
-           const nameToMatch = getDisplayValue(item);
-           return nameToMatch.toLowerCase().includes(query.toLowerCase());
+          const nameToMatch = getDisplayValue(item);
+          return nameToMatch.toLowerCase().includes(query.toLowerCase());
         });
         setResults(filtered);
       }
@@ -110,17 +110,31 @@ export default function LookupInput({ field, value, onChange }) {
     const displayName = getDisplayValue(record);
     const payload = { id: record.id, name: displayName };
 
+    // DB se mappings JSON string me aati hai — parse karni padegi
+    let parsedMappings = [];
+    if (field.mappings) {
+      try {
+        parsedMappings = typeof field.mappings === 'string'
+          ? JSON.parse(field.mappings)
+          : field.mappings;
+      } catch (e) {
+        parsedMappings = [];
+      }
+    }
+
     if (field.isMultiSelect) {
       const isAlreadySelected = selectedItems.find(item => item.id === record.id);
       if (!isAlreadySelected) {
-        onChange(field.name, [...selectedItems, payload], record, field.mappings);
+        onChange(field.name, [...selectedItems, payload], record, parsedMappings);
       }
     } else {
-      console.log('LookupInput Selection:', {name: field.name, payload, record, mappings: field.mappings}); onChange(field.name, payload, record, field.mappings);
+      console.log('LookupInput Selection:', { name: field.name, payload, record, mappings: parsedMappings });
+      onChange(field.name, payload, record, parsedMappings);
       setIsOpen(false);
     }
-    setSearchTerm(''); // Clear search on select
-  };
+    setSearchTerm('');
+
+  }
 
   const handleRemove = (idToRemove) => {
     if (field.isMultiSelect) {
@@ -135,9 +149,9 @@ export default function LookupInput({ field, value, onChange }) {
       <label className="form-label" htmlFor={field.name}>
         {field.label} {field.isRequired && <span className="text-red-500">*</span>}
       </label>
-      
-      <div 
-        className="form-input bg-white" 
+
+      <div
+        className="form-input bg-white"
         style={{ minHeight: '42px', height: 'auto', display: 'flex', flexWrap: 'wrap', gap: '0.5rem', padding: '0.25rem 0.5rem', alignItems: 'center', cursor: 'text' }}
         onClick={() => setIsOpen(true)}
       >
@@ -147,7 +161,7 @@ export default function LookupInput({ field, value, onChange }) {
             <button type="button" onClick={(e) => { e.stopPropagation(); handleRemove(item.id); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: 0, fontSize: '1rem', lineHeight: 1 }}>×</button>
           </span>
         ))}
-        
+
         {(!field.isMultiSelect && selectedItems.length > 0) ? null : (
           <input
             type="text"
@@ -164,17 +178,17 @@ export default function LookupInput({ field, value, onChange }) {
         <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: '4px', background: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', zIndex: 50, maxHeight: '200px', overflowY: 'auto' }}>
           {isLoading && <div style={{ padding: '0.75rem', color: '#64748b', fontSize: '0.875rem' }}>Loading...</div>}
           {!isLoading && results.length === 0 && <div style={{ padding: '0.75rem', color: '#64748b', fontSize: '0.875rem' }}>No records found.</div>}
-          
+
           {!isLoading && results.map(record => {
             const displayName = getDisplayValue(record);
             const isSelected = selectedItems.find(item => item.id === record.id);
             return (
-              <div 
-                key={record.id} 
+              <div
+                key={record.id}
                 onClick={() => handleSelect(record)}
                 style={{ padding: '0.75rem', cursor: isSelected ? 'default' : 'pointer', background: isSelected ? '#f8fafc' : 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', opacity: isSelected ? 0.6 : 1 }}
-                onMouseEnter={e => { if(!isSelected) e.currentTarget.style.background = '#f1f5f9' }}
-                onMouseLeave={e => { if(!isSelected) e.currentTarget.style.background = 'white' }}
+                onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = '#f1f5f9' }}
+                onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'white' }}
               >
                 <div>
                   <div style={{ fontWeight: 500, color: '#0f172a' }}>{displayName}</div>
@@ -185,7 +199,7 @@ export default function LookupInput({ field, value, onChange }) {
             );
           })}
           {field.targetModule && (
-            <div 
+            <div
               style={{ padding: '0.75rem', borderTop: '1px solid #e2e8f0', background: '#f8fafc', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', color: 'var(--primary)', fontWeight: 600, fontSize: '0.875rem' }}
               onClick={() => { setIsOpen(false); setIsQuickCreating(true); }}
               onMouseEnter={e => e.currentTarget.style.background = '#f1f5f9'}

@@ -64,11 +64,21 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
   const stageColor = currentStage?.color || '#0ea5e9';
   const stageName = currentStage?.name || "Unknown";
 
-  const getInitials = (firstName, lastName) => {
-    const f = firstName ? firstName.charAt(0).toUpperCase() : '';
-    const l = lastName ? lastName.charAt(0).toUpperCase() : '';
-    return (f + l) || '?';
+  const getDisplayName = (record) => {
+    if (!record) return "Unknown";
+    // Generic name handler for all modules
+    return record.fullName || record.dealName || record.taskName || record.name || record.accountName || `${record.firstName || ''} ${record.lastName || ''}`.trim() || "Unknown";
   };
+
+  const getInitials = (nameStr) => {
+    if (!nameStr || nameStr === "Unknown") return "?";
+    const parts = nameStr.split(' ');
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+    return parts[0][0].toUpperCase();
+  };
+
+  const displayName = getDisplayName(lead);
+
 
   const availableTransitions = blueprint.transitions.filter(t => {
     // 0. Permission Check
@@ -321,7 +331,10 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
       }}>
         <div style={{ display: 'flex', flexDirection: 'column', padding: '2rem 2rem 0 2rem' }}>
 
+          {/* 👇 Ye wala wrapper div delete ho gaya tha */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', gap: '1rem' }}>
+
+            {/* Left Side: Avatar & Name */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
               <div style={{
                 width: '48px', height: '48px', borderRadius: '50%',
@@ -329,17 +342,19 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: '1.1rem', fontWeight: 600, letterSpacing: '1px'
               }}>
-                {getInitials(lead.firstName, lead.lastName)}
+                {getInitials(displayName)}
               </div>
               <div>
                 <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  {lead.firstName} {lead.lastName}
+                  {displayName}
                   <span style={{ fontSize: '0.7rem', fontWeight: 600, color: stageColor, backgroundColor: `${stageColor}15`, padding: '0.2rem 0.6rem', borderRadius: '12px' }}>
                     {stageName}
                   </span>
                 </h2>
               </div>
             </div>
+
+            {/* Right Side: Navigation & Close Button */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: '6px', overflow: 'hidden' }}>
                 <button
@@ -366,7 +381,10 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
                 title="Close"
               >✕</button>
             </div>
+
           </div>
+          {/* 👆 Wrapper div yaha close hua */}
+
 
 
           <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
@@ -447,117 +465,123 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
             </div>
           )}
         </div>
-      </div>
+      </div >
 
       {/* MISSING FIELDS MODAL */}
-      {modalMode === 'missing' && activeTransition && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)' }} onClick={() => setModalMode(null)}></div>
-          <div style={{ background: 'white', padding: '2rem', borderRadius: '12px', width: '100%', maxWidth: '400px', position: 'relative', zIndex: 10 }}>
-            <h3 style={{ marginTop: 0, fontSize: '1.25rem', marginBottom: '1rem' }}>Update Prompts</h3>
-            <p className="text-muted" style={{ marginBottom: '1.5rem', fontSize: '0.875rem' }}>
-              {activeTransition.customMessage ? activeTransition.customMessage : (
-                <>Please review and confirm the required data below to execute <strong>{activeTransition.name}</strong>.</>
-              )}
-            </p>
-            <form onSubmit={handleMissingSubmit}>
-              {(activeTransition.checklists || []).length > 0 && (
-                <div style={{ marginBottom: '1.5rem', background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                  <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.875rem', color: '#334155' }}>Checklist</h4>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    {(activeTransition.checklists || []).map((item, idx) => (
-                      <label key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', cursor: 'pointer', fontSize: '0.875rem' }}>
-                        <input type="checkbox" style={{ marginTop: '0.2rem' }} checked={checklistState[idx] || false} onChange={e => setChecklistState({ ...checklistState, [idx]: e.target.checked })} />
-                        <span style={{ color: checklistState[idx] ? '#94a3b8' : '#0f172a', textDecoration: checklistState[idx] ? 'line-through' : 'none' }}>{item}</span>
-                      </label>
-                    ))}
+      {
+        modalMode === 'missing' && activeTransition && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)' }} onClick={() => setModalMode(null)}></div>
+            <div style={{ background: 'white', padding: '2rem', borderRadius: '12px', width: '100%', maxWidth: '400px', position: 'relative', zIndex: 10 }}>
+              <h3 style={{ marginTop: 0, fontSize: '1.25rem', marginBottom: '1rem' }}>Update Prompts</h3>
+              <p className="text-muted" style={{ marginBottom: '1.5rem', fontSize: '0.875rem' }}>
+                {activeTransition.customMessage ? activeTransition.customMessage : (
+                  <>Please review and confirm the required data below to execute <strong>{activeTransition.name}</strong>.</>
+                )}
+              </p>
+              <form onSubmit={handleMissingSubmit}>
+                {(activeTransition.checklists || []).length > 0 && (
+                  <div style={{ marginBottom: '1.5rem', background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                    <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.875rem', color: '#334155' }}>Checklist</h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      {(activeTransition.checklists || []).map((item, idx) => (
+                        <label key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', cursor: 'pointer', fontSize: '0.875rem' }}>
+                          <input type="checkbox" style={{ marginTop: '0.2rem' }} checked={checklistState[idx] || false} onChange={e => setChecklistState({ ...checklistState, [idx]: e.target.checked })} />
+                          <span style={{ color: checklistState[idx] ? '#94a3b8' : '#0f172a', textDecoration: checklistState[idx] ? 'line-through' : 'none' }}>{item}</span>
+                        </label>
+                      ))}
+                    </div>
                   </div>
+                )}
+                {(activeTransition.visibleFields || []).map(fieldName => {
+                  const fieldDef = blueprint.fields.find(f => f.name === fieldName);
+                  if (!fieldDef) return null;
+                  return (
+                    <div key={fieldName} style={{ marginBottom: '1rem' }}>
+                      <DynamicField
+                        field={fieldDef}
+                        value={formData[fieldName]}
+                        onChange={(name, value, record, mappings) => handleTransitionFieldChange(name, value, record, mappings, false)}
+                      />
+                    </div>
+                  );
+                })}
+                <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
+                  <button type="button" className="btn-outline" onClick={() => setModalMode(null)}>Cancel</button>
+                  <button type="submit" className="btn-primary">Save & Continue</button>
                 </div>
-              )}
-              {(activeTransition.visibleFields || []).map(fieldName => {
-                const fieldDef = blueprint.fields.find(f => f.name === fieldName);
-                if (!fieldDef) return null;
-                return (
-                  <div key={fieldName} style={{ marginBottom: '1rem' }}>
-                    <DynamicField
-                      field={fieldDef}
-                      value={formData[fieldName]}
-                      onChange={(name, value, record, mappings) => handleTransitionFieldChange(name, value, record, mappings, false)}
-                    />
-                  </div>
-                );
-              })}
-              <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
-                <button type="button" className="btn-outline" onClick={() => setModalMode(null)}>Cancel</button>
-                <button type="submit" className="btn-primary">Save & Continue</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* SECURITY CHECKPOINT MODAL */}
-      {modalMode === 'security' && activeTransition && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)' }} onClick={() => setModalMode(null)}></div>
-          <div style={{ background: 'white', padding: '2rem', borderRadius: '12px', width: '100%', maxWidth: '400px', position: 'relative', zIndex: 10 }}>
-            <h3 style={{ marginTop: 0, fontSize: '1.25rem', marginBottom: '1rem', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              🔒 Security Checkpoint
-            </h3>
-            <p className="text-muted" style={{ marginBottom: '1.5rem', fontSize: '0.875rem' }}>
-              Please verify the following data to proceed with <strong>{activeTransition.name}</strong>.
-            </p>
-            {securityError && (
-              <div style={{ padding: '0.75rem', background: '#fef2f2', color: '#b91c1c', borderRadius: '6px', marginBottom: '1rem', fontSize: '0.875rem', border: '1px solid #fecaca' }}>
-                {securityError}
-              </div>
-            )}
-            <form onSubmit={handleSecuritySubmit}>
-              {(activeTransition.necessaryFields || []).map(fieldName => {
-                const fieldDef = blueprint.fields.find(f => f.name === fieldName);
-                if (!fieldDef) return null;
-                return (
-                  <div key={fieldName} style={{ marginBottom: '1rem' }}>
-                    <DynamicField
-                      field={fieldDef}
-                      value={securityData[fieldName]}
-                      onChange={(name, value, record, mappings) => handleTransitionFieldChange(name, value, record, mappings, true)}
-                    />
-                  </div>
-                );
-              })}
-              <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
-                <button type="button" className="btn-outline" onClick={() => setModalMode(null)}>Cancel</button>
-                <button type="submit" className="btn-primary" style={{ background: '#ef4444', borderColor: '#ef4444' }}>Verify</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* FINAL CONFIRMATION MODAL */}
-      {modalMode === 'confirm' && activeTransition && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)' }} onClick={() => setModalMode(null)}></div>
-          <div style={{ background: 'white', padding: '2rem', borderRadius: '12px', width: '100%', maxWidth: '400px', position: 'relative', zIndex: 10, textAlign: 'center' }}>
-            <h3 style={{ marginTop: 0, fontSize: '1.25rem', marginBottom: '1rem' }}>Are you sure?</h3>
-            <p className="text-muted" style={{ marginBottom: '2rem', fontSize: '1rem' }}>
-              {activeTransition.customMessage ? activeTransition.customMessage : (
-                <>You are about to execute <strong>{activeTransition.name}</strong>. Do you want to proceed?</>
-              )}
-            </p>
-            {confirmError && (
-              <div style={{ padding: '0.75rem', background: '#fef2f2', color: '#b91c1c', borderRadius: '6px', marginBottom: '1rem', fontSize: '0.875rem', border: '1px solid #fecaca' }}>
-                {confirmError}
-              </div>
-            )}
-            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-              <button type="button" className="btn-outline" onClick={() => setModalMode(null)}>Cancel</button>
-              <button type="button" className="btn-primary" onClick={handleConfirmSubmit}>Yes, Proceed</button>
+              </form>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
+
+      {/* SECURITY CHECKPOINT MODAL */}
+      {
+        modalMode === 'security' && activeTransition && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)' }} onClick={() => setModalMode(null)}></div>
+            <div style={{ background: 'white', padding: '2rem', borderRadius: '12px', width: '100%', maxWidth: '400px', position: 'relative', zIndex: 10 }}>
+              <h3 style={{ marginTop: 0, fontSize: '1.25rem', marginBottom: '1rem', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                🔒 Security Checkpoint
+              </h3>
+              <p className="text-muted" style={{ marginBottom: '1.5rem', fontSize: '0.875rem' }}>
+                Please verify the following data to proceed with <strong>{activeTransition.name}</strong>.
+              </p>
+              {securityError && (
+                <div style={{ padding: '0.75rem', background: '#fef2f2', color: '#b91c1c', borderRadius: '6px', marginBottom: '1rem', fontSize: '0.875rem', border: '1px solid #fecaca' }}>
+                  {securityError}
+                </div>
+              )}
+              <form onSubmit={handleSecuritySubmit}>
+                {(activeTransition.necessaryFields || []).map(fieldName => {
+                  const fieldDef = blueprint.fields.find(f => f.name === fieldName);
+                  if (!fieldDef) return null;
+                  return (
+                    <div key={fieldName} style={{ marginBottom: '1rem' }}>
+                      <DynamicField
+                        field={fieldDef}
+                        value={securityData[fieldName]}
+                        onChange={(name, value, record, mappings) => handleTransitionFieldChange(name, value, record, mappings, true)}
+                      />
+                    </div>
+                  );
+                })}
+                <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
+                  <button type="button" className="btn-outline" onClick={() => setModalMode(null)}>Cancel</button>
+                  <button type="submit" className="btn-primary" style={{ background: '#ef4444', borderColor: '#ef4444' }}>Verify</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )
+      }
+
+      {/* FINAL CONFIRMATION MODAL */}
+      {
+        modalMode === 'confirm' && activeTransition && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)' }} onClick={() => setModalMode(null)}></div>
+            <div style={{ background: 'white', padding: '2rem', borderRadius: '12px', width: '100%', maxWidth: '400px', position: 'relative', zIndex: 10, textAlign: 'center' }}>
+              <h3 style={{ marginTop: 0, fontSize: '1.25rem', marginBottom: '1rem' }}>Are you sure?</h3>
+              <p className="text-muted" style={{ marginBottom: '2rem', fontSize: '1rem' }}>
+                {activeTransition.customMessage ? activeTransition.customMessage : (
+                  <>You are about to execute <strong>{activeTransition.name}</strong>. Do you want to proceed?</>
+                )}
+              </p>
+              {confirmError && (
+                <div style={{ padding: '0.75rem', background: '#fef2f2', color: '#b91c1c', borderRadius: '6px', marginBottom: '1rem', fontSize: '0.875rem', border: '1px solid #fecaca' }}>
+                  {confirmError}
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+                <button type="button" className="btn-outline" onClick={() => setModalMode(null)}>Cancel</button>
+                <button type="button" className="btn-primary" onClick={handleConfirmSubmit}>Yes, Proceed</button>
+              </div>
+            </div>
+          </div>
+        )
+      }
     </>
   );
 }

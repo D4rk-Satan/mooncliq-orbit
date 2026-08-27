@@ -6,6 +6,8 @@ import DealIntakeForm from "../../components/DealIntakeForm";
 import SlideOverPanel from "../../components/SlideOverPanel";
 import { useRouter } from "next/navigation";
 import TableSkeleton from "../../components/skeletons/TableSkeleton";
+import DynamicModuleView from "@/components/DynamicModuleView";
+import EntityEditModal from "@/components/EntityEditModal";
 
 const getColumnColor = (color) => color || "#e2e8f0";
 
@@ -17,6 +19,7 @@ export default function DealModule() {
   const [isLoading, setIsLoading] = useState(true);
   const [viewMode, setViewMode] = useState("kanban"); // "kanban" or "list"
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedDeal, setSelectedDeal] = useState(null);
   const [pendingTransition, setPendingTransition] = useState(null);
 
@@ -216,262 +219,34 @@ export default function DealModule() {
     }
   };
 
-  const renderEmptyState = () => (
-    <div className="empty-state" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '4rem 2rem', textAlign: 'center', height: '100%' }}>
-      <div className="empty-state-content" style={{ maxWidth: '400px' }}>
-        <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'center' }}>
-          <svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-            {/* Background decorative dots */}
-            <circle cx="20" cy="30" r="4" fill="#f1f5f9" />
-            <circle cx="100" cy="20" r="2" fill="#f1f5f9" />
-            <circle cx="90" cy="100" r="6" fill="#f1f5f9" />
-            <circle cx="10" cy="90" r="3" fill="#f1f5f9" />
 
-            {/* Document shape */}
-            <path d="M40 20H70C75.5228 20 80 24.4772 80 30V80C80 85.5228 75.5228 90 70 90H40C34.4772 90 30 85.5228 30 80V30C30 24.4772 34.4772 20 40 20Z" fill="white" stroke="#cbd5e1" strokeWidth="3" strokeLinejoin="round" />
-            <path d="M35 25H65C70.5228 25 75 29.4772 75 35V85C75 90.5228 70.5228 95 65 95H35C29.4772 95 25 90.5228 25 85V35C25 29.4772 29.4772 25 35 25Z" fill="white" stroke="#cbd5e1" strokeWidth="3" strokeLinejoin="round" />
-
-            {/* Document lines */}
-            <rect x="40" y="40" width="25" height="4" rx="2" fill="#e2e8f0" />
-            <rect x="40" y="55" width="15" height="4" rx="2" fill="#e2e8f0" />
-            <rect x="40" y="70" width="20" height="4" rx="2" fill="#e2e8f0" />
-
-            {/* Magnifying Glass */}
-            <circle cx="75" cy="70" r="15" fill="white" stroke="#cbd5e1" strokeWidth="3" />
-            <path d="M85 80L95 90" stroke="#cbd5e1" strokeWidth="6" strokeLinecap="round" />
-
-            {/* X inside magnifying glass */}
-            <path d="M70 65L80 75" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" />
-            <path d="M80 65L70 75" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" />
-          </svg>
-        </div>
-        <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#1e293b', marginBottom: '0.5rem' }}>There are no records in this view.</h3>
-        <p className="text-muted" style={{ marginBottom: '1.5rem', color: '#64748b' }}>Get started by creating your first Deal in the pipeline.</p>
-        {(currentUser?.profile?.canAccessSettings || currentUser?.profile?.permissions?.Deal?.create) && (
-          <button className="btn-primary" onClick={() => setIsFormOpen(true)}>
-            + Add First Deal
-          </button>
-        )}
-      </div>
-    </div>
-  );
-
-  const renderKanbanView = () => {
-    if (!blueprint?.stages) return null;
-
-    const columns = blueprint.stages.map(stage => {
-      const columnDeals = Deals.filter(Deal => Deal.stageId === stage.id);
-      return { stage, Deals: columnDeals };
-    });
-
-    return (
-      <div className="kanban-board">
-        {columns.map(col => (
-          <div
-            key={col.stage.id}
-            className="kanban-column"
-            onDrop={(e) => handleDrop(e, col.stage.id)}
-            onDragOver={(e) => e.preventDefault()}
-          >
-            <div className="kanban-column-header" style={{ backgroundColor: getColumnColor(col.stage.color) }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <h3>{col.stage.name}</h3>
-                <span className="kanban-count">{col.Deals.length}</span>
-              </div>
-            </div>
-            <div className="kanban-cards">
-              {col.Deals.map(Deal => {
-                const dateOptions = { day: 'numeric', month: 'short' };
-                const formattedDate = Deal.createdAt ? new Date(Deal.createdAt).toLocaleDateString('en-US', dateOptions) : 'No due date';
-                const title = Deal.customData?.companyName || `${Deal.firstName} ${Deal.lastName}`;
-                const subtitle = Deal.customData?.industry || Deal.email || 'Deal';
-                // Mock notification numbers for visual demonstration
-                const callCount = Math.floor(Math.random() * 4) + 1;
-                const attachCount = Math.floor(Math.random() * 3) + 1;
-
-                let DealTags = [];
-                try {
-                  DealTags = Array.isArray(Deal.tags) ? Deal.tags : JSON.parse(Deal.tags || "[]");
-                } catch (e) { }
-
-                return (
-                  <div
-                    key={Deal.id}
-                    className={`kanban-card ${selectedDealIds.includes(Deal.id) ? 'selected' : ''}`}
-                    onClick={() => setSelectedDeal(Deal)}
-                    draggable="true"
-                    onDragStart={(e) => handleDragStart(e, Deal.id)}
-                    style={{
-                      border: selectedDealIds.includes(Deal.id) ? '2px solid var(--primary)' : '1px solid #e2e8f0'
-                    }}
-                  >
-                    <div className="card-header-top">
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <input
-                          type="checkbox"
-                          checked={selectedDealIds.includes(Deal.id)}
-                          onChange={(e) => toggleDealSelection(Deal.id, e)}
-                          onClick={(e) => e.stopPropagation()}
-                          style={{ cursor: 'pointer' }}
-                        />
-                        <h4 className="card-title" style={{ margin: 0 }}>{title}</h4>
-                      </div>
-                      <button className="card-menu-btn" onClick={(e) => { e.stopPropagation(); }}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
-                      </button>
-                    </div>
-
-                    <div className="card-subtitle">
-                      {subtitle}
-                    </div>
-
-                    {DealTags.length > 0 && (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', marginTop: '0.5rem', marginBottom: '0.5rem' }}>
-                        {DealTags.map((t, i) => (
-                          <span key={i} style={{ fontSize: '0.65rem', fontWeight: 600, color: 'white', background: t.color, padding: '0.15rem 0.4rem', borderRadius: '8px' }}>
-                            {t.name}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-
-                    <div className="card-footer-bottom">
-                      <div className="date-badge">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                        {formattedDate}
-                      </div>
-
-                      <div className="card-icons">
-                        <div className="card-icon-item">
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
-                          <span>{callCount}</span>
-                        </div>
-                        <div className="card-icon-item">
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
-                          <span>{attachCount}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-              {col.Deals.length === 0 && (
-                <div style={{ padding: '2rem 1rem', textAlign: 'center', opacity: 0.6 }}>
-                  <svg width="60" height="60" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ margin: '0 auto 1rem auto' }}>
-                    <circle cx="20" cy="30" r="4" fill="#f1f5f9" />
-                    <circle cx="100" cy="20" r="2" fill="#f1f5f9" />
-                    <path d="M40 20H70C75.5228 20 80 24.4772 80 30V80C80 85.5228 75.5228 90 70 90H40C34.4772 90 30 85.5228 30 80V30C30 24.4772 34.4772 20 40 20Z" fill="white" stroke="#cbd5e1" strokeWidth="4" strokeLinejoin="round" />
-                    <path d="M35 25H65C70.5228 25 75 29.4772 75 35V85C75 90.5228 70.5228 95 65 95H35C29.4772 95 25 90.5228 25 85V35C25 29.4772 29.4772 25 35 25Z" fill="white" stroke="#cbd5e1" strokeWidth="4" strokeLinejoin="round" />
-                    <rect x="40" y="40" width="25" height="4" rx="2" fill="#e2e8f0" />
-                    <rect x="40" y="55" width="15" height="4" rx="2" fill="#e2e8f0" />
-                    <circle cx="75" cy="70" r="15" fill="white" stroke="#cbd5e1" strokeWidth="4" />
-                    <path d="M85 80L95 90" stroke="#cbd5e1" strokeWidth="6" strokeLinecap="round" />
-                    <path d="M70 65L80 75" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" />
-                    <path d="M80 65L70 75" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" />
-                  </svg>
-                  <div style={{ fontSize: '0.875rem', color: '#151920ff', fontWeight: 500 }}>No Deals in {col.stage.name}</div>
-                  <div style={{ fontSize: '0.75rem', color: '#13161aff', marginTop: '0.25rem' }}>Drop a card here</div>
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  };
-
-  const renderListView = () => (
-    <div className="table-container">
-      <table className="data-table">
-        <thead>
-          <tr>
-            <th style={{ width: '40px', textAlign: 'center' }}>
-              <input
-                type="checkbox"
-                checked={Deals.length > 0 && selectedDealIds.length === Deals.length}
-                onChange={selectAllDeals}
-                style={{ cursor: 'pointer' }}
-              />
-            </th>
-            <th>Name</th>
-            <th>Company</th>
-            <th>Email</th>
-            <th>Owner</th>
-            <th>Stage</th>
-            <th>Created</th>
-          </tr>
-        </thead>
-        <tbody>
-          {Deals.map((Deal) => (
-            <tr key={Deal.id} style={{ background: selectedDealIds.includes(Deal.id) ? '#f1f5f9' : 'transparent' }}>
-              <td style={{ textAlign: 'center' }}>
-                <input
-                  type="checkbox"
-                  checked={selectedDealIds.includes(Deal.id)}
-                  onChange={(e) => toggleDealSelection(Deal.id, e)}
-                  style={{ cursor: 'pointer' }}
-                />
-              </td>
-              <td className="font-medium cursor-pointer" onClick={() => setSelectedDeal(Deal)}>{Deal.firstName} {Deal.lastName}</td>
-              <td>{Deal.customData?.companyName || '-'}</td>
-              <td>{Deal.email || '-'}</td>
-              <td>{Deal.owner || '-'}</td>
-              <td>
-                <span className="badge" style={{ backgroundColor: Deal.stage?.color || '#eee' }}>
-                  {Deal.stage?.name || 'Unknown'}
-                </span>
-              </td>
-              <td className="text-muted">{new Date(Deal.createdAt).toLocaleDateString()}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <div className="table-footer">
-        Showing {Deals.length} of {Deals.length} records
-      </div>
-    </div>
-  );
 
   return (
     <>
 
       <main className="dashboard-main">
-        <header className="dashboard-header">
-          <h1>Deals</h1>
-          {Deals.length > 0 && (
-            <div className="header-actions" style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-              <div className="view-toggle">
-                <button
-                  className={`toggle-btn ${viewMode === 'kanban' ? 'active' : ''}`}
-                  onClick={() => setViewMode('kanban')}
-                >
-                  Kanban
-                </button>
-                <button
-                  className={`toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
-                  onClick={() => setViewMode('list')}
-                >
-                  List
-                </button>
-              </div>
-              {(currentUser?.profile?.canAccessSettings || currentUser?.profile?.permissions?.Deal?.create) && (
-                <button className="btn-primary" onClick={() => setIsFormOpen(true)}>
-                  + Add Deal
-                </button>
-              )}
-            </div>
-          )}
-        </header>
+
 
         <div className="module-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           {isLoading ? (
             <div className="p-8 text-center" style={{ margin: 'auto' }}>
               <TableSkeleton />
             </div>
-          ) : Deals.length === 0 ? (
-            renderEmptyState()
           ) : (
-            viewMode === 'kanban' ? renderKanbanView() : renderListView()
+            <DynamicModuleView
+              moduleName="Deal"
+              records={Deals}
+              blueprint={blueprint}
+              supportKanban={true}
+              onRecordClick={(deal) => setSelectedDeal(deal)}
+              renderHeaderActions={() => (
+                (currentUser?.profile?.canAccessSettings || currentUser?.profile?.permissions?.Deal?.create) ? (
+                  <button className="btn-primary" onClick={() => setIsFormOpen(true)}>
+                    + Add Deal
+                  </button>
+                ) : null
+              )}
+            />
           )}
         </div>
       </main>

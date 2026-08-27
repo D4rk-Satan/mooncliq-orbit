@@ -29,7 +29,7 @@ export async function POST(req) {
       });
     }
 
-        if (!initialStage) {
+    if (!initialStage) {
       initialStage = await prisma.stage.create({
         data: {
           name: 'Default',
@@ -76,7 +76,7 @@ export async function GET(req) {
       products = products.filter(p => {
         let customData = p.customData;
         if (typeof customData === 'string') {
-          try { customData = JSON.parse(customData); } catch(e) { customData = {}; }
+          try { customData = JSON.parse(customData); } catch (e) { customData = {}; }
         }
         return customData?.owner === user.email;
       });
@@ -85,6 +85,45 @@ export async function GET(req) {
     return NextResponse.json(products);
   } catch (error) {
     console.error("Error fetching products:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}
+
+
+export async function PATCH(req) {
+  try {
+    const user = await getAuthUser(req);
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    if (!user.profile?.canAccessSettings && !user.profile?.permissions?.Product?.edit) {
+      return NextResponse.json({ error: "Forbidden: No permission to edit Products" }, { status: 403 });
+    }
+
+    const data = await req.json();
+    const { productId, stageId, customData, tags, transitionId, ...standardFields } = data;
+
+    if (!productId) return NextResponse.json({ error: "Missing productId" }, { status: 400 });
+
+    let updateData = { ...standardFields };
+    if (stageId) updateData.stageId = stageId;
+    if (customData) updateData.customData = customData;
+
+    // Format Numbers correctly for Prisma
+    if (updateData.unitPrice !== undefined) updateData.unitPrice = parseFloat(updateData.unitPrice) || null;
+    if (updateData.costPrice !== undefined) updateData.costPrice = parseFloat(updateData.costPrice) || null;
+
+    const updatedProduct = await prisma.product.update({
+      where: { id: productId },
+      data: updateData
+    });
+
+    if (typeof executeBackendWorkflows === "function") {
+      executeBackendWorkflows(user.organizationId, 'Product', 'Edited', updatedProduct);
+    }
+
+    return NextResponse.json(updatedProduct);
+  } catch (error) {
+    console.error("Error updating Product:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

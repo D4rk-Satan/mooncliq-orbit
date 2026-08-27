@@ -193,21 +193,42 @@ model Lead {
   id             String @id @default(uuid())
   organizationId String
   blueprintId    String
-  stageId        String
+  stageId        String // Dropdown (New / Contacted / Qualified / Close Won / Close Lost / Junk)
 
-  // Standard indexed fields
-  firstName String
-  lastName  String
-  email     String?
-  phone     String?
-  owner     String?
+  // 1. Identification
+  fullName      String? // (Mandatory UI par hoga, abhi DB me optional rakh rahe hain migration tak)
+  firstName     String? // (Old: Delete later)
+  lastName      String? // (Old: Delete later)
+  companyName   String?
+  
+  // Address Block
+  street        String?
+  city          String?
+  state         String?
+  country       String?
+  zipCode       String?
 
-  // Dynamic payload
+  // 2. Contact
+  email          String?
+  phone          String?
+  alternatePhone String?
+
+  // 3. Classification & Sales Process
+  owner            String? // (Login User Default)
+  leadSource       String? // (Website / Referral / Campaign / Cold Call / Event / Other)
+  priority         String? // (Low / Medium / High)
+  nextFollowUpDate DateTime?
+  notes            String? @db.Text // Long Text ke liye @db.Text lagana better hai
+
+  // 4. System Fields (Preview Screen Only)
+  createdAt        DateTime @default(now()) // (Created Date)
+  updatedAt        DateTime @updatedAt      // (Last Modified Date auto updates)
+  lastActivityDate DateTime? // (Update on calls/emails/notes)
+  lastModifiedById String?   // (User ID jisne last modify kiya)
+
+  // Dynamic payload for Custom Fields
   customData Json  @default("{}")
   tags       Tag[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id])
   blueprint    Blueprint    @relation(fields: [blueprintId], references: [id])
@@ -246,13 +267,34 @@ model Account {
   blueprintId    String
   stageId        String
 
-  // Default/Standard Fields
-  companyName   String
-  email         String?
-  gstNo         String?
+  // ---------------- IDENTIFICATION ----------------
+  accountName   String
+  industry      String?
   website       String?
-  address       String?
-  contactPerson String?
+
+  // ---------------- CONTACT ----------------
+  email           String?
+  primaryContact  String?
+  billingAddress  String?
+  shippingAddress String?
+  contactPerson   String? 
+
+  // ---------------- BUSINESS DETAILS ----------------
+  teamSize      Int?
+  annualRevenue Float?
+  taxId         String?
+  paymentTerms  String?
+
+  // ---------------- RELATIONSHIP & OWNERSHIP ----------------
+  status        String   @default("Active")
+  owner         String?
+  parentAccount String?
+  relatedDeals  String?
+  relatedLeads  String?
+
+  // ---------------- SYSTEM FIELDS ----------------
+  lastActivityDate DateTime?
+  lastModifiedById String?
 
   // Dynamic payload for custom fields
   customData Json @default("{}")
@@ -266,6 +308,7 @@ model Account {
   stage        Stage        @relation(fields: [stageId], references: [id])
 }
 
+
 model Product {
   id             String @id @default(uuid())
   organizationId String
@@ -273,19 +316,34 @@ model Product {
   stageId        String
 
   // Default/Standard Fields
-  name String
-  sku  String
+  name             String
+  sku              String?   // SKU ko optional kar diya gaya hai
+  
+  // --- NAYE FIELDS YAHAN SE ADD KIYE HAIN ---
+  category         String?
+  description      String?
+  status           String    @default("Active")
+  unitPrice        Float?
+  costPrice        Float?
+  totalRevenue     Float?
+  images           Json?     // S3 links ki array save karne ke liye
+  // ------------------------------------------
 
   // Dynamic payload for custom fields
   customData Json @default("{}")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  lastActivityDate DateTime?
+  lastModifiedById String?
 
   // Relations
   organization Organization @relation(fields: [organizationId], references: [id])
   blueprint    Blueprint    @relation(fields: [blueprintId], references: [id])
   stage        Stage        @relation(fields: [stageId], references: [id])
+
+  // Isse DB level par assure hoga ki ek company me do products ka same SKU nahi ho sakta
+  @@unique([organizationId, sku])
 }
 
 model Task {
@@ -295,14 +353,26 @@ model Task {
   stageId        String
 
   // Default/Standard Fields
-  taskName      String
-  startDateTime DateTime?
-  dueDateTime   DateTime?
-  endDateTime   DateTime?
-  repeat        String?
-  alert         String?
-  notes         String?
-  owner         String?
+  taskName         String
+  startDateTime    DateTime?
+  dueDateTime      DateTime?
+  endDateTime      DateTime?
+  repeat           String?
+  alert            String?
+  notes            String?
+  owner            String?
+  
+  // --- NAYE FIELDS YAHAN SE ADD KIYE HAIN ---
+  priority         String?
+  taskType         String?
+  assignedBy       String?
+  relatedModule    String?
+  relatedRecordId  String?
+  taskAutomation   String?
+  completionSource String?
+  lastActivityDate DateTime?
+  lastModifiedById String?
+  // ------------------------------------------
 
   // Dynamic payload for custom fields
   customData Json @default("{}")
@@ -316,30 +386,57 @@ model Task {
   stage        Stage        @relation(fields: [stageId], references: [id])
 }
 
+
 model Deal {
   id             String @id @default(uuid())
   organizationId String
   blueprintId    String
   stageId        String
 
-  // Standard indexed fields
-  firstName String
-  lastName  String
-  email     String?
-  phone     String?
-  owner     String?
+  // 1. Identification
+  dealName          String?
+  companyName       String?
+  address           String?
+  convertedFromLead String?
+
+  // 2. Contact
+  email             String?
+  primaryContact    String?
+  alternatePhone    String?
+
+  // 3. Financials
+  dealValue         Float?      
+  probability       Float?      
+  weightedValue     Float?      
+  expectedCloseDate DateTime?   
+  actualCloseDate   DateTime?   
+
+  // 4. Sales Process
+  owner             String?
+  dealSource        String?
+  priority          String?
+  nextStep          String?
+  nextFollowUpDate  DateTime?   
+  lossReason        String?
+  products          Json?
+  notes             String?
+
+  // 5. System Fields
+  lastActivityDate  DateTime?
+  lastModifiedById  String?     
 
   // Dynamic payload
   customData Json  @default("{}")
   tags       Tag[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now()) 
+  updatedAt DateTime @updatedAt      
 
   organization Organization @relation(fields: [organizationId], references: [id])
   blueprint    Blueprint    @relation(fields: [blueprintId], references: [id])
   stage        Stage        @relation(fields: [stageId], references: [id])
 }
+
 
 model WorkflowRule {
   id             String   @id @default(uuid())

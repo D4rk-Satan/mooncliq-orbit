@@ -1,0 +1,1059 @@
+Test ID,Module,Category,Field/Feature,Scenario,Expected Outcome
+Lead-1,Lead,UI,Page Load,Load module list view page,Table renders without errors and shows header columns.
+Lead-2,Lead,UI,Create Form,Click Add button to open create form,Form modal/page opens with all required fields visible.
+Lead-3,Lead,UI,Responsive Layout,Resize window to mobile width (375px),Form inputs stack vertically and are fully visible.
+Lead-4,Lead,API,Create Success,Submit form with valid complete payload,API returns 201 Created and Success Toast appears.
+Lead-5,Lead,API,Create Error 500,Simulate server crash (500) on submit,UI shows Error Toast and preserves user input.
+Lead-6,Lead,API,Create Error 401,Submit form without auth token,API returns 401 Unauthorized and user is redirected to Login.
+Deal-7,Deal,UI,Page Load,Load module list view page,Table renders without errors and shows header columns.
+Deal-8,Deal,UI,Create Form,Click Add button to open create form,Form modal/page opens with all required fields visible.
+Deal-9,Deal,UI,Responsive Layout,Resize window to mobile width (375px),Form inputs stack vertically and are fully visible.
+Deal-10,Deal,API,Create Success,Submit form with valid complete payload,API returns 201 Created and Success Toast appears.
+Deal-11,Deal,API,Create Error 500,Simulate server crash (500) on submit,UI shows Error Toast and preserves user input.
+Deal-12,Deal,API,Create Error 401,Submit form without auth token,API returns 401 Unauthorized and user is redirected to Login.
+Account-13,Account,UI,Page Load,Load module list view page,Table renders without errors and shows header columns.
+Account-14,Account,UI,Create Form,Click Add button to open create form,Form modal/page opens with all required fields visible.
+Account-15,Account,UI,Responsive Layout,Resize window to mobile width (375px),Form inputs stack vertically and are fully visible.
+Account-16,Account,API,Create Success,Submit form with valid complete payload,API returns 201 Created and Success Toast appears.
+Account-17,Account,API,Create Error 500,Simulate server crash (500) on submit,UI shows Error Toast and preserves user input.
+Account-18,Account,API,Create Error 401,Submit form without auth token,API returns 401 Unauthorized and user is redirected to Login.
+Task-19,Task,UI,Page Load,Load module list view page,Table renders without errors and shows header columns.
+Task-20,Task,UI,Create Form,Click Add button to open create form,Form modal/page opens with all required fields visible.
+Task-21,Task,UI,Responsive Layout,Resize window to mobile width (375px),Form inputs stack vertically and are fully visible.
+Task-22,Task,API,Create Success,Submit form with valid complete payload,API returns 201 Created and Success Toast appears.
+Task-23,Task,API,Create Error 500,Simulate server crash (500) on submit,UI shows Error Toast and preserves user input.
+Task-24,Task,API,Create Error 401,Submit form without auth token,API returns 401 Unauthorized and user is redirected to Login.
+Product-25,Product,UI,Page Load,Load module list view page,Table renders without errors and shows header columns.
+Product-26,Product,UI,Create Form,Click Add button to open create form,Form modal/page opens with all required fields visible.
+Product-27,Product,UI,Responsive Layout,Resize window to mobile width (375px),Form inputs stack vertically and are fully visible.
+Product-28,Product,API,Create Success,Submit form with valid complete payload,API returns 201 Created and Success Toast appears.
+Product-29,Product,API,Create Error 500,Simulate server crash (500) on submit,UI shows Error Toast and preserves user input.
+Product-30,Product,API,Create Error 401,Submit form without auth token,API returns 401 Unauthorized and user is redirected to Login.
+Lead-31,Lead,Security - XSS,firstName,Inject XSS: <script>alert(1)</script>,Input sanitized. Script not executed.
+Lead-32,Lead,Security - XSS,firstName,Inject XSS: <img src=x onerror=alert(1)>,Input sanitized. Script not executed.
+Lead-33,Lead,Security - XSS,firstName,Inject XSS: <svg/onload=alert(1)>,Input sanitized. Script not executed.
+Lead-34,Lead,Security - XSS,firstName,"Inject XSS: "" onmouseover=""alert(1)",Input sanitized. Script not executed.
+Lead-35,Lead,Security - XSS,firstName,Inject XSS: javascript:alert(1),Input sanitized. Script not executed.
+Lead-36,Lead,Security - XSS,firstName,"Inject XSS: <iframe src=""javascript:alert(1)"">",Input sanitized. Script not executed.
+Lead-37,Lead,Security - XSS,firstName,Inject XSS: '><script>alert(1)</script>,Input sanitized. Script not executed.
+Lead-38,Lead,Security - XSS,firstName,Inject XSS: <BODY ONLOAD=alert(1)>,Input sanitized. Script not executed.
+Lead-39,Lead,Security - XSS,firstName,"Inject XSS: <BGSOUND SRC=""javascript:alert(1);"">",Input sanitized. Script not executed.
+Lead-40,Lead,Security - XSS,firstName,"Inject XSS: <br size=""&{alert(1)}"">",Input sanitized. Script not executed.
+Lead-41,Lead,Security - XSS,firstName,"Inject XSS: <LINK REL=""stylesheet"" HREF=""javascript:alert(1);"">",Input sanitized. Script not executed.
+Lead-42,Lead,Security - XSS,firstName,"Inject XSS: <META HTTP-EQUIV=""refresh"" CONTENT=""0;url=javascript:alert(1);"">",Input sanitized. Script not executed.
+Lead-43,Lead,Security - XSS,firstName,"Inject XSS: <TABLE BACKGROUND=""javascript:alert(1)"">",Input sanitized. Script not executed.
+Lead-44,Lead,Security - XSS,firstName,"Inject XSS: <DIV STYLE=""background-image: url(javascript:alert(1))"">",Input sanitized. Script not executed.
+Lead-45,Lead,Security - XSS,firstName,"Inject XSS: <DIV STYLE=""width: expression(alert(1));"">",Input sanitized. Script not executed.
+Lead-46,Lead,Security - XSS,firstName,"Inject XSS: <OBJECT TYPE=""text/x-scriptlet"" DATA=""http://ha.ckers.org/scriptlet.html""></OBJECT>",Input sanitized. Script not executed.
+Lead-47,Lead,Security - XSS,firstName,"Inject XSS: <EMBED SRC=""http://ha.ckers.org/xss.swf"" AllowScriptAccess=""always""></EMBED>",Input sanitized. Script not executed.
+Lead-48,Lead,Security - XSS,firstName,"Inject XSS: <a href=""javascript:alert(1)"">Click Me</a>",Input sanitized. Script not executed.
+Lead-49,Lead,Security - XSS,firstName,Inject XSS: \x3cscript\x3ealert(1)\x3c/script\x3e,Input sanitized. Script not executed.
+Lead-50,Lead,Security - XSS,firstName,Inject XSS: %3Cscript%3Ealert(1)%3C/script%3E,Input sanitized. Script not executed.
+Lead-51,Lead,Security - SQLi,firstName,Inject SQL: ' OR '1'='1,Input escaped. DB integrity maintained.
+Lead-52,Lead,Security - SQLi,firstName,Inject SQL: admin' --,Input escaped. DB integrity maintained.
+Lead-53,Lead,Security - SQLi,firstName,Inject SQL: admin' #,Input escaped. DB integrity maintained.
+Lead-54,Lead,Security - SQLi,firstName,Inject SQL: ' OR 1=1--,Input escaped. DB integrity maintained.
+Lead-55,Lead,Security - SQLi,firstName,Inject SQL: 1'; DROP TABLE users--,Input escaped. DB integrity maintained.
+Lead-56,Lead,Security - SQLi,firstName,Inject SQL: 1' OR '1'='1'--,Input escaped. DB integrity maintained.
+Lead-57,Lead,Security - SQLi,firstName,Inject SQL: 1' OR '1'='1' #,Input escaped. DB integrity maintained.
+Lead-58,Lead,Security - SQLi,firstName,Inject SQL: 1' OR '1'='1' /*,Input escaped. DB integrity maintained.
+Lead-59,Lead,Security - SQLi,firstName,Inject SQL: ' OR 1=1#,Input escaped. DB integrity maintained.
+Lead-60,Lead,Security - SQLi,firstName,Inject SQL: ' OR 1=1/*,Input escaped. DB integrity maintained.
+Lead-61,Lead,Security - SQLi,firstName,Inject SQL: admin' AND 1=1--,Input escaped. DB integrity maintained.
+Lead-62,Lead,Security - SQLi,firstName,Inject SQL: admin' AND 1=0--,Input escaped. DB integrity maintained.
+Lead-63,Lead,Security - SQLi,firstName,"Inject SQL: 1' UNION SELECT username, password FROM users--",Input escaped. DB integrity maintained.
+Lead-64,Lead,Security - SQLi,firstName,Inject SQL: 1' OR (SELECT COUNT(*) FROM users) > 0--,Input escaped. DB integrity maintained.
+Lead-65,Lead,Security - SQLi,firstName,Inject SQL: 1' AND sleep(5)--,Input escaped. DB integrity maintained.
+Lead-66,Lead,Security - SQLi,firstName,Inject SQL: 1' AND pg_sleep(5)--,Input escaped. DB integrity maintained.
+Lead-67,Lead,Security - SQLi,firstName,Inject SQL: 1' WAITFOR DELAY '0:0:5'--,Input escaped. DB integrity maintained.
+Lead-68,Lead,Security - SQLi,firstName,Inject SQL: '; EXEC xp_cmdshell('dir');--,Input escaped. DB integrity maintained.
+Lead-69,Lead,Security - SQLi,firstName,Inject SQL: 1' OR EXISTS(SELECT * FROM information_schema.tables)--,Input escaped. DB integrity maintained.
+Lead-70,Lead,Security - SQLi,firstName,Inject SQL: ' OR 'x'='x,Input escaped. DB integrity maintained.
+Lead-71,Lead,Validation - String,firstName,Input boundary string length/type: A,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-72,Lead,Validation - String,firstName,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-73,Lead,Validation - String,firstName,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-74,Lead,Validation - String,firstName,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-75,Lead,Validation - String,firstName,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-76,Lead,Validation - String,firstName,Input boundary string length/type:  ,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-77,Lead,Validation - String,firstName,Input boundary string length/type:     ,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-78,Lead,Validation - String,firstName,Input boundary string length/type: ,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-79,Lead,Validation - String,firstName,Input boundary string length/type: null,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-80,Lead,Validation - String,firstName,Input boundary string length/type: undefined,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-81,Lead,Validation - String,firstName,Input boundary string length/type: NaN,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-82,Lead,Validation - String,firstName,Input boundary string length/type: True,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-83,Lead,Validation - String,firstName,Input boundary string length/type: False,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-84,Lead,Validation - String,firstName,Input boundary string length/type: 0,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-85,Lead,Validation - String,firstName,Input boundary string length/type: 1,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-86,Lead,Security - XSS,lastName,Inject XSS: <script>alert(1)</script>,Input sanitized. Script not executed.
+Lead-87,Lead,Security - XSS,lastName,Inject XSS: <img src=x onerror=alert(1)>,Input sanitized. Script not executed.
+Lead-88,Lead,Security - XSS,lastName,Inject XSS: <svg/onload=alert(1)>,Input sanitized. Script not executed.
+Lead-89,Lead,Security - XSS,lastName,"Inject XSS: "" onmouseover=""alert(1)",Input sanitized. Script not executed.
+Lead-90,Lead,Security - XSS,lastName,Inject XSS: javascript:alert(1),Input sanitized. Script not executed.
+Lead-91,Lead,Security - XSS,lastName,"Inject XSS: <iframe src=""javascript:alert(1)"">",Input sanitized. Script not executed.
+Lead-92,Lead,Security - XSS,lastName,Inject XSS: '><script>alert(1)</script>,Input sanitized. Script not executed.
+Lead-93,Lead,Security - XSS,lastName,Inject XSS: <BODY ONLOAD=alert(1)>,Input sanitized. Script not executed.
+Lead-94,Lead,Security - XSS,lastName,"Inject XSS: <BGSOUND SRC=""javascript:alert(1);"">",Input sanitized. Script not executed.
+Lead-95,Lead,Security - XSS,lastName,"Inject XSS: <br size=""&{alert(1)}"">",Input sanitized. Script not executed.
+Lead-96,Lead,Security - XSS,lastName,"Inject XSS: <LINK REL=""stylesheet"" HREF=""javascript:alert(1);"">",Input sanitized. Script not executed.
+Lead-97,Lead,Security - XSS,lastName,"Inject XSS: <META HTTP-EQUIV=""refresh"" CONTENT=""0;url=javascript:alert(1);"">",Input sanitized. Script not executed.
+Lead-98,Lead,Security - XSS,lastName,"Inject XSS: <TABLE BACKGROUND=""javascript:alert(1)"">",Input sanitized. Script not executed.
+Lead-99,Lead,Security - XSS,lastName,"Inject XSS: <DIV STYLE=""background-image: url(javascript:alert(1))"">",Input sanitized. Script not executed.
+Lead-100,Lead,Security - XSS,lastName,"Inject XSS: <DIV STYLE=""width: expression(alert(1));"">",Input sanitized. Script not executed.
+Lead-101,Lead,Security - XSS,lastName,"Inject XSS: <OBJECT TYPE=""text/x-scriptlet"" DATA=""http://ha.ckers.org/scriptlet.html""></OBJECT>",Input sanitized. Script not executed.
+Lead-102,Lead,Security - XSS,lastName,"Inject XSS: <EMBED SRC=""http://ha.ckers.org/xss.swf"" AllowScriptAccess=""always""></EMBED>",Input sanitized. Script not executed.
+Lead-103,Lead,Security - XSS,lastName,"Inject XSS: <a href=""javascript:alert(1)"">Click Me</a>",Input sanitized. Script not executed.
+Lead-104,Lead,Security - XSS,lastName,Inject XSS: \x3cscript\x3ealert(1)\x3c/script\x3e,Input sanitized. Script not executed.
+Lead-105,Lead,Security - XSS,lastName,Inject XSS: %3Cscript%3Ealert(1)%3C/script%3E,Input sanitized. Script not executed.
+Lead-106,Lead,Security - SQLi,lastName,Inject SQL: ' OR '1'='1,Input escaped. DB integrity maintained.
+Lead-107,Lead,Security - SQLi,lastName,Inject SQL: admin' --,Input escaped. DB integrity maintained.
+Lead-108,Lead,Security - SQLi,lastName,Inject SQL: admin' #,Input escaped. DB integrity maintained.
+Lead-109,Lead,Security - SQLi,lastName,Inject SQL: ' OR 1=1--,Input escaped. DB integrity maintained.
+Lead-110,Lead,Security - SQLi,lastName,Inject SQL: 1'; DROP TABLE users--,Input escaped. DB integrity maintained.
+Lead-111,Lead,Security - SQLi,lastName,Inject SQL: 1' OR '1'='1'--,Input escaped. DB integrity maintained.
+Lead-112,Lead,Security - SQLi,lastName,Inject SQL: 1' OR '1'='1' #,Input escaped. DB integrity maintained.
+Lead-113,Lead,Security - SQLi,lastName,Inject SQL: 1' OR '1'='1' /*,Input escaped. DB integrity maintained.
+Lead-114,Lead,Security - SQLi,lastName,Inject SQL: ' OR 1=1#,Input escaped. DB integrity maintained.
+Lead-115,Lead,Security - SQLi,lastName,Inject SQL: ' OR 1=1/*,Input escaped. DB integrity maintained.
+Lead-116,Lead,Security - SQLi,lastName,Inject SQL: admin' AND 1=1--,Input escaped. DB integrity maintained.
+Lead-117,Lead,Security - SQLi,lastName,Inject SQL: admin' AND 1=0--,Input escaped. DB integrity maintained.
+Lead-118,Lead,Security - SQLi,lastName,"Inject SQL: 1' UNION SELECT username, password FROM users--",Input escaped. DB integrity maintained.
+Lead-119,Lead,Security - SQLi,lastName,Inject SQL: 1' OR (SELECT COUNT(*) FROM users) > 0--,Input escaped. DB integrity maintained.
+Lead-120,Lead,Security - SQLi,lastName,Inject SQL: 1' AND sleep(5)--,Input escaped. DB integrity maintained.
+Lead-121,Lead,Security - SQLi,lastName,Inject SQL: 1' AND pg_sleep(5)--,Input escaped. DB integrity maintained.
+Lead-122,Lead,Security - SQLi,lastName,Inject SQL: 1' WAITFOR DELAY '0:0:5'--,Input escaped. DB integrity maintained.
+Lead-123,Lead,Security - SQLi,lastName,Inject SQL: '; EXEC xp_cmdshell('dir');--,Input escaped. DB integrity maintained.
+Lead-124,Lead,Security - SQLi,lastName,Inject SQL: 1' OR EXISTS(SELECT * FROM information_schema.tables)--,Input escaped. DB integrity maintained.
+Lead-125,Lead,Security - SQLi,lastName,Inject SQL: ' OR 'x'='x,Input escaped. DB integrity maintained.
+Lead-126,Lead,Validation - String,lastName,Input boundary string length/type: A,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-127,Lead,Validation - String,lastName,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-128,Lead,Validation - String,lastName,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-129,Lead,Validation - String,lastName,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-130,Lead,Validation - String,lastName,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-131,Lead,Validation - String,lastName,Input boundary string length/type:  ,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-132,Lead,Validation - String,lastName,Input boundary string length/type:     ,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-133,Lead,Validation - String,lastName,Input boundary string length/type: ,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-134,Lead,Validation - String,lastName,Input boundary string length/type: null,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-135,Lead,Validation - String,lastName,Input boundary string length/type: undefined,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-136,Lead,Validation - String,lastName,Input boundary string length/type: NaN,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-137,Lead,Validation - String,lastName,Input boundary string length/type: True,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-138,Lead,Validation - String,lastName,Input boundary string length/type: False,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-139,Lead,Validation - String,lastName,Input boundary string length/type: 0,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-140,Lead,Validation - String,lastName,Input boundary string length/type: 1,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-141,Lead,Security - XSS,title,Inject XSS: <script>alert(1)</script>,Input sanitized. Script not executed.
+Lead-142,Lead,Security - XSS,title,Inject XSS: <img src=x onerror=alert(1)>,Input sanitized. Script not executed.
+Lead-143,Lead,Security - XSS,title,Inject XSS: <svg/onload=alert(1)>,Input sanitized. Script not executed.
+Lead-144,Lead,Security - XSS,title,"Inject XSS: "" onmouseover=""alert(1)",Input sanitized. Script not executed.
+Lead-145,Lead,Security - XSS,title,Inject XSS: javascript:alert(1),Input sanitized. Script not executed.
+Lead-146,Lead,Security - XSS,title,"Inject XSS: <iframe src=""javascript:alert(1)"">",Input sanitized. Script not executed.
+Lead-147,Lead,Security - XSS,title,Inject XSS: '><script>alert(1)</script>,Input sanitized. Script not executed.
+Lead-148,Lead,Security - XSS,title,Inject XSS: <BODY ONLOAD=alert(1)>,Input sanitized. Script not executed.
+Lead-149,Lead,Security - XSS,title,"Inject XSS: <BGSOUND SRC=""javascript:alert(1);"">",Input sanitized. Script not executed.
+Lead-150,Lead,Security - XSS,title,"Inject XSS: <br size=""&{alert(1)}"">",Input sanitized. Script not executed.
+Lead-151,Lead,Security - XSS,title,"Inject XSS: <LINK REL=""stylesheet"" HREF=""javascript:alert(1);"">",Input sanitized. Script not executed.
+Lead-152,Lead,Security - XSS,title,"Inject XSS: <META HTTP-EQUIV=""refresh"" CONTENT=""0;url=javascript:alert(1);"">",Input sanitized. Script not executed.
+Lead-153,Lead,Security - XSS,title,"Inject XSS: <TABLE BACKGROUND=""javascript:alert(1)"">",Input sanitized. Script not executed.
+Lead-154,Lead,Security - XSS,title,"Inject XSS: <DIV STYLE=""background-image: url(javascript:alert(1))"">",Input sanitized. Script not executed.
+Lead-155,Lead,Security - XSS,title,"Inject XSS: <DIV STYLE=""width: expression(alert(1));"">",Input sanitized. Script not executed.
+Lead-156,Lead,Security - XSS,title,"Inject XSS: <OBJECT TYPE=""text/x-scriptlet"" DATA=""http://ha.ckers.org/scriptlet.html""></OBJECT>",Input sanitized. Script not executed.
+Lead-157,Lead,Security - XSS,title,"Inject XSS: <EMBED SRC=""http://ha.ckers.org/xss.swf"" AllowScriptAccess=""always""></EMBED>",Input sanitized. Script not executed.
+Lead-158,Lead,Security - XSS,title,"Inject XSS: <a href=""javascript:alert(1)"">Click Me</a>",Input sanitized. Script not executed.
+Lead-159,Lead,Security - XSS,title,Inject XSS: \x3cscript\x3ealert(1)\x3c/script\x3e,Input sanitized. Script not executed.
+Lead-160,Lead,Security - XSS,title,Inject XSS: %3Cscript%3Ealert(1)%3C/script%3E,Input sanitized. Script not executed.
+Lead-161,Lead,Security - SQLi,title,Inject SQL: ' OR '1'='1,Input escaped. DB integrity maintained.
+Lead-162,Lead,Security - SQLi,title,Inject SQL: admin' --,Input escaped. DB integrity maintained.
+Lead-163,Lead,Security - SQLi,title,Inject SQL: admin' #,Input escaped. DB integrity maintained.
+Lead-164,Lead,Security - SQLi,title,Inject SQL: ' OR 1=1--,Input escaped. DB integrity maintained.
+Lead-165,Lead,Security - SQLi,title,Inject SQL: 1'; DROP TABLE users--,Input escaped. DB integrity maintained.
+Lead-166,Lead,Security - SQLi,title,Inject SQL: 1' OR '1'='1'--,Input escaped. DB integrity maintained.
+Lead-167,Lead,Security - SQLi,title,Inject SQL: 1' OR '1'='1' #,Input escaped. DB integrity maintained.
+Lead-168,Lead,Security - SQLi,title,Inject SQL: 1' OR '1'='1' /*,Input escaped. DB integrity maintained.
+Lead-169,Lead,Security - SQLi,title,Inject SQL: ' OR 1=1#,Input escaped. DB integrity maintained.
+Lead-170,Lead,Security - SQLi,title,Inject SQL: ' OR 1=1/*,Input escaped. DB integrity maintained.
+Lead-171,Lead,Security - SQLi,title,Inject SQL: admin' AND 1=1--,Input escaped. DB integrity maintained.
+Lead-172,Lead,Security - SQLi,title,Inject SQL: admin' AND 1=0--,Input escaped. DB integrity maintained.
+Lead-173,Lead,Security - SQLi,title,"Inject SQL: 1' UNION SELECT username, password FROM users--",Input escaped. DB integrity maintained.
+Lead-174,Lead,Security - SQLi,title,Inject SQL: 1' OR (SELECT COUNT(*) FROM users) > 0--,Input escaped. DB integrity maintained.
+Lead-175,Lead,Security - SQLi,title,Inject SQL: 1' AND sleep(5)--,Input escaped. DB integrity maintained.
+Lead-176,Lead,Security - SQLi,title,Inject SQL: 1' AND pg_sleep(5)--,Input escaped. DB integrity maintained.
+Lead-177,Lead,Security - SQLi,title,Inject SQL: 1' WAITFOR DELAY '0:0:5'--,Input escaped. DB integrity maintained.
+Lead-178,Lead,Security - SQLi,title,Inject SQL: '; EXEC xp_cmdshell('dir');--,Input escaped. DB integrity maintained.
+Lead-179,Lead,Security - SQLi,title,Inject SQL: 1' OR EXISTS(SELECT * FROM information_schema.tables)--,Input escaped. DB integrity maintained.
+Lead-180,Lead,Security - SQLi,title,Inject SQL: ' OR 'x'='x,Input escaped. DB integrity maintained.
+Lead-181,Lead,Validation - String,title,Input boundary string length/type: A,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-182,Lead,Validation - String,title,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-183,Lead,Validation - String,title,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-184,Lead,Validation - String,title,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-185,Lead,Validation - String,title,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-186,Lead,Validation - String,title,Input boundary string length/type:  ,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-187,Lead,Validation - String,title,Input boundary string length/type:     ,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-188,Lead,Validation - String,title,Input boundary string length/type: ,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-189,Lead,Validation - String,title,Input boundary string length/type: null,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-190,Lead,Validation - String,title,Input boundary string length/type: undefined,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-191,Lead,Validation - String,title,Input boundary string length/type: NaN,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-192,Lead,Validation - String,title,Input boundary string length/type: True,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-193,Lead,Validation - String,title,Input boundary string length/type: False,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-194,Lead,Validation - String,title,Input boundary string length/type: 0,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-195,Lead,Validation - String,title,Input boundary string length/type: 1,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-196,Lead,Security - XSS,company,Inject XSS: <script>alert(1)</script>,Input sanitized. Script not executed.
+Lead-197,Lead,Security - XSS,company,Inject XSS: <img src=x onerror=alert(1)>,Input sanitized. Script not executed.
+Lead-198,Lead,Security - XSS,company,Inject XSS: <svg/onload=alert(1)>,Input sanitized. Script not executed.
+Lead-199,Lead,Security - XSS,company,"Inject XSS: "" onmouseover=""alert(1)",Input sanitized. Script not executed.
+Lead-200,Lead,Security - XSS,company,Inject XSS: javascript:alert(1),Input sanitized. Script not executed.
+Lead-201,Lead,Security - XSS,company,"Inject XSS: <iframe src=""javascript:alert(1)"">",Input sanitized. Script not executed.
+Lead-202,Lead,Security - XSS,company,Inject XSS: '><script>alert(1)</script>,Input sanitized. Script not executed.
+Lead-203,Lead,Security - XSS,company,Inject XSS: <BODY ONLOAD=alert(1)>,Input sanitized. Script not executed.
+Lead-204,Lead,Security - XSS,company,"Inject XSS: <BGSOUND SRC=""javascript:alert(1);"">",Input sanitized. Script not executed.
+Lead-205,Lead,Security - XSS,company,"Inject XSS: <br size=""&{alert(1)}"">",Input sanitized. Script not executed.
+Lead-206,Lead,Security - XSS,company,"Inject XSS: <LINK REL=""stylesheet"" HREF=""javascript:alert(1);"">",Input sanitized. Script not executed.
+Lead-207,Lead,Security - XSS,company,"Inject XSS: <META HTTP-EQUIV=""refresh"" CONTENT=""0;url=javascript:alert(1);"">",Input sanitized. Script not executed.
+Lead-208,Lead,Security - XSS,company,"Inject XSS: <TABLE BACKGROUND=""javascript:alert(1)"">",Input sanitized. Script not executed.
+Lead-209,Lead,Security - XSS,company,"Inject XSS: <DIV STYLE=""background-image: url(javascript:alert(1))"">",Input sanitized. Script not executed.
+Lead-210,Lead,Security - XSS,company,"Inject XSS: <DIV STYLE=""width: expression(alert(1));"">",Input sanitized. Script not executed.
+Lead-211,Lead,Security - XSS,company,"Inject XSS: <OBJECT TYPE=""text/x-scriptlet"" DATA=""http://ha.ckers.org/scriptlet.html""></OBJECT>",Input sanitized. Script not executed.
+Lead-212,Lead,Security - XSS,company,"Inject XSS: <EMBED SRC=""http://ha.ckers.org/xss.swf"" AllowScriptAccess=""always""></EMBED>",Input sanitized. Script not executed.
+Lead-213,Lead,Security - XSS,company,"Inject XSS: <a href=""javascript:alert(1)"">Click Me</a>",Input sanitized. Script not executed.
+Lead-214,Lead,Security - XSS,company,Inject XSS: \x3cscript\x3ealert(1)\x3c/script\x3e,Input sanitized. Script not executed.
+Lead-215,Lead,Security - XSS,company,Inject XSS: %3Cscript%3Ealert(1)%3C/script%3E,Input sanitized. Script not executed.
+Lead-216,Lead,Security - SQLi,company,Inject SQL: ' OR '1'='1,Input escaped. DB integrity maintained.
+Lead-217,Lead,Security - SQLi,company,Inject SQL: admin' --,Input escaped. DB integrity maintained.
+Lead-218,Lead,Security - SQLi,company,Inject SQL: admin' #,Input escaped. DB integrity maintained.
+Lead-219,Lead,Security - SQLi,company,Inject SQL: ' OR 1=1--,Input escaped. DB integrity maintained.
+Lead-220,Lead,Security - SQLi,company,Inject SQL: 1'; DROP TABLE users--,Input escaped. DB integrity maintained.
+Lead-221,Lead,Security - SQLi,company,Inject SQL: 1' OR '1'='1'--,Input escaped. DB integrity maintained.
+Lead-222,Lead,Security - SQLi,company,Inject SQL: 1' OR '1'='1' #,Input escaped. DB integrity maintained.
+Lead-223,Lead,Security - SQLi,company,Inject SQL: 1' OR '1'='1' /*,Input escaped. DB integrity maintained.
+Lead-224,Lead,Security - SQLi,company,Inject SQL: ' OR 1=1#,Input escaped. DB integrity maintained.
+Lead-225,Lead,Security - SQLi,company,Inject SQL: ' OR 1=1/*,Input escaped. DB integrity maintained.
+Lead-226,Lead,Security - SQLi,company,Inject SQL: admin' AND 1=1--,Input escaped. DB integrity maintained.
+Lead-227,Lead,Security - SQLi,company,Inject SQL: admin' AND 1=0--,Input escaped. DB integrity maintained.
+Lead-228,Lead,Security - SQLi,company,"Inject SQL: 1' UNION SELECT username, password FROM users--",Input escaped. DB integrity maintained.
+Lead-229,Lead,Security - SQLi,company,Inject SQL: 1' OR (SELECT COUNT(*) FROM users) > 0--,Input escaped. DB integrity maintained.
+Lead-230,Lead,Security - SQLi,company,Inject SQL: 1' AND sleep(5)--,Input escaped. DB integrity maintained.
+Lead-231,Lead,Security - SQLi,company,Inject SQL: 1' AND pg_sleep(5)--,Input escaped. DB integrity maintained.
+Lead-232,Lead,Security - SQLi,company,Inject SQL: 1' WAITFOR DELAY '0:0:5'--,Input escaped. DB integrity maintained.
+Lead-233,Lead,Security - SQLi,company,Inject SQL: '; EXEC xp_cmdshell('dir');--,Input escaped. DB integrity maintained.
+Lead-234,Lead,Security - SQLi,company,Inject SQL: 1' OR EXISTS(SELECT * FROM information_schema.tables)--,Input escaped. DB integrity maintained.
+Lead-235,Lead,Security - SQLi,company,Inject SQL: ' OR 'x'='x,Input escaped. DB integrity maintained.
+Lead-236,Lead,Validation - String,company,Input boundary string length/type: A,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-237,Lead,Validation - String,company,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-238,Lead,Validation - String,company,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-239,Lead,Validation - String,company,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-240,Lead,Validation - String,company,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-241,Lead,Validation - String,company,Input boundary string length/type:  ,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-242,Lead,Validation - String,company,Input boundary string length/type:     ,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-243,Lead,Validation - String,company,Input boundary string length/type: ,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-244,Lead,Validation - String,company,Input boundary string length/type: null,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-245,Lead,Validation - String,company,Input boundary string length/type: undefined,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-246,Lead,Validation - String,company,Input boundary string length/type: NaN,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-247,Lead,Validation - String,company,Input boundary string length/type: True,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-248,Lead,Validation - String,company,Input boundary string length/type: False,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-249,Lead,Validation - String,company,Input boundary string length/type: 0,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-250,Lead,Validation - String,company,Input boundary string length/type: 1,"Validation correctly accepts, truncates, or throws error based on field limit."
+Lead-251,Lead,Validation - Email,email,Input invalid email format: plainaddress,Form validation fails. Shows red error text.
+Lead-252,Lead,Validation - Email,email,Input invalid email format: #@%^%#$@#$@#.com,Form validation fails. Shows red error text.
+Lead-253,Lead,Validation - Email,email,Input invalid email format: @example.com,Form validation fails. Shows red error text.
+Lead-254,Lead,Validation - Email,email,Input invalid email format: Joe Smith <email@example.com>,Form validation fails. Shows red error text.
+Lead-255,Lead,Validation - Email,email,Input invalid email format: email.example.com,Form validation fails. Shows red error text.
+Lead-256,Lead,Validation - Email,email,Input invalid email format: email@example@example.com,Form validation fails. Shows red error text.
+Lead-257,Lead,Validation - Email,email,Input invalid email format: .email@example.com,Form validation fails. Shows red error text.
+Lead-258,Lead,Validation - Email,email,Input invalid email format: email.@example.com,Form validation fails. Shows red error text.
+Lead-259,Lead,Validation - Email,email,Input invalid email format: email..email@example.com,Form validation fails. Shows red error text.
+Lead-260,Lead,Validation - Email,email,Input invalid email format: email@example.com (Joe Smith),Form validation fails. Shows red error text.
+Lead-261,Lead,Validation - Email,email,Input invalid email format: email@example,Form validation fails. Shows red error text.
+Lead-262,Lead,Validation - Email,email,Input invalid email format: email@-example.com,Form validation fails. Shows red error text.
+Lead-263,Lead,Validation - Email,email,Input invalid email format: email@example..com,Form validation fails. Shows red error text.
+Lead-264,Lead,Validation - Email,email,Input invalid email format: Abc..123@example.com,Form validation fails. Shows red error text.
+Lead-265,Lead,Validation - Email,email,"Input invalid email format: ”(),:;<>[]@example.com",Form validation fails. Shows red error text.
+Lead-266,Lead,Validation - Phone,phone,Input invalid phone format: abcdefghij,Form validation fails.
+Lead-267,Lead,Validation - Phone,phone,Input invalid phone format: 12345,Form validation fails.
+Lead-268,Lead,Validation - Phone,phone,Input invalid phone format: 123-abc-4567,Form validation fails.
+Lead-269,Lead,Validation - Phone,phone,Input invalid phone format: !@#$%^&*(),Form validation fails.
+Lead-270,Lead,Validation - Phone,phone,Input invalid phone format: +1 (555) ABC-DEFG,Form validation fails.
+Lead-271,Lead,Validation - Phone,phone,Input invalid phone format: 123456789012345678901234567890,Form validation fails.
+Lead-272,Lead,Validation - Phone,phone,Input invalid phone format: 0000000000,Form validation fails.
+Lead-273,Lead,Validation - Phone,phone,Input invalid phone format: 9999999999,Form validation fails.
+Lead-274,Lead,Validation - Phone,phone,Input invalid phone format: +00-000-000-0000,Form validation fails.
+Lead-275,Lead,Validation - Phone,mobile,Input invalid phone format: abcdefghij,Form validation fails.
+Lead-276,Lead,Validation - Phone,mobile,Input invalid phone format: 12345,Form validation fails.
+Lead-277,Lead,Validation - Phone,mobile,Input invalid phone format: 123-abc-4567,Form validation fails.
+Lead-278,Lead,Validation - Phone,mobile,Input invalid phone format: !@#$%^&*(),Form validation fails.
+Lead-279,Lead,Validation - Phone,mobile,Input invalid phone format: +1 (555) ABC-DEFG,Form validation fails.
+Lead-280,Lead,Validation - Phone,mobile,Input invalid phone format: 123456789012345678901234567890,Form validation fails.
+Lead-281,Lead,Validation - Phone,mobile,Input invalid phone format: 0000000000,Form validation fails.
+Lead-282,Lead,Validation - Phone,mobile,Input invalid phone format: 9999999999,Form validation fails.
+Lead-283,Lead,Validation - Phone,mobile,Input invalid phone format: +00-000-000-0000,Form validation fails.
+Deal-284,Deal,Security - XSS,dealName,Inject XSS: <script>alert(1)</script>,Input sanitized. Script not executed.
+Deal-285,Deal,Security - XSS,dealName,Inject XSS: <img src=x onerror=alert(1)>,Input sanitized. Script not executed.
+Deal-286,Deal,Security - XSS,dealName,Inject XSS: <svg/onload=alert(1)>,Input sanitized. Script not executed.
+Deal-287,Deal,Security - XSS,dealName,"Inject XSS: "" onmouseover=""alert(1)",Input sanitized. Script not executed.
+Deal-288,Deal,Security - XSS,dealName,Inject XSS: javascript:alert(1),Input sanitized. Script not executed.
+Deal-289,Deal,Security - XSS,dealName,"Inject XSS: <iframe src=""javascript:alert(1)"">",Input sanitized. Script not executed.
+Deal-290,Deal,Security - XSS,dealName,Inject XSS: '><script>alert(1)</script>,Input sanitized. Script not executed.
+Deal-291,Deal,Security - XSS,dealName,Inject XSS: <BODY ONLOAD=alert(1)>,Input sanitized. Script not executed.
+Deal-292,Deal,Security - XSS,dealName,"Inject XSS: <BGSOUND SRC=""javascript:alert(1);"">",Input sanitized. Script not executed.
+Deal-293,Deal,Security - XSS,dealName,"Inject XSS: <br size=""&{alert(1)}"">",Input sanitized. Script not executed.
+Deal-294,Deal,Security - XSS,dealName,"Inject XSS: <LINK REL=""stylesheet"" HREF=""javascript:alert(1);"">",Input sanitized. Script not executed.
+Deal-295,Deal,Security - XSS,dealName,"Inject XSS: <META HTTP-EQUIV=""refresh"" CONTENT=""0;url=javascript:alert(1);"">",Input sanitized. Script not executed.
+Deal-296,Deal,Security - XSS,dealName,"Inject XSS: <TABLE BACKGROUND=""javascript:alert(1)"">",Input sanitized. Script not executed.
+Deal-297,Deal,Security - XSS,dealName,"Inject XSS: <DIV STYLE=""background-image: url(javascript:alert(1))"">",Input sanitized. Script not executed.
+Deal-298,Deal,Security - XSS,dealName,"Inject XSS: <DIV STYLE=""width: expression(alert(1));"">",Input sanitized. Script not executed.
+Deal-299,Deal,Security - XSS,dealName,"Inject XSS: <OBJECT TYPE=""text/x-scriptlet"" DATA=""http://ha.ckers.org/scriptlet.html""></OBJECT>",Input sanitized. Script not executed.
+Deal-300,Deal,Security - XSS,dealName,"Inject XSS: <EMBED SRC=""http://ha.ckers.org/xss.swf"" AllowScriptAccess=""always""></EMBED>",Input sanitized. Script not executed.
+Deal-301,Deal,Security - XSS,dealName,"Inject XSS: <a href=""javascript:alert(1)"">Click Me</a>",Input sanitized. Script not executed.
+Deal-302,Deal,Security - XSS,dealName,Inject XSS: \x3cscript\x3ealert(1)\x3c/script\x3e,Input sanitized. Script not executed.
+Deal-303,Deal,Security - XSS,dealName,Inject XSS: %3Cscript%3Ealert(1)%3C/script%3E,Input sanitized. Script not executed.
+Deal-304,Deal,Security - SQLi,dealName,Inject SQL: ' OR '1'='1,Input escaped. DB integrity maintained.
+Deal-305,Deal,Security - SQLi,dealName,Inject SQL: admin' --,Input escaped. DB integrity maintained.
+Deal-306,Deal,Security - SQLi,dealName,Inject SQL: admin' #,Input escaped. DB integrity maintained.
+Deal-307,Deal,Security - SQLi,dealName,Inject SQL: ' OR 1=1--,Input escaped. DB integrity maintained.
+Deal-308,Deal,Security - SQLi,dealName,Inject SQL: 1'; DROP TABLE users--,Input escaped. DB integrity maintained.
+Deal-309,Deal,Security - SQLi,dealName,Inject SQL: 1' OR '1'='1'--,Input escaped. DB integrity maintained.
+Deal-310,Deal,Security - SQLi,dealName,Inject SQL: 1' OR '1'='1' #,Input escaped. DB integrity maintained.
+Deal-311,Deal,Security - SQLi,dealName,Inject SQL: 1' OR '1'='1' /*,Input escaped. DB integrity maintained.
+Deal-312,Deal,Security - SQLi,dealName,Inject SQL: ' OR 1=1#,Input escaped. DB integrity maintained.
+Deal-313,Deal,Security - SQLi,dealName,Inject SQL: ' OR 1=1/*,Input escaped. DB integrity maintained.
+Deal-314,Deal,Security - SQLi,dealName,Inject SQL: admin' AND 1=1--,Input escaped. DB integrity maintained.
+Deal-315,Deal,Security - SQLi,dealName,Inject SQL: admin' AND 1=0--,Input escaped. DB integrity maintained.
+Deal-316,Deal,Security - SQLi,dealName,"Inject SQL: 1' UNION SELECT username, password FROM users--",Input escaped. DB integrity maintained.
+Deal-317,Deal,Security - SQLi,dealName,Inject SQL: 1' OR (SELECT COUNT(*) FROM users) > 0--,Input escaped. DB integrity maintained.
+Deal-318,Deal,Security - SQLi,dealName,Inject SQL: 1' AND sleep(5)--,Input escaped. DB integrity maintained.
+Deal-319,Deal,Security - SQLi,dealName,Inject SQL: 1' AND pg_sleep(5)--,Input escaped. DB integrity maintained.
+Deal-320,Deal,Security - SQLi,dealName,Inject SQL: 1' WAITFOR DELAY '0:0:5'--,Input escaped. DB integrity maintained.
+Deal-321,Deal,Security - SQLi,dealName,Inject SQL: '; EXEC xp_cmdshell('dir');--,Input escaped. DB integrity maintained.
+Deal-322,Deal,Security - SQLi,dealName,Inject SQL: 1' OR EXISTS(SELECT * FROM information_schema.tables)--,Input escaped. DB integrity maintained.
+Deal-323,Deal,Security - SQLi,dealName,Inject SQL: ' OR 'x'='x,Input escaped. DB integrity maintained.
+Deal-324,Deal,Validation - String,dealName,Input boundary string length/type: A,"Validation correctly accepts, truncates, or throws error based on field limit."
+Deal-325,Deal,Validation - String,dealName,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Deal-326,Deal,Validation - String,dealName,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Deal-327,Deal,Validation - String,dealName,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Deal-328,Deal,Validation - String,dealName,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Deal-329,Deal,Validation - String,dealName,Input boundary string length/type:  ,"Validation correctly accepts, truncates, or throws error based on field limit."
+Deal-330,Deal,Validation - String,dealName,Input boundary string length/type:     ,"Validation correctly accepts, truncates, or throws error based on field limit."
+Deal-331,Deal,Validation - String,dealName,Input boundary string length/type: ,"Validation correctly accepts, truncates, or throws error based on field limit."
+Deal-332,Deal,Validation - String,dealName,Input boundary string length/type: null,"Validation correctly accepts, truncates, or throws error based on field limit."
+Deal-333,Deal,Validation - String,dealName,Input boundary string length/type: undefined,"Validation correctly accepts, truncates, or throws error based on field limit."
+Deal-334,Deal,Validation - String,dealName,Input boundary string length/type: NaN,"Validation correctly accepts, truncates, or throws error based on field limit."
+Deal-335,Deal,Validation - String,dealName,Input boundary string length/type: True,"Validation correctly accepts, truncates, or throws error based on field limit."
+Deal-336,Deal,Validation - String,dealName,Input boundary string length/type: False,"Validation correctly accepts, truncates, or throws error based on field limit."
+Deal-337,Deal,Validation - String,dealName,Input boundary string length/type: 0,"Validation correctly accepts, truncates, or throws error based on field limit."
+Deal-338,Deal,Validation - String,dealName,Input boundary string length/type: 1,"Validation correctly accepts, truncates, or throws error based on field limit."
+Deal-339,Deal,Security - XSS,nextStep,Inject XSS: <script>alert(1)</script>,Input sanitized. Script not executed.
+Deal-340,Deal,Security - XSS,nextStep,Inject XSS: <img src=x onerror=alert(1)>,Input sanitized. Script not executed.
+Deal-341,Deal,Security - XSS,nextStep,Inject XSS: <svg/onload=alert(1)>,Input sanitized. Script not executed.
+Deal-342,Deal,Security - XSS,nextStep,"Inject XSS: "" onmouseover=""alert(1)",Input sanitized. Script not executed.
+Deal-343,Deal,Security - XSS,nextStep,Inject XSS: javascript:alert(1),Input sanitized. Script not executed.
+Deal-344,Deal,Security - XSS,nextStep,"Inject XSS: <iframe src=""javascript:alert(1)"">",Input sanitized. Script not executed.
+Deal-345,Deal,Security - XSS,nextStep,Inject XSS: '><script>alert(1)</script>,Input sanitized. Script not executed.
+Deal-346,Deal,Security - XSS,nextStep,Inject XSS: <BODY ONLOAD=alert(1)>,Input sanitized. Script not executed.
+Deal-347,Deal,Security - XSS,nextStep,"Inject XSS: <BGSOUND SRC=""javascript:alert(1);"">",Input sanitized. Script not executed.
+Deal-348,Deal,Security - XSS,nextStep,"Inject XSS: <br size=""&{alert(1)}"">",Input sanitized. Script not executed.
+Deal-349,Deal,Security - XSS,nextStep,"Inject XSS: <LINK REL=""stylesheet"" HREF=""javascript:alert(1);"">",Input sanitized. Script not executed.
+Deal-350,Deal,Security - XSS,nextStep,"Inject XSS: <META HTTP-EQUIV=""refresh"" CONTENT=""0;url=javascript:alert(1);"">",Input sanitized. Script not executed.
+Deal-351,Deal,Security - XSS,nextStep,"Inject XSS: <TABLE BACKGROUND=""javascript:alert(1)"">",Input sanitized. Script not executed.
+Deal-352,Deal,Security - XSS,nextStep,"Inject XSS: <DIV STYLE=""background-image: url(javascript:alert(1))"">",Input sanitized. Script not executed.
+Deal-353,Deal,Security - XSS,nextStep,"Inject XSS: <DIV STYLE=""width: expression(alert(1));"">",Input sanitized. Script not executed.
+Deal-354,Deal,Security - XSS,nextStep,"Inject XSS: <OBJECT TYPE=""text/x-scriptlet"" DATA=""http://ha.ckers.org/scriptlet.html""></OBJECT>",Input sanitized. Script not executed.
+Deal-355,Deal,Security - XSS,nextStep,"Inject XSS: <EMBED SRC=""http://ha.ckers.org/xss.swf"" AllowScriptAccess=""always""></EMBED>",Input sanitized. Script not executed.
+Deal-356,Deal,Security - XSS,nextStep,"Inject XSS: <a href=""javascript:alert(1)"">Click Me</a>",Input sanitized. Script not executed.
+Deal-357,Deal,Security - XSS,nextStep,Inject XSS: \x3cscript\x3ealert(1)\x3c/script\x3e,Input sanitized. Script not executed.
+Deal-358,Deal,Security - XSS,nextStep,Inject XSS: %3Cscript%3Ealert(1)%3C/script%3E,Input sanitized. Script not executed.
+Deal-359,Deal,Security - SQLi,nextStep,Inject SQL: ' OR '1'='1,Input escaped. DB integrity maintained.
+Deal-360,Deal,Security - SQLi,nextStep,Inject SQL: admin' --,Input escaped. DB integrity maintained.
+Deal-361,Deal,Security - SQLi,nextStep,Inject SQL: admin' #,Input escaped. DB integrity maintained.
+Deal-362,Deal,Security - SQLi,nextStep,Inject SQL: ' OR 1=1--,Input escaped. DB integrity maintained.
+Deal-363,Deal,Security - SQLi,nextStep,Inject SQL: 1'; DROP TABLE users--,Input escaped. DB integrity maintained.
+Deal-364,Deal,Security - SQLi,nextStep,Inject SQL: 1' OR '1'='1'--,Input escaped. DB integrity maintained.
+Deal-365,Deal,Security - SQLi,nextStep,Inject SQL: 1' OR '1'='1' #,Input escaped. DB integrity maintained.
+Deal-366,Deal,Security - SQLi,nextStep,Inject SQL: 1' OR '1'='1' /*,Input escaped. DB integrity maintained.
+Deal-367,Deal,Security - SQLi,nextStep,Inject SQL: ' OR 1=1#,Input escaped. DB integrity maintained.
+Deal-368,Deal,Security - SQLi,nextStep,Inject SQL: ' OR 1=1/*,Input escaped. DB integrity maintained.
+Deal-369,Deal,Security - SQLi,nextStep,Inject SQL: admin' AND 1=1--,Input escaped. DB integrity maintained.
+Deal-370,Deal,Security - SQLi,nextStep,Inject SQL: admin' AND 1=0--,Input escaped. DB integrity maintained.
+Deal-371,Deal,Security - SQLi,nextStep,"Inject SQL: 1' UNION SELECT username, password FROM users--",Input escaped. DB integrity maintained.
+Deal-372,Deal,Security - SQLi,nextStep,Inject SQL: 1' OR (SELECT COUNT(*) FROM users) > 0--,Input escaped. DB integrity maintained.
+Deal-373,Deal,Security - SQLi,nextStep,Inject SQL: 1' AND sleep(5)--,Input escaped. DB integrity maintained.
+Deal-374,Deal,Security - SQLi,nextStep,Inject SQL: 1' AND pg_sleep(5)--,Input escaped. DB integrity maintained.
+Deal-375,Deal,Security - SQLi,nextStep,Inject SQL: 1' WAITFOR DELAY '0:0:5'--,Input escaped. DB integrity maintained.
+Deal-376,Deal,Security - SQLi,nextStep,Inject SQL: '; EXEC xp_cmdshell('dir');--,Input escaped. DB integrity maintained.
+Deal-377,Deal,Security - SQLi,nextStep,Inject SQL: 1' OR EXISTS(SELECT * FROM information_schema.tables)--,Input escaped. DB integrity maintained.
+Deal-378,Deal,Security - SQLi,nextStep,Inject SQL: ' OR 'x'='x,Input escaped. DB integrity maintained.
+Deal-379,Deal,Validation - String,nextStep,Input boundary string length/type: A,"Validation correctly accepts, truncates, or throws error based on field limit."
+Deal-380,Deal,Validation - String,nextStep,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Deal-381,Deal,Validation - String,nextStep,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Deal-382,Deal,Validation - String,nextStep,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Deal-383,Deal,Validation - String,nextStep,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Deal-384,Deal,Validation - String,nextStep,Input boundary string length/type:  ,"Validation correctly accepts, truncates, or throws error based on field limit."
+Deal-385,Deal,Validation - String,nextStep,Input boundary string length/type:     ,"Validation correctly accepts, truncates, or throws error based on field limit."
+Deal-386,Deal,Validation - String,nextStep,Input boundary string length/type: ,"Validation correctly accepts, truncates, or throws error based on field limit."
+Deal-387,Deal,Validation - String,nextStep,Input boundary string length/type: null,"Validation correctly accepts, truncates, or throws error based on field limit."
+Deal-388,Deal,Validation - String,nextStep,Input boundary string length/type: undefined,"Validation correctly accepts, truncates, or throws error based on field limit."
+Deal-389,Deal,Validation - String,nextStep,Input boundary string length/type: NaN,"Validation correctly accepts, truncates, or throws error based on field limit."
+Deal-390,Deal,Validation - String,nextStep,Input boundary string length/type: True,"Validation correctly accepts, truncates, or throws error based on field limit."
+Deal-391,Deal,Validation - String,nextStep,Input boundary string length/type: False,"Validation correctly accepts, truncates, or throws error based on field limit."
+Deal-392,Deal,Validation - String,nextStep,Input boundary string length/type: 0,"Validation correctly accepts, truncates, or throws error based on field limit."
+Deal-393,Deal,Validation - String,nextStep,Input boundary string length/type: 1,"Validation correctly accepts, truncates, or throws error based on field limit."
+Deal-394,Deal,Security - XSS,notes,Inject XSS: <script>alert(1)</script>,Input sanitized. Script not executed.
+Deal-395,Deal,Security - XSS,notes,Inject XSS: <img src=x onerror=alert(1)>,Input sanitized. Script not executed.
+Deal-396,Deal,Security - XSS,notes,Inject XSS: <svg/onload=alert(1)>,Input sanitized. Script not executed.
+Deal-397,Deal,Security - XSS,notes,"Inject XSS: "" onmouseover=""alert(1)",Input sanitized. Script not executed.
+Deal-398,Deal,Security - XSS,notes,Inject XSS: javascript:alert(1),Input sanitized. Script not executed.
+Deal-399,Deal,Security - XSS,notes,"Inject XSS: <iframe src=""javascript:alert(1)"">",Input sanitized. Script not executed.
+Deal-400,Deal,Security - XSS,notes,Inject XSS: '><script>alert(1)</script>,Input sanitized. Script not executed.
+Deal-401,Deal,Security - XSS,notes,Inject XSS: <BODY ONLOAD=alert(1)>,Input sanitized. Script not executed.
+Deal-402,Deal,Security - XSS,notes,"Inject XSS: <BGSOUND SRC=""javascript:alert(1);"">",Input sanitized. Script not executed.
+Deal-403,Deal,Security - XSS,notes,"Inject XSS: <br size=""&{alert(1)}"">",Input sanitized. Script not executed.
+Deal-404,Deal,Security - XSS,notes,"Inject XSS: <LINK REL=""stylesheet"" HREF=""javascript:alert(1);"">",Input sanitized. Script not executed.
+Deal-405,Deal,Security - XSS,notes,"Inject XSS: <META HTTP-EQUIV=""refresh"" CONTENT=""0;url=javascript:alert(1);"">",Input sanitized. Script not executed.
+Deal-406,Deal,Security - XSS,notes,"Inject XSS: <TABLE BACKGROUND=""javascript:alert(1)"">",Input sanitized. Script not executed.
+Deal-407,Deal,Security - XSS,notes,"Inject XSS: <DIV STYLE=""background-image: url(javascript:alert(1))"">",Input sanitized. Script not executed.
+Deal-408,Deal,Security - XSS,notes,"Inject XSS: <DIV STYLE=""width: expression(alert(1));"">",Input sanitized. Script not executed.
+Deal-409,Deal,Security - XSS,notes,"Inject XSS: <OBJECT TYPE=""text/x-scriptlet"" DATA=""http://ha.ckers.org/scriptlet.html""></OBJECT>",Input sanitized. Script not executed.
+Deal-410,Deal,Security - XSS,notes,"Inject XSS: <EMBED SRC=""http://ha.ckers.org/xss.swf"" AllowScriptAccess=""always""></EMBED>",Input sanitized. Script not executed.
+Deal-411,Deal,Security - XSS,notes,"Inject XSS: <a href=""javascript:alert(1)"">Click Me</a>",Input sanitized. Script not executed.
+Deal-412,Deal,Security - XSS,notes,Inject XSS: \x3cscript\x3ealert(1)\x3c/script\x3e,Input sanitized. Script not executed.
+Deal-413,Deal,Security - XSS,notes,Inject XSS: %3Cscript%3Ealert(1)%3C/script%3E,Input sanitized. Script not executed.
+Deal-414,Deal,Security - SQLi,notes,Inject SQL: ' OR '1'='1,Input escaped. DB integrity maintained.
+Deal-415,Deal,Security - SQLi,notes,Inject SQL: admin' --,Input escaped. DB integrity maintained.
+Deal-416,Deal,Security - SQLi,notes,Inject SQL: admin' #,Input escaped. DB integrity maintained.
+Deal-417,Deal,Security - SQLi,notes,Inject SQL: ' OR 1=1--,Input escaped. DB integrity maintained.
+Deal-418,Deal,Security - SQLi,notes,Inject SQL: 1'; DROP TABLE users--,Input escaped. DB integrity maintained.
+Deal-419,Deal,Security - SQLi,notes,Inject SQL: 1' OR '1'='1'--,Input escaped. DB integrity maintained.
+Deal-420,Deal,Security - SQLi,notes,Inject SQL: 1' OR '1'='1' #,Input escaped. DB integrity maintained.
+Deal-421,Deal,Security - SQLi,notes,Inject SQL: 1' OR '1'='1' /*,Input escaped. DB integrity maintained.
+Deal-422,Deal,Security - SQLi,notes,Inject SQL: ' OR 1=1#,Input escaped. DB integrity maintained.
+Deal-423,Deal,Security - SQLi,notes,Inject SQL: ' OR 1=1/*,Input escaped. DB integrity maintained.
+Deal-424,Deal,Security - SQLi,notes,Inject SQL: admin' AND 1=1--,Input escaped. DB integrity maintained.
+Deal-425,Deal,Security - SQLi,notes,Inject SQL: admin' AND 1=0--,Input escaped. DB integrity maintained.
+Deal-426,Deal,Security - SQLi,notes,"Inject SQL: 1' UNION SELECT username, password FROM users--",Input escaped. DB integrity maintained.
+Deal-427,Deal,Security - SQLi,notes,Inject SQL: 1' OR (SELECT COUNT(*) FROM users) > 0--,Input escaped. DB integrity maintained.
+Deal-428,Deal,Security - SQLi,notes,Inject SQL: 1' AND sleep(5)--,Input escaped. DB integrity maintained.
+Deal-429,Deal,Security - SQLi,notes,Inject SQL: 1' AND pg_sleep(5)--,Input escaped. DB integrity maintained.
+Deal-430,Deal,Security - SQLi,notes,Inject SQL: 1' WAITFOR DELAY '0:0:5'--,Input escaped. DB integrity maintained.
+Deal-431,Deal,Security - SQLi,notes,Inject SQL: '; EXEC xp_cmdshell('dir');--,Input escaped. DB integrity maintained.
+Deal-432,Deal,Security - SQLi,notes,Inject SQL: 1' OR EXISTS(SELECT * FROM information_schema.tables)--,Input escaped. DB integrity maintained.
+Deal-433,Deal,Security - SQLi,notes,Inject SQL: ' OR 'x'='x,Input escaped. DB integrity maintained.
+Deal-434,Deal,Validation - String,notes,Input boundary string length/type: A,"Validation correctly accepts, truncates, or throws error based on field limit."
+Deal-435,Deal,Validation - String,notes,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Deal-436,Deal,Validation - String,notes,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Deal-437,Deal,Validation - String,notes,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Deal-438,Deal,Validation - String,notes,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Deal-439,Deal,Validation - String,notes,Input boundary string length/type:  ,"Validation correctly accepts, truncates, or throws error based on field limit."
+Deal-440,Deal,Validation - String,notes,Input boundary string length/type:     ,"Validation correctly accepts, truncates, or throws error based on field limit."
+Deal-441,Deal,Validation - String,notes,Input boundary string length/type: ,"Validation correctly accepts, truncates, or throws error based on field limit."
+Deal-442,Deal,Validation - String,notes,Input boundary string length/type: null,"Validation correctly accepts, truncates, or throws error based on field limit."
+Deal-443,Deal,Validation - String,notes,Input boundary string length/type: undefined,"Validation correctly accepts, truncates, or throws error based on field limit."
+Deal-444,Deal,Validation - String,notes,Input boundary string length/type: NaN,"Validation correctly accepts, truncates, or throws error based on field limit."
+Deal-445,Deal,Validation - String,notes,Input boundary string length/type: True,"Validation correctly accepts, truncates, or throws error based on field limit."
+Deal-446,Deal,Validation - String,notes,Input boundary string length/type: False,"Validation correctly accepts, truncates, or throws error based on field limit."
+Deal-447,Deal,Validation - String,notes,Input boundary string length/type: 0,"Validation correctly accepts, truncates, or throws error based on field limit."
+Deal-448,Deal,Validation - String,notes,Input boundary string length/type: 1,"Validation correctly accepts, truncates, or throws error based on field limit."
+Deal-449,Deal,Validation - Number,dealValue,Input edge number: -1,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Deal-450,Deal,Validation - Number,dealValue,Input edge number: -999999,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Deal-451,Deal,Validation - Number,dealValue,Input edge number: 0,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Deal-452,Deal,Validation - Number,dealValue,Input edge number: 0.00001,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Deal-453,Deal,Validation - Number,dealValue,Input edge number: 9999999999,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Deal-454,Deal,Validation - Number,dealValue,Input edge number: abc,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Deal-455,Deal,Validation - Number,dealValue,Input edge number: !@#,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Deal-456,Deal,Validation - Number,dealValue,Input edge number: 1.2.3,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Deal-457,Deal,Validation - Number,dealValue,Input edge number: 1e10,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Deal-458,Deal,Validation - Number,dealValue,"Input edge number: 10,000","Handled properly (negative/NaN blocked, large numbers formatted)."
+Deal-459,Deal,Validation - Number,weightedValue,Input edge number: -1,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Deal-460,Deal,Validation - Number,weightedValue,Input edge number: -999999,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Deal-461,Deal,Validation - Number,weightedValue,Input edge number: 0,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Deal-462,Deal,Validation - Number,weightedValue,Input edge number: 0.00001,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Deal-463,Deal,Validation - Number,weightedValue,Input edge number: 9999999999,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Deal-464,Deal,Validation - Number,weightedValue,Input edge number: abc,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Deal-465,Deal,Validation - Number,weightedValue,Input edge number: !@#,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Deal-466,Deal,Validation - Number,weightedValue,Input edge number: 1.2.3,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Deal-467,Deal,Validation - Number,weightedValue,Input edge number: 1e10,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Deal-468,Deal,Validation - Number,weightedValue,"Input edge number: 10,000","Handled properly (negative/NaN blocked, large numbers formatted)."
+Deal-469,Deal,Validation - Percentage,probability,Input edge percentage: -1,Range strictly bounded to 0-100. Invalid blocked.
+Deal-470,Deal,Validation - Percentage,probability,Input edge percentage: 101,Range strictly bounded to 0-100. Invalid blocked.
+Deal-471,Deal,Validation - Percentage,probability,Input edge percentage: 150,Range strictly bounded to 0-100. Invalid blocked.
+Deal-472,Deal,Validation - Percentage,probability,Input edge percentage: 100.1,Range strictly bounded to 0-100. Invalid blocked.
+Deal-473,Deal,Validation - Percentage,probability,Input edge percentage: abc,Range strictly bounded to 0-100. Invalid blocked.
+Deal-474,Deal,Validation - Percentage,probability,Input edge percentage: -50,Range strictly bounded to 0-100. Invalid blocked.
+Deal-475,Deal,Validation - Percentage,probability,Input edge percentage: 10%,Range strictly bounded to 0-100. Invalid blocked.
+Deal-476,Deal,Validation - Percentage,probability,Input edge percentage: 1000,Range strictly bounded to 0-100. Invalid blocked.
+Deal-477,Deal,Validation - Date,expectedCloseDate,Input leap year date 2024-02-29,Accepted successfully.
+Deal-478,Deal,Validation - Date,expectedCloseDate,Input invalid leap year date 2023-02-29,Rejected by calendar widget.
+Deal-479,Deal,Validation - Date,expectedCloseDate,Input past date (1900-01-01),Accepted or warned based on logic.
+Deal-480,Deal,Validation - Date,expectedCloseDate,Input future date (2100-12-31),Accepted.
+Deal-481,Deal,Validation - Date,actualCloseDate,Input leap year date 2024-02-29,Accepted successfully.
+Deal-482,Deal,Validation - Date,actualCloseDate,Input invalid leap year date 2023-02-29,Rejected by calendar widget.
+Deal-483,Deal,Validation - Date,actualCloseDate,Input past date (1900-01-01),Accepted or warned based on logic.
+Deal-484,Deal,Validation - Date,actualCloseDate,Input future date (2100-12-31),Accepted.
+Account-485,Account,Security - XSS,accountName,Inject XSS: <script>alert(1)</script>,Input sanitized. Script not executed.
+Account-486,Account,Security - XSS,accountName,Inject XSS: <img src=x onerror=alert(1)>,Input sanitized. Script not executed.
+Account-487,Account,Security - XSS,accountName,Inject XSS: <svg/onload=alert(1)>,Input sanitized. Script not executed.
+Account-488,Account,Security - XSS,accountName,"Inject XSS: "" onmouseover=""alert(1)",Input sanitized. Script not executed.
+Account-489,Account,Security - XSS,accountName,Inject XSS: javascript:alert(1),Input sanitized. Script not executed.
+Account-490,Account,Security - XSS,accountName,"Inject XSS: <iframe src=""javascript:alert(1)"">",Input sanitized. Script not executed.
+Account-491,Account,Security - XSS,accountName,Inject XSS: '><script>alert(1)</script>,Input sanitized. Script not executed.
+Account-492,Account,Security - XSS,accountName,Inject XSS: <BODY ONLOAD=alert(1)>,Input sanitized. Script not executed.
+Account-493,Account,Security - XSS,accountName,"Inject XSS: <BGSOUND SRC=""javascript:alert(1);"">",Input sanitized. Script not executed.
+Account-494,Account,Security - XSS,accountName,"Inject XSS: <br size=""&{alert(1)}"">",Input sanitized. Script not executed.
+Account-495,Account,Security - XSS,accountName,"Inject XSS: <LINK REL=""stylesheet"" HREF=""javascript:alert(1);"">",Input sanitized. Script not executed.
+Account-496,Account,Security - XSS,accountName,"Inject XSS: <META HTTP-EQUIV=""refresh"" CONTENT=""0;url=javascript:alert(1);"">",Input sanitized. Script not executed.
+Account-497,Account,Security - XSS,accountName,"Inject XSS: <TABLE BACKGROUND=""javascript:alert(1)"">",Input sanitized. Script not executed.
+Account-498,Account,Security - XSS,accountName,"Inject XSS: <DIV STYLE=""background-image: url(javascript:alert(1))"">",Input sanitized. Script not executed.
+Account-499,Account,Security - XSS,accountName,"Inject XSS: <DIV STYLE=""width: expression(alert(1));"">",Input sanitized. Script not executed.
+Account-500,Account,Security - XSS,accountName,"Inject XSS: <OBJECT TYPE=""text/x-scriptlet"" DATA=""http://ha.ckers.org/scriptlet.html""></OBJECT>",Input sanitized. Script not executed.
+Account-501,Account,Security - XSS,accountName,"Inject XSS: <EMBED SRC=""http://ha.ckers.org/xss.swf"" AllowScriptAccess=""always""></EMBED>",Input sanitized. Script not executed.
+Account-502,Account,Security - XSS,accountName,"Inject XSS: <a href=""javascript:alert(1)"">Click Me</a>",Input sanitized. Script not executed.
+Account-503,Account,Security - XSS,accountName,Inject XSS: \x3cscript\x3ealert(1)\x3c/script\x3e,Input sanitized. Script not executed.
+Account-504,Account,Security - XSS,accountName,Inject XSS: %3Cscript%3Ealert(1)%3C/script%3E,Input sanitized. Script not executed.
+Account-505,Account,Security - SQLi,accountName,Inject SQL: ' OR '1'='1,Input escaped. DB integrity maintained.
+Account-506,Account,Security - SQLi,accountName,Inject SQL: admin' --,Input escaped. DB integrity maintained.
+Account-507,Account,Security - SQLi,accountName,Inject SQL: admin' #,Input escaped. DB integrity maintained.
+Account-508,Account,Security - SQLi,accountName,Inject SQL: ' OR 1=1--,Input escaped. DB integrity maintained.
+Account-509,Account,Security - SQLi,accountName,Inject SQL: 1'; DROP TABLE users--,Input escaped. DB integrity maintained.
+Account-510,Account,Security - SQLi,accountName,Inject SQL: 1' OR '1'='1'--,Input escaped. DB integrity maintained.
+Account-511,Account,Security - SQLi,accountName,Inject SQL: 1' OR '1'='1' #,Input escaped. DB integrity maintained.
+Account-512,Account,Security - SQLi,accountName,Inject SQL: 1' OR '1'='1' /*,Input escaped. DB integrity maintained.
+Account-513,Account,Security - SQLi,accountName,Inject SQL: ' OR 1=1#,Input escaped. DB integrity maintained.
+Account-514,Account,Security - SQLi,accountName,Inject SQL: ' OR 1=1/*,Input escaped. DB integrity maintained.
+Account-515,Account,Security - SQLi,accountName,Inject SQL: admin' AND 1=1--,Input escaped. DB integrity maintained.
+Account-516,Account,Security - SQLi,accountName,Inject SQL: admin' AND 1=0--,Input escaped. DB integrity maintained.
+Account-517,Account,Security - SQLi,accountName,"Inject SQL: 1' UNION SELECT username, password FROM users--",Input escaped. DB integrity maintained.
+Account-518,Account,Security - SQLi,accountName,Inject SQL: 1' OR (SELECT COUNT(*) FROM users) > 0--,Input escaped. DB integrity maintained.
+Account-519,Account,Security - SQLi,accountName,Inject SQL: 1' AND sleep(5)--,Input escaped. DB integrity maintained.
+Account-520,Account,Security - SQLi,accountName,Inject SQL: 1' AND pg_sleep(5)--,Input escaped. DB integrity maintained.
+Account-521,Account,Security - SQLi,accountName,Inject SQL: 1' WAITFOR DELAY '0:0:5'--,Input escaped. DB integrity maintained.
+Account-522,Account,Security - SQLi,accountName,Inject SQL: '; EXEC xp_cmdshell('dir');--,Input escaped. DB integrity maintained.
+Account-523,Account,Security - SQLi,accountName,Inject SQL: 1' OR EXISTS(SELECT * FROM information_schema.tables)--,Input escaped. DB integrity maintained.
+Account-524,Account,Security - SQLi,accountName,Inject SQL: ' OR 'x'='x,Input escaped. DB integrity maintained.
+Account-525,Account,Validation - String,accountName,Input boundary string length/type: A,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-526,Account,Validation - String,accountName,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-527,Account,Validation - String,accountName,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-528,Account,Validation - String,accountName,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-529,Account,Validation - String,accountName,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-530,Account,Validation - String,accountName,Input boundary string length/type:  ,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-531,Account,Validation - String,accountName,Input boundary string length/type:     ,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-532,Account,Validation - String,accountName,Input boundary string length/type: ,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-533,Account,Validation - String,accountName,Input boundary string length/type: null,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-534,Account,Validation - String,accountName,Input boundary string length/type: undefined,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-535,Account,Validation - String,accountName,Input boundary string length/type: NaN,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-536,Account,Validation - String,accountName,Input boundary string length/type: True,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-537,Account,Validation - String,accountName,Input boundary string length/type: False,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-538,Account,Validation - String,accountName,Input boundary string length/type: 0,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-539,Account,Validation - String,accountName,Input boundary string length/type: 1,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-540,Account,Security - XSS,taxId,Inject XSS: <script>alert(1)</script>,Input sanitized. Script not executed.
+Account-541,Account,Security - XSS,taxId,Inject XSS: <img src=x onerror=alert(1)>,Input sanitized. Script not executed.
+Account-542,Account,Security - XSS,taxId,Inject XSS: <svg/onload=alert(1)>,Input sanitized. Script not executed.
+Account-543,Account,Security - XSS,taxId,"Inject XSS: "" onmouseover=""alert(1)",Input sanitized. Script not executed.
+Account-544,Account,Security - XSS,taxId,Inject XSS: javascript:alert(1),Input sanitized. Script not executed.
+Account-545,Account,Security - XSS,taxId,"Inject XSS: <iframe src=""javascript:alert(1)"">",Input sanitized. Script not executed.
+Account-546,Account,Security - XSS,taxId,Inject XSS: '><script>alert(1)</script>,Input sanitized. Script not executed.
+Account-547,Account,Security - XSS,taxId,Inject XSS: <BODY ONLOAD=alert(1)>,Input sanitized. Script not executed.
+Account-548,Account,Security - XSS,taxId,"Inject XSS: <BGSOUND SRC=""javascript:alert(1);"">",Input sanitized. Script not executed.
+Account-549,Account,Security - XSS,taxId,"Inject XSS: <br size=""&{alert(1)}"">",Input sanitized. Script not executed.
+Account-550,Account,Security - XSS,taxId,"Inject XSS: <LINK REL=""stylesheet"" HREF=""javascript:alert(1);"">",Input sanitized. Script not executed.
+Account-551,Account,Security - XSS,taxId,"Inject XSS: <META HTTP-EQUIV=""refresh"" CONTENT=""0;url=javascript:alert(1);"">",Input sanitized. Script not executed.
+Account-552,Account,Security - XSS,taxId,"Inject XSS: <TABLE BACKGROUND=""javascript:alert(1)"">",Input sanitized. Script not executed.
+Account-553,Account,Security - XSS,taxId,"Inject XSS: <DIV STYLE=""background-image: url(javascript:alert(1))"">",Input sanitized. Script not executed.
+Account-554,Account,Security - XSS,taxId,"Inject XSS: <DIV STYLE=""width: expression(alert(1));"">",Input sanitized. Script not executed.
+Account-555,Account,Security - XSS,taxId,"Inject XSS: <OBJECT TYPE=""text/x-scriptlet"" DATA=""http://ha.ckers.org/scriptlet.html""></OBJECT>",Input sanitized. Script not executed.
+Account-556,Account,Security - XSS,taxId,"Inject XSS: <EMBED SRC=""http://ha.ckers.org/xss.swf"" AllowScriptAccess=""always""></EMBED>",Input sanitized. Script not executed.
+Account-557,Account,Security - XSS,taxId,"Inject XSS: <a href=""javascript:alert(1)"">Click Me</a>",Input sanitized. Script not executed.
+Account-558,Account,Security - XSS,taxId,Inject XSS: \x3cscript\x3ealert(1)\x3c/script\x3e,Input sanitized. Script not executed.
+Account-559,Account,Security - XSS,taxId,Inject XSS: %3Cscript%3Ealert(1)%3C/script%3E,Input sanitized. Script not executed.
+Account-560,Account,Security - SQLi,taxId,Inject SQL: ' OR '1'='1,Input escaped. DB integrity maintained.
+Account-561,Account,Security - SQLi,taxId,Inject SQL: admin' --,Input escaped. DB integrity maintained.
+Account-562,Account,Security - SQLi,taxId,Inject SQL: admin' #,Input escaped. DB integrity maintained.
+Account-563,Account,Security - SQLi,taxId,Inject SQL: ' OR 1=1--,Input escaped. DB integrity maintained.
+Account-564,Account,Security - SQLi,taxId,Inject SQL: 1'; DROP TABLE users--,Input escaped. DB integrity maintained.
+Account-565,Account,Security - SQLi,taxId,Inject SQL: 1' OR '1'='1'--,Input escaped. DB integrity maintained.
+Account-566,Account,Security - SQLi,taxId,Inject SQL: 1' OR '1'='1' #,Input escaped. DB integrity maintained.
+Account-567,Account,Security - SQLi,taxId,Inject SQL: 1' OR '1'='1' /*,Input escaped. DB integrity maintained.
+Account-568,Account,Security - SQLi,taxId,Inject SQL: ' OR 1=1#,Input escaped. DB integrity maintained.
+Account-569,Account,Security - SQLi,taxId,Inject SQL: ' OR 1=1/*,Input escaped. DB integrity maintained.
+Account-570,Account,Security - SQLi,taxId,Inject SQL: admin' AND 1=1--,Input escaped. DB integrity maintained.
+Account-571,Account,Security - SQLi,taxId,Inject SQL: admin' AND 1=0--,Input escaped. DB integrity maintained.
+Account-572,Account,Security - SQLi,taxId,"Inject SQL: 1' UNION SELECT username, password FROM users--",Input escaped. DB integrity maintained.
+Account-573,Account,Security - SQLi,taxId,Inject SQL: 1' OR (SELECT COUNT(*) FROM users) > 0--,Input escaped. DB integrity maintained.
+Account-574,Account,Security - SQLi,taxId,Inject SQL: 1' AND sleep(5)--,Input escaped. DB integrity maintained.
+Account-575,Account,Security - SQLi,taxId,Inject SQL: 1' AND pg_sleep(5)--,Input escaped. DB integrity maintained.
+Account-576,Account,Security - SQLi,taxId,Inject SQL: 1' WAITFOR DELAY '0:0:5'--,Input escaped. DB integrity maintained.
+Account-577,Account,Security - SQLi,taxId,Inject SQL: '; EXEC xp_cmdshell('dir');--,Input escaped. DB integrity maintained.
+Account-578,Account,Security - SQLi,taxId,Inject SQL: 1' OR EXISTS(SELECT * FROM information_schema.tables)--,Input escaped. DB integrity maintained.
+Account-579,Account,Security - SQLi,taxId,Inject SQL: ' OR 'x'='x,Input escaped. DB integrity maintained.
+Account-580,Account,Validation - String,taxId,Input boundary string length/type: A,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-581,Account,Validation - String,taxId,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-582,Account,Validation - String,taxId,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-583,Account,Validation - String,taxId,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-584,Account,Validation - String,taxId,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-585,Account,Validation - String,taxId,Input boundary string length/type:  ,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-586,Account,Validation - String,taxId,Input boundary string length/type:     ,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-587,Account,Validation - String,taxId,Input boundary string length/type: ,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-588,Account,Validation - String,taxId,Input boundary string length/type: null,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-589,Account,Validation - String,taxId,Input boundary string length/type: undefined,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-590,Account,Validation - String,taxId,Input boundary string length/type: NaN,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-591,Account,Validation - String,taxId,Input boundary string length/type: True,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-592,Account,Validation - String,taxId,Input boundary string length/type: False,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-593,Account,Validation - String,taxId,Input boundary string length/type: 0,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-594,Account,Validation - String,taxId,Input boundary string length/type: 1,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-595,Account,Security - XSS,website,Inject XSS: <script>alert(1)</script>,Input sanitized. Script not executed.
+Account-596,Account,Security - XSS,website,Inject XSS: <img src=x onerror=alert(1)>,Input sanitized. Script not executed.
+Account-597,Account,Security - XSS,website,Inject XSS: <svg/onload=alert(1)>,Input sanitized. Script not executed.
+Account-598,Account,Security - XSS,website,"Inject XSS: "" onmouseover=""alert(1)",Input sanitized. Script not executed.
+Account-599,Account,Security - XSS,website,Inject XSS: javascript:alert(1),Input sanitized. Script not executed.
+Account-600,Account,Security - XSS,website,"Inject XSS: <iframe src=""javascript:alert(1)"">",Input sanitized. Script not executed.
+Account-601,Account,Security - XSS,website,Inject XSS: '><script>alert(1)</script>,Input sanitized. Script not executed.
+Account-602,Account,Security - XSS,website,Inject XSS: <BODY ONLOAD=alert(1)>,Input sanitized. Script not executed.
+Account-603,Account,Security - XSS,website,"Inject XSS: <BGSOUND SRC=""javascript:alert(1);"">",Input sanitized. Script not executed.
+Account-604,Account,Security - XSS,website,"Inject XSS: <br size=""&{alert(1)}"">",Input sanitized. Script not executed.
+Account-605,Account,Security - XSS,website,"Inject XSS: <LINK REL=""stylesheet"" HREF=""javascript:alert(1);"">",Input sanitized. Script not executed.
+Account-606,Account,Security - XSS,website,"Inject XSS: <META HTTP-EQUIV=""refresh"" CONTENT=""0;url=javascript:alert(1);"">",Input sanitized. Script not executed.
+Account-607,Account,Security - XSS,website,"Inject XSS: <TABLE BACKGROUND=""javascript:alert(1)"">",Input sanitized. Script not executed.
+Account-608,Account,Security - XSS,website,"Inject XSS: <DIV STYLE=""background-image: url(javascript:alert(1))"">",Input sanitized. Script not executed.
+Account-609,Account,Security - XSS,website,"Inject XSS: <DIV STYLE=""width: expression(alert(1));"">",Input sanitized. Script not executed.
+Account-610,Account,Security - XSS,website,"Inject XSS: <OBJECT TYPE=""text/x-scriptlet"" DATA=""http://ha.ckers.org/scriptlet.html""></OBJECT>",Input sanitized. Script not executed.
+Account-611,Account,Security - XSS,website,"Inject XSS: <EMBED SRC=""http://ha.ckers.org/xss.swf"" AllowScriptAccess=""always""></EMBED>",Input sanitized. Script not executed.
+Account-612,Account,Security - XSS,website,"Inject XSS: <a href=""javascript:alert(1)"">Click Me</a>",Input sanitized. Script not executed.
+Account-613,Account,Security - XSS,website,Inject XSS: \x3cscript\x3ealert(1)\x3c/script\x3e,Input sanitized. Script not executed.
+Account-614,Account,Security - XSS,website,Inject XSS: %3Cscript%3Ealert(1)%3C/script%3E,Input sanitized. Script not executed.
+Account-615,Account,Security - SQLi,website,Inject SQL: ' OR '1'='1,Input escaped. DB integrity maintained.
+Account-616,Account,Security - SQLi,website,Inject SQL: admin' --,Input escaped. DB integrity maintained.
+Account-617,Account,Security - SQLi,website,Inject SQL: admin' #,Input escaped. DB integrity maintained.
+Account-618,Account,Security - SQLi,website,Inject SQL: ' OR 1=1--,Input escaped. DB integrity maintained.
+Account-619,Account,Security - SQLi,website,Inject SQL: 1'; DROP TABLE users--,Input escaped. DB integrity maintained.
+Account-620,Account,Security - SQLi,website,Inject SQL: 1' OR '1'='1'--,Input escaped. DB integrity maintained.
+Account-621,Account,Security - SQLi,website,Inject SQL: 1' OR '1'='1' #,Input escaped. DB integrity maintained.
+Account-622,Account,Security - SQLi,website,Inject SQL: 1' OR '1'='1' /*,Input escaped. DB integrity maintained.
+Account-623,Account,Security - SQLi,website,Inject SQL: ' OR 1=1#,Input escaped. DB integrity maintained.
+Account-624,Account,Security - SQLi,website,Inject SQL: ' OR 1=1/*,Input escaped. DB integrity maintained.
+Account-625,Account,Security - SQLi,website,Inject SQL: admin' AND 1=1--,Input escaped. DB integrity maintained.
+Account-626,Account,Security - SQLi,website,Inject SQL: admin' AND 1=0--,Input escaped. DB integrity maintained.
+Account-627,Account,Security - SQLi,website,"Inject SQL: 1' UNION SELECT username, password FROM users--",Input escaped. DB integrity maintained.
+Account-628,Account,Security - SQLi,website,Inject SQL: 1' OR (SELECT COUNT(*) FROM users) > 0--,Input escaped. DB integrity maintained.
+Account-629,Account,Security - SQLi,website,Inject SQL: 1' AND sleep(5)--,Input escaped. DB integrity maintained.
+Account-630,Account,Security - SQLi,website,Inject SQL: 1' AND pg_sleep(5)--,Input escaped. DB integrity maintained.
+Account-631,Account,Security - SQLi,website,Inject SQL: 1' WAITFOR DELAY '0:0:5'--,Input escaped. DB integrity maintained.
+Account-632,Account,Security - SQLi,website,Inject SQL: '; EXEC xp_cmdshell('dir');--,Input escaped. DB integrity maintained.
+Account-633,Account,Security - SQLi,website,Inject SQL: 1' OR EXISTS(SELECT * FROM information_schema.tables)--,Input escaped. DB integrity maintained.
+Account-634,Account,Security - SQLi,website,Inject SQL: ' OR 'x'='x,Input escaped. DB integrity maintained.
+Account-635,Account,Validation - String,website,Input boundary string length/type: A,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-636,Account,Validation - String,website,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-637,Account,Validation - String,website,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-638,Account,Validation - String,website,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-639,Account,Validation - String,website,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-640,Account,Validation - String,website,Input boundary string length/type:  ,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-641,Account,Validation - String,website,Input boundary string length/type:     ,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-642,Account,Validation - String,website,Input boundary string length/type: ,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-643,Account,Validation - String,website,Input boundary string length/type: null,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-644,Account,Validation - String,website,Input boundary string length/type: undefined,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-645,Account,Validation - String,website,Input boundary string length/type: NaN,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-646,Account,Validation - String,website,Input boundary string length/type: True,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-647,Account,Validation - String,website,Input boundary string length/type: False,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-648,Account,Validation - String,website,Input boundary string length/type: 0,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-649,Account,Validation - String,website,Input boundary string length/type: 1,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-650,Account,Security - XSS,primaryContact,Inject XSS: <script>alert(1)</script>,Input sanitized. Script not executed.
+Account-651,Account,Security - XSS,primaryContact,Inject XSS: <img src=x onerror=alert(1)>,Input sanitized. Script not executed.
+Account-652,Account,Security - XSS,primaryContact,Inject XSS: <svg/onload=alert(1)>,Input sanitized. Script not executed.
+Account-653,Account,Security - XSS,primaryContact,"Inject XSS: "" onmouseover=""alert(1)",Input sanitized. Script not executed.
+Account-654,Account,Security - XSS,primaryContact,Inject XSS: javascript:alert(1),Input sanitized. Script not executed.
+Account-655,Account,Security - XSS,primaryContact,"Inject XSS: <iframe src=""javascript:alert(1)"">",Input sanitized. Script not executed.
+Account-656,Account,Security - XSS,primaryContact,Inject XSS: '><script>alert(1)</script>,Input sanitized. Script not executed.
+Account-657,Account,Security - XSS,primaryContact,Inject XSS: <BODY ONLOAD=alert(1)>,Input sanitized. Script not executed.
+Account-658,Account,Security - XSS,primaryContact,"Inject XSS: <BGSOUND SRC=""javascript:alert(1);"">",Input sanitized. Script not executed.
+Account-659,Account,Security - XSS,primaryContact,"Inject XSS: <br size=""&{alert(1)}"">",Input sanitized. Script not executed.
+Account-660,Account,Security - XSS,primaryContact,"Inject XSS: <LINK REL=""stylesheet"" HREF=""javascript:alert(1);"">",Input sanitized. Script not executed.
+Account-661,Account,Security - XSS,primaryContact,"Inject XSS: <META HTTP-EQUIV=""refresh"" CONTENT=""0;url=javascript:alert(1);"">",Input sanitized. Script not executed.
+Account-662,Account,Security - XSS,primaryContact,"Inject XSS: <TABLE BACKGROUND=""javascript:alert(1)"">",Input sanitized. Script not executed.
+Account-663,Account,Security - XSS,primaryContact,"Inject XSS: <DIV STYLE=""background-image: url(javascript:alert(1))"">",Input sanitized. Script not executed.
+Account-664,Account,Security - XSS,primaryContact,"Inject XSS: <DIV STYLE=""width: expression(alert(1));"">",Input sanitized. Script not executed.
+Account-665,Account,Security - XSS,primaryContact,"Inject XSS: <OBJECT TYPE=""text/x-scriptlet"" DATA=""http://ha.ckers.org/scriptlet.html""></OBJECT>",Input sanitized. Script not executed.
+Account-666,Account,Security - XSS,primaryContact,"Inject XSS: <EMBED SRC=""http://ha.ckers.org/xss.swf"" AllowScriptAccess=""always""></EMBED>",Input sanitized. Script not executed.
+Account-667,Account,Security - XSS,primaryContact,"Inject XSS: <a href=""javascript:alert(1)"">Click Me</a>",Input sanitized. Script not executed.
+Account-668,Account,Security - XSS,primaryContact,Inject XSS: \x3cscript\x3ealert(1)\x3c/script\x3e,Input sanitized. Script not executed.
+Account-669,Account,Security - XSS,primaryContact,Inject XSS: %3Cscript%3Ealert(1)%3C/script%3E,Input sanitized. Script not executed.
+Account-670,Account,Security - SQLi,primaryContact,Inject SQL: ' OR '1'='1,Input escaped. DB integrity maintained.
+Account-671,Account,Security - SQLi,primaryContact,Inject SQL: admin' --,Input escaped. DB integrity maintained.
+Account-672,Account,Security - SQLi,primaryContact,Inject SQL: admin' #,Input escaped. DB integrity maintained.
+Account-673,Account,Security - SQLi,primaryContact,Inject SQL: ' OR 1=1--,Input escaped. DB integrity maintained.
+Account-674,Account,Security - SQLi,primaryContact,Inject SQL: 1'; DROP TABLE users--,Input escaped. DB integrity maintained.
+Account-675,Account,Security - SQLi,primaryContact,Inject SQL: 1' OR '1'='1'--,Input escaped. DB integrity maintained.
+Account-676,Account,Security - SQLi,primaryContact,Inject SQL: 1' OR '1'='1' #,Input escaped. DB integrity maintained.
+Account-677,Account,Security - SQLi,primaryContact,Inject SQL: 1' OR '1'='1' /*,Input escaped. DB integrity maintained.
+Account-678,Account,Security - SQLi,primaryContact,Inject SQL: ' OR 1=1#,Input escaped. DB integrity maintained.
+Account-679,Account,Security - SQLi,primaryContact,Inject SQL: ' OR 1=1/*,Input escaped. DB integrity maintained.
+Account-680,Account,Security - SQLi,primaryContact,Inject SQL: admin' AND 1=1--,Input escaped. DB integrity maintained.
+Account-681,Account,Security - SQLi,primaryContact,Inject SQL: admin' AND 1=0--,Input escaped. DB integrity maintained.
+Account-682,Account,Security - SQLi,primaryContact,"Inject SQL: 1' UNION SELECT username, password FROM users--",Input escaped. DB integrity maintained.
+Account-683,Account,Security - SQLi,primaryContact,Inject SQL: 1' OR (SELECT COUNT(*) FROM users) > 0--,Input escaped. DB integrity maintained.
+Account-684,Account,Security - SQLi,primaryContact,Inject SQL: 1' AND sleep(5)--,Input escaped. DB integrity maintained.
+Account-685,Account,Security - SQLi,primaryContact,Inject SQL: 1' AND pg_sleep(5)--,Input escaped. DB integrity maintained.
+Account-686,Account,Security - SQLi,primaryContact,Inject SQL: 1' WAITFOR DELAY '0:0:5'--,Input escaped. DB integrity maintained.
+Account-687,Account,Security - SQLi,primaryContact,Inject SQL: '; EXEC xp_cmdshell('dir');--,Input escaped. DB integrity maintained.
+Account-688,Account,Security - SQLi,primaryContact,Inject SQL: 1' OR EXISTS(SELECT * FROM information_schema.tables)--,Input escaped. DB integrity maintained.
+Account-689,Account,Security - SQLi,primaryContact,Inject SQL: ' OR 'x'='x,Input escaped. DB integrity maintained.
+Account-690,Account,Validation - String,primaryContact,Input boundary string length/type: A,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-691,Account,Validation - String,primaryContact,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-692,Account,Validation - String,primaryContact,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-693,Account,Validation - String,primaryContact,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-694,Account,Validation - String,primaryContact,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-695,Account,Validation - String,primaryContact,Input boundary string length/type:  ,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-696,Account,Validation - String,primaryContact,Input boundary string length/type:     ,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-697,Account,Validation - String,primaryContact,Input boundary string length/type: ,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-698,Account,Validation - String,primaryContact,Input boundary string length/type: null,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-699,Account,Validation - String,primaryContact,Input boundary string length/type: undefined,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-700,Account,Validation - String,primaryContact,Input boundary string length/type: NaN,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-701,Account,Validation - String,primaryContact,Input boundary string length/type: True,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-702,Account,Validation - String,primaryContact,Input boundary string length/type: False,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-703,Account,Validation - String,primaryContact,Input boundary string length/type: 0,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-704,Account,Validation - String,primaryContact,Input boundary string length/type: 1,"Validation correctly accepts, truncates, or throws error based on field limit."
+Account-705,Account,Validation - Email,email,Input invalid email format: plainaddress,Form validation fails. Shows red error text.
+Account-706,Account,Validation - Email,email,Input invalid email format: #@%^%#$@#$@#.com,Form validation fails. Shows red error text.
+Account-707,Account,Validation - Email,email,Input invalid email format: @example.com,Form validation fails. Shows red error text.
+Account-708,Account,Validation - Email,email,Input invalid email format: Joe Smith <email@example.com>,Form validation fails. Shows red error text.
+Account-709,Account,Validation - Email,email,Input invalid email format: email.example.com,Form validation fails. Shows red error text.
+Account-710,Account,Validation - Email,email,Input invalid email format: email@example@example.com,Form validation fails. Shows red error text.
+Account-711,Account,Validation - Email,email,Input invalid email format: .email@example.com,Form validation fails. Shows red error text.
+Account-712,Account,Validation - Email,email,Input invalid email format: email.@example.com,Form validation fails. Shows red error text.
+Account-713,Account,Validation - Email,email,Input invalid email format: email..email@example.com,Form validation fails. Shows red error text.
+Account-714,Account,Validation - Email,email,Input invalid email format: email@example.com (Joe Smith),Form validation fails. Shows red error text.
+Account-715,Account,Validation - Email,email,Input invalid email format: email@example,Form validation fails. Shows red error text.
+Account-716,Account,Validation - Email,email,Input invalid email format: email@-example.com,Form validation fails. Shows red error text.
+Account-717,Account,Validation - Email,email,Input invalid email format: email@example..com,Form validation fails. Shows red error text.
+Account-718,Account,Validation - Email,email,Input invalid email format: Abc..123@example.com,Form validation fails. Shows red error text.
+Account-719,Account,Validation - Email,email,"Input invalid email format: ”(),:;<>[]@example.com",Form validation fails. Shows red error text.
+Account-720,Account,Validation - Number,teamSize,Input edge number: -1,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Account-721,Account,Validation - Number,teamSize,Input edge number: -999999,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Account-722,Account,Validation - Number,teamSize,Input edge number: 0,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Account-723,Account,Validation - Number,teamSize,Input edge number: 0.00001,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Account-724,Account,Validation - Number,teamSize,Input edge number: 9999999999,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Account-725,Account,Validation - Number,teamSize,Input edge number: abc,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Account-726,Account,Validation - Number,teamSize,Input edge number: !@#,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Account-727,Account,Validation - Number,teamSize,Input edge number: 1.2.3,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Account-728,Account,Validation - Number,teamSize,Input edge number: 1e10,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Account-729,Account,Validation - Number,teamSize,"Input edge number: 10,000","Handled properly (negative/NaN blocked, large numbers formatted)."
+Account-730,Account,Validation - Number,annualRevenue,Input edge number: -1,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Account-731,Account,Validation - Number,annualRevenue,Input edge number: -999999,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Account-732,Account,Validation - Number,annualRevenue,Input edge number: 0,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Account-733,Account,Validation - Number,annualRevenue,Input edge number: 0.00001,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Account-734,Account,Validation - Number,annualRevenue,Input edge number: 9999999999,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Account-735,Account,Validation - Number,annualRevenue,Input edge number: abc,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Account-736,Account,Validation - Number,annualRevenue,Input edge number: !@#,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Account-737,Account,Validation - Number,annualRevenue,Input edge number: 1.2.3,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Account-738,Account,Validation - Number,annualRevenue,Input edge number: 1e10,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Account-739,Account,Validation - Number,annualRevenue,"Input edge number: 10,000","Handled properly (negative/NaN blocked, large numbers formatted)."
+Task-740,Task,Security - XSS,taskName,Inject XSS: <script>alert(1)</script>,Input sanitized. Script not executed.
+Task-741,Task,Security - XSS,taskName,Inject XSS: <img src=x onerror=alert(1)>,Input sanitized. Script not executed.
+Task-742,Task,Security - XSS,taskName,Inject XSS: <svg/onload=alert(1)>,Input sanitized. Script not executed.
+Task-743,Task,Security - XSS,taskName,"Inject XSS: "" onmouseover=""alert(1)",Input sanitized. Script not executed.
+Task-744,Task,Security - XSS,taskName,Inject XSS: javascript:alert(1),Input sanitized. Script not executed.
+Task-745,Task,Security - XSS,taskName,"Inject XSS: <iframe src=""javascript:alert(1)"">",Input sanitized. Script not executed.
+Task-746,Task,Security - XSS,taskName,Inject XSS: '><script>alert(1)</script>,Input sanitized. Script not executed.
+Task-747,Task,Security - XSS,taskName,Inject XSS: <BODY ONLOAD=alert(1)>,Input sanitized. Script not executed.
+Task-748,Task,Security - XSS,taskName,"Inject XSS: <BGSOUND SRC=""javascript:alert(1);"">",Input sanitized. Script not executed.
+Task-749,Task,Security - XSS,taskName,"Inject XSS: <br size=""&{alert(1)}"">",Input sanitized. Script not executed.
+Task-750,Task,Security - XSS,taskName,"Inject XSS: <LINK REL=""stylesheet"" HREF=""javascript:alert(1);"">",Input sanitized. Script not executed.
+Task-751,Task,Security - XSS,taskName,"Inject XSS: <META HTTP-EQUIV=""refresh"" CONTENT=""0;url=javascript:alert(1);"">",Input sanitized. Script not executed.
+Task-752,Task,Security - XSS,taskName,"Inject XSS: <TABLE BACKGROUND=""javascript:alert(1)"">",Input sanitized. Script not executed.
+Task-753,Task,Security - XSS,taskName,"Inject XSS: <DIV STYLE=""background-image: url(javascript:alert(1))"">",Input sanitized. Script not executed.
+Task-754,Task,Security - XSS,taskName,"Inject XSS: <DIV STYLE=""width: expression(alert(1));"">",Input sanitized. Script not executed.
+Task-755,Task,Security - XSS,taskName,"Inject XSS: <OBJECT TYPE=""text/x-scriptlet"" DATA=""http://ha.ckers.org/scriptlet.html""></OBJECT>",Input sanitized. Script not executed.
+Task-756,Task,Security - XSS,taskName,"Inject XSS: <EMBED SRC=""http://ha.ckers.org/xss.swf"" AllowScriptAccess=""always""></EMBED>",Input sanitized. Script not executed.
+Task-757,Task,Security - XSS,taskName,"Inject XSS: <a href=""javascript:alert(1)"">Click Me</a>",Input sanitized. Script not executed.
+Task-758,Task,Security - XSS,taskName,Inject XSS: \x3cscript\x3ealert(1)\x3c/script\x3e,Input sanitized. Script not executed.
+Task-759,Task,Security - XSS,taskName,Inject XSS: %3Cscript%3Ealert(1)%3C/script%3E,Input sanitized. Script not executed.
+Task-760,Task,Security - SQLi,taskName,Inject SQL: ' OR '1'='1,Input escaped. DB integrity maintained.
+Task-761,Task,Security - SQLi,taskName,Inject SQL: admin' --,Input escaped. DB integrity maintained.
+Task-762,Task,Security - SQLi,taskName,Inject SQL: admin' #,Input escaped. DB integrity maintained.
+Task-763,Task,Security - SQLi,taskName,Inject SQL: ' OR 1=1--,Input escaped. DB integrity maintained.
+Task-764,Task,Security - SQLi,taskName,Inject SQL: 1'; DROP TABLE users--,Input escaped. DB integrity maintained.
+Task-765,Task,Security - SQLi,taskName,Inject SQL: 1' OR '1'='1'--,Input escaped. DB integrity maintained.
+Task-766,Task,Security - SQLi,taskName,Inject SQL: 1' OR '1'='1' #,Input escaped. DB integrity maintained.
+Task-767,Task,Security - SQLi,taskName,Inject SQL: 1' OR '1'='1' /*,Input escaped. DB integrity maintained.
+Task-768,Task,Security - SQLi,taskName,Inject SQL: ' OR 1=1#,Input escaped. DB integrity maintained.
+Task-769,Task,Security - SQLi,taskName,Inject SQL: ' OR 1=1/*,Input escaped. DB integrity maintained.
+Task-770,Task,Security - SQLi,taskName,Inject SQL: admin' AND 1=1--,Input escaped. DB integrity maintained.
+Task-771,Task,Security - SQLi,taskName,Inject SQL: admin' AND 1=0--,Input escaped. DB integrity maintained.
+Task-772,Task,Security - SQLi,taskName,"Inject SQL: 1' UNION SELECT username, password FROM users--",Input escaped. DB integrity maintained.
+Task-773,Task,Security - SQLi,taskName,Inject SQL: 1' OR (SELECT COUNT(*) FROM users) > 0--,Input escaped. DB integrity maintained.
+Task-774,Task,Security - SQLi,taskName,Inject SQL: 1' AND sleep(5)--,Input escaped. DB integrity maintained.
+Task-775,Task,Security - SQLi,taskName,Inject SQL: 1' AND pg_sleep(5)--,Input escaped. DB integrity maintained.
+Task-776,Task,Security - SQLi,taskName,Inject SQL: 1' WAITFOR DELAY '0:0:5'--,Input escaped. DB integrity maintained.
+Task-777,Task,Security - SQLi,taskName,Inject SQL: '; EXEC xp_cmdshell('dir');--,Input escaped. DB integrity maintained.
+Task-778,Task,Security - SQLi,taskName,Inject SQL: 1' OR EXISTS(SELECT * FROM information_schema.tables)--,Input escaped. DB integrity maintained.
+Task-779,Task,Security - SQLi,taskName,Inject SQL: ' OR 'x'='x,Input escaped. DB integrity maintained.
+Task-780,Task,Validation - String,taskName,Input boundary string length/type: A,"Validation correctly accepts, truncates, or throws error based on field limit."
+Task-781,Task,Validation - String,taskName,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Task-782,Task,Validation - String,taskName,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Task-783,Task,Validation - String,taskName,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Task-784,Task,Validation - String,taskName,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Task-785,Task,Validation - String,taskName,Input boundary string length/type:  ,"Validation correctly accepts, truncates, or throws error based on field limit."
+Task-786,Task,Validation - String,taskName,Input boundary string length/type:     ,"Validation correctly accepts, truncates, or throws error based on field limit."
+Task-787,Task,Validation - String,taskName,Input boundary string length/type: ,"Validation correctly accepts, truncates, or throws error based on field limit."
+Task-788,Task,Validation - String,taskName,Input boundary string length/type: null,"Validation correctly accepts, truncates, or throws error based on field limit."
+Task-789,Task,Validation - String,taskName,Input boundary string length/type: undefined,"Validation correctly accepts, truncates, or throws error based on field limit."
+Task-790,Task,Validation - String,taskName,Input boundary string length/type: NaN,"Validation correctly accepts, truncates, or throws error based on field limit."
+Task-791,Task,Validation - String,taskName,Input boundary string length/type: True,"Validation correctly accepts, truncates, or throws error based on field limit."
+Task-792,Task,Validation - String,taskName,Input boundary string length/type: False,"Validation correctly accepts, truncates, or throws error based on field limit."
+Task-793,Task,Validation - String,taskName,Input boundary string length/type: 0,"Validation correctly accepts, truncates, or throws error based on field limit."
+Task-794,Task,Validation - String,taskName,Input boundary string length/type: 1,"Validation correctly accepts, truncates, or throws error based on field limit."
+Task-795,Task,Security - XSS,description,Inject XSS: <script>alert(1)</script>,Input sanitized. Script not executed.
+Task-796,Task,Security - XSS,description,Inject XSS: <img src=x onerror=alert(1)>,Input sanitized. Script not executed.
+Task-797,Task,Security - XSS,description,Inject XSS: <svg/onload=alert(1)>,Input sanitized. Script not executed.
+Task-798,Task,Security - XSS,description,"Inject XSS: "" onmouseover=""alert(1)",Input sanitized. Script not executed.
+Task-799,Task,Security - XSS,description,Inject XSS: javascript:alert(1),Input sanitized. Script not executed.
+Task-800,Task,Security - XSS,description,"Inject XSS: <iframe src=""javascript:alert(1)"">",Input sanitized. Script not executed.
+Task-801,Task,Security - XSS,description,Inject XSS: '><script>alert(1)</script>,Input sanitized. Script not executed.
+Task-802,Task,Security - XSS,description,Inject XSS: <BODY ONLOAD=alert(1)>,Input sanitized. Script not executed.
+Task-803,Task,Security - XSS,description,"Inject XSS: <BGSOUND SRC=""javascript:alert(1);"">",Input sanitized. Script not executed.
+Task-804,Task,Security - XSS,description,"Inject XSS: <br size=""&{alert(1)}"">",Input sanitized. Script not executed.
+Task-805,Task,Security - XSS,description,"Inject XSS: <LINK REL=""stylesheet"" HREF=""javascript:alert(1);"">",Input sanitized. Script not executed.
+Task-806,Task,Security - XSS,description,"Inject XSS: <META HTTP-EQUIV=""refresh"" CONTENT=""0;url=javascript:alert(1);"">",Input sanitized. Script not executed.
+Task-807,Task,Security - XSS,description,"Inject XSS: <TABLE BACKGROUND=""javascript:alert(1)"">",Input sanitized. Script not executed.
+Task-808,Task,Security - XSS,description,"Inject XSS: <DIV STYLE=""background-image: url(javascript:alert(1))"">",Input sanitized. Script not executed.
+Task-809,Task,Security - XSS,description,"Inject XSS: <DIV STYLE=""width: expression(alert(1));"">",Input sanitized. Script not executed.
+Task-810,Task,Security - XSS,description,"Inject XSS: <OBJECT TYPE=""text/x-scriptlet"" DATA=""http://ha.ckers.org/scriptlet.html""></OBJECT>",Input sanitized. Script not executed.
+Task-811,Task,Security - XSS,description,"Inject XSS: <EMBED SRC=""http://ha.ckers.org/xss.swf"" AllowScriptAccess=""always""></EMBED>",Input sanitized. Script not executed.
+Task-812,Task,Security - XSS,description,"Inject XSS: <a href=""javascript:alert(1)"">Click Me</a>",Input sanitized. Script not executed.
+Task-813,Task,Security - XSS,description,Inject XSS: \x3cscript\x3ealert(1)\x3c/script\x3e,Input sanitized. Script not executed.
+Task-814,Task,Security - XSS,description,Inject XSS: %3Cscript%3Ealert(1)%3C/script%3E,Input sanitized. Script not executed.
+Task-815,Task,Security - SQLi,description,Inject SQL: ' OR '1'='1,Input escaped. DB integrity maintained.
+Task-816,Task,Security - SQLi,description,Inject SQL: admin' --,Input escaped. DB integrity maintained.
+Task-817,Task,Security - SQLi,description,Inject SQL: admin' #,Input escaped. DB integrity maintained.
+Task-818,Task,Security - SQLi,description,Inject SQL: ' OR 1=1--,Input escaped. DB integrity maintained.
+Task-819,Task,Security - SQLi,description,Inject SQL: 1'; DROP TABLE users--,Input escaped. DB integrity maintained.
+Task-820,Task,Security - SQLi,description,Inject SQL: 1' OR '1'='1'--,Input escaped. DB integrity maintained.
+Task-821,Task,Security - SQLi,description,Inject SQL: 1' OR '1'='1' #,Input escaped. DB integrity maintained.
+Task-822,Task,Security - SQLi,description,Inject SQL: 1' OR '1'='1' /*,Input escaped. DB integrity maintained.
+Task-823,Task,Security - SQLi,description,Inject SQL: ' OR 1=1#,Input escaped. DB integrity maintained.
+Task-824,Task,Security - SQLi,description,Inject SQL: ' OR 1=1/*,Input escaped. DB integrity maintained.
+Task-825,Task,Security - SQLi,description,Inject SQL: admin' AND 1=1--,Input escaped. DB integrity maintained.
+Task-826,Task,Security - SQLi,description,Inject SQL: admin' AND 1=0--,Input escaped. DB integrity maintained.
+Task-827,Task,Security - SQLi,description,"Inject SQL: 1' UNION SELECT username, password FROM users--",Input escaped. DB integrity maintained.
+Task-828,Task,Security - SQLi,description,Inject SQL: 1' OR (SELECT COUNT(*) FROM users) > 0--,Input escaped. DB integrity maintained.
+Task-829,Task,Security - SQLi,description,Inject SQL: 1' AND sleep(5)--,Input escaped. DB integrity maintained.
+Task-830,Task,Security - SQLi,description,Inject SQL: 1' AND pg_sleep(5)--,Input escaped. DB integrity maintained.
+Task-831,Task,Security - SQLi,description,Inject SQL: 1' WAITFOR DELAY '0:0:5'--,Input escaped. DB integrity maintained.
+Task-832,Task,Security - SQLi,description,Inject SQL: '; EXEC xp_cmdshell('dir');--,Input escaped. DB integrity maintained.
+Task-833,Task,Security - SQLi,description,Inject SQL: 1' OR EXISTS(SELECT * FROM information_schema.tables)--,Input escaped. DB integrity maintained.
+Task-834,Task,Security - SQLi,description,Inject SQL: ' OR 'x'='x,Input escaped. DB integrity maintained.
+Task-835,Task,Validation - String,description,Input boundary string length/type: A,"Validation correctly accepts, truncates, or throws error based on field limit."
+Task-836,Task,Validation - String,description,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Task-837,Task,Validation - String,description,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Task-838,Task,Validation - String,description,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Task-839,Task,Validation - String,description,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Task-840,Task,Validation - String,description,Input boundary string length/type:  ,"Validation correctly accepts, truncates, or throws error based on field limit."
+Task-841,Task,Validation - String,description,Input boundary string length/type:     ,"Validation correctly accepts, truncates, or throws error based on field limit."
+Task-842,Task,Validation - String,description,Input boundary string length/type: ,"Validation correctly accepts, truncates, or throws error based on field limit."
+Task-843,Task,Validation - String,description,Input boundary string length/type: null,"Validation correctly accepts, truncates, or throws error based on field limit."
+Task-844,Task,Validation - String,description,Input boundary string length/type: undefined,"Validation correctly accepts, truncates, or throws error based on field limit."
+Task-845,Task,Validation - String,description,Input boundary string length/type: NaN,"Validation correctly accepts, truncates, or throws error based on field limit."
+Task-846,Task,Validation - String,description,Input boundary string length/type: True,"Validation correctly accepts, truncates, or throws error based on field limit."
+Task-847,Task,Validation - String,description,Input boundary string length/type: False,"Validation correctly accepts, truncates, or throws error based on field limit."
+Task-848,Task,Validation - String,description,Input boundary string length/type: 0,"Validation correctly accepts, truncates, or throws error based on field limit."
+Task-849,Task,Validation - String,description,Input boundary string length/type: 1,"Validation correctly accepts, truncates, or throws error based on field limit."
+Task-850,Task,Validation - Date,startDateTime,Input leap year date 2024-02-29,Accepted successfully.
+Task-851,Task,Validation - Date,startDateTime,Input invalid leap year date 2023-02-29,Rejected by calendar widget.
+Task-852,Task,Validation - Date,startDateTime,Input past date (1900-01-01),Accepted or warned based on logic.
+Task-853,Task,Validation - Date,startDateTime,Input future date (2100-12-31),Accepted.
+Task-854,Task,Validation - Date,dueDateTime,Input leap year date 2024-02-29,Accepted successfully.
+Task-855,Task,Validation - Date,dueDateTime,Input invalid leap year date 2023-02-29,Rejected by calendar widget.
+Task-856,Task,Validation - Date,dueDateTime,Input past date (1900-01-01),Accepted or warned based on logic.
+Task-857,Task,Validation - Date,dueDateTime,Input future date (2100-12-31),Accepted.
+Product-858,Product,Security - XSS,productName,Inject XSS: <script>alert(1)</script>,Input sanitized. Script not executed.
+Product-859,Product,Security - XSS,productName,Inject XSS: <img src=x onerror=alert(1)>,Input sanitized. Script not executed.
+Product-860,Product,Security - XSS,productName,Inject XSS: <svg/onload=alert(1)>,Input sanitized. Script not executed.
+Product-861,Product,Security - XSS,productName,"Inject XSS: "" onmouseover=""alert(1)",Input sanitized. Script not executed.
+Product-862,Product,Security - XSS,productName,Inject XSS: javascript:alert(1),Input sanitized. Script not executed.
+Product-863,Product,Security - XSS,productName,"Inject XSS: <iframe src=""javascript:alert(1)"">",Input sanitized. Script not executed.
+Product-864,Product,Security - XSS,productName,Inject XSS: '><script>alert(1)</script>,Input sanitized. Script not executed.
+Product-865,Product,Security - XSS,productName,Inject XSS: <BODY ONLOAD=alert(1)>,Input sanitized. Script not executed.
+Product-866,Product,Security - XSS,productName,"Inject XSS: <BGSOUND SRC=""javascript:alert(1);"">",Input sanitized. Script not executed.
+Product-867,Product,Security - XSS,productName,"Inject XSS: <br size=""&{alert(1)}"">",Input sanitized. Script not executed.
+Product-868,Product,Security - XSS,productName,"Inject XSS: <LINK REL=""stylesheet"" HREF=""javascript:alert(1);"">",Input sanitized. Script not executed.
+Product-869,Product,Security - XSS,productName,"Inject XSS: <META HTTP-EQUIV=""refresh"" CONTENT=""0;url=javascript:alert(1);"">",Input sanitized. Script not executed.
+Product-870,Product,Security - XSS,productName,"Inject XSS: <TABLE BACKGROUND=""javascript:alert(1)"">",Input sanitized. Script not executed.
+Product-871,Product,Security - XSS,productName,"Inject XSS: <DIV STYLE=""background-image: url(javascript:alert(1))"">",Input sanitized. Script not executed.
+Product-872,Product,Security - XSS,productName,"Inject XSS: <DIV STYLE=""width: expression(alert(1));"">",Input sanitized. Script not executed.
+Product-873,Product,Security - XSS,productName,"Inject XSS: <OBJECT TYPE=""text/x-scriptlet"" DATA=""http://ha.ckers.org/scriptlet.html""></OBJECT>",Input sanitized. Script not executed.
+Product-874,Product,Security - XSS,productName,"Inject XSS: <EMBED SRC=""http://ha.ckers.org/xss.swf"" AllowScriptAccess=""always""></EMBED>",Input sanitized. Script not executed.
+Product-875,Product,Security - XSS,productName,"Inject XSS: <a href=""javascript:alert(1)"">Click Me</a>",Input sanitized. Script not executed.
+Product-876,Product,Security - XSS,productName,Inject XSS: \x3cscript\x3ealert(1)\x3c/script\x3e,Input sanitized. Script not executed.
+Product-877,Product,Security - XSS,productName,Inject XSS: %3Cscript%3Ealert(1)%3C/script%3E,Input sanitized. Script not executed.
+Product-878,Product,Security - SQLi,productName,Inject SQL: ' OR '1'='1,Input escaped. DB integrity maintained.
+Product-879,Product,Security - SQLi,productName,Inject SQL: admin' --,Input escaped. DB integrity maintained.
+Product-880,Product,Security - SQLi,productName,Inject SQL: admin' #,Input escaped. DB integrity maintained.
+Product-881,Product,Security - SQLi,productName,Inject SQL: ' OR 1=1--,Input escaped. DB integrity maintained.
+Product-882,Product,Security - SQLi,productName,Inject SQL: 1'; DROP TABLE users--,Input escaped. DB integrity maintained.
+Product-883,Product,Security - SQLi,productName,Inject SQL: 1' OR '1'='1'--,Input escaped. DB integrity maintained.
+Product-884,Product,Security - SQLi,productName,Inject SQL: 1' OR '1'='1' #,Input escaped. DB integrity maintained.
+Product-885,Product,Security - SQLi,productName,Inject SQL: 1' OR '1'='1' /*,Input escaped. DB integrity maintained.
+Product-886,Product,Security - SQLi,productName,Inject SQL: ' OR 1=1#,Input escaped. DB integrity maintained.
+Product-887,Product,Security - SQLi,productName,Inject SQL: ' OR 1=1/*,Input escaped. DB integrity maintained.
+Product-888,Product,Security - SQLi,productName,Inject SQL: admin' AND 1=1--,Input escaped. DB integrity maintained.
+Product-889,Product,Security - SQLi,productName,Inject SQL: admin' AND 1=0--,Input escaped. DB integrity maintained.
+Product-890,Product,Security - SQLi,productName,"Inject SQL: 1' UNION SELECT username, password FROM users--",Input escaped. DB integrity maintained.
+Product-891,Product,Security - SQLi,productName,Inject SQL: 1' OR (SELECT COUNT(*) FROM users) > 0--,Input escaped. DB integrity maintained.
+Product-892,Product,Security - SQLi,productName,Inject SQL: 1' AND sleep(5)--,Input escaped. DB integrity maintained.
+Product-893,Product,Security - SQLi,productName,Inject SQL: 1' AND pg_sleep(5)--,Input escaped. DB integrity maintained.
+Product-894,Product,Security - SQLi,productName,Inject SQL: 1' WAITFOR DELAY '0:0:5'--,Input escaped. DB integrity maintained.
+Product-895,Product,Security - SQLi,productName,Inject SQL: '; EXEC xp_cmdshell('dir');--,Input escaped. DB integrity maintained.
+Product-896,Product,Security - SQLi,productName,Inject SQL: 1' OR EXISTS(SELECT * FROM information_schema.tables)--,Input escaped. DB integrity maintained.
+Product-897,Product,Security - SQLi,productName,Inject SQL: ' OR 'x'='x,Input escaped. DB integrity maintained.
+Product-898,Product,Validation - String,productName,Input boundary string length/type: A,"Validation correctly accepts, truncates, or throws error based on field limit."
+Product-899,Product,Validation - String,productName,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Product-900,Product,Validation - String,productName,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Product-901,Product,Validation - String,productName,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Product-902,Product,Validation - String,productName,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Product-903,Product,Validation - String,productName,Input boundary string length/type:  ,"Validation correctly accepts, truncates, or throws error based on field limit."
+Product-904,Product,Validation - String,productName,Input boundary string length/type:     ,"Validation correctly accepts, truncates, or throws error based on field limit."
+Product-905,Product,Validation - String,productName,Input boundary string length/type: ,"Validation correctly accepts, truncates, or throws error based on field limit."
+Product-906,Product,Validation - String,productName,Input boundary string length/type: null,"Validation correctly accepts, truncates, or throws error based on field limit."
+Product-907,Product,Validation - String,productName,Input boundary string length/type: undefined,"Validation correctly accepts, truncates, or throws error based on field limit."
+Product-908,Product,Validation - String,productName,Input boundary string length/type: NaN,"Validation correctly accepts, truncates, or throws error based on field limit."
+Product-909,Product,Validation - String,productName,Input boundary string length/type: True,"Validation correctly accepts, truncates, or throws error based on field limit."
+Product-910,Product,Validation - String,productName,Input boundary string length/type: False,"Validation correctly accepts, truncates, or throws error based on field limit."
+Product-911,Product,Validation - String,productName,Input boundary string length/type: 0,"Validation correctly accepts, truncates, or throws error based on field limit."
+Product-912,Product,Validation - String,productName,Input boundary string length/type: 1,"Validation correctly accepts, truncates, or throws error based on field limit."
+Product-913,Product,Security - XSS,sku,Inject XSS: <script>alert(1)</script>,Input sanitized. Script not executed.
+Product-914,Product,Security - XSS,sku,Inject XSS: <img src=x onerror=alert(1)>,Input sanitized. Script not executed.
+Product-915,Product,Security - XSS,sku,Inject XSS: <svg/onload=alert(1)>,Input sanitized. Script not executed.
+Product-916,Product,Security - XSS,sku,"Inject XSS: "" onmouseover=""alert(1)",Input sanitized. Script not executed.
+Product-917,Product,Security - XSS,sku,Inject XSS: javascript:alert(1),Input sanitized. Script not executed.
+Product-918,Product,Security - XSS,sku,"Inject XSS: <iframe src=""javascript:alert(1)"">",Input sanitized. Script not executed.
+Product-919,Product,Security - XSS,sku,Inject XSS: '><script>alert(1)</script>,Input sanitized. Script not executed.
+Product-920,Product,Security - XSS,sku,Inject XSS: <BODY ONLOAD=alert(1)>,Input sanitized. Script not executed.
+Product-921,Product,Security - XSS,sku,"Inject XSS: <BGSOUND SRC=""javascript:alert(1);"">",Input sanitized. Script not executed.
+Product-922,Product,Security - XSS,sku,"Inject XSS: <br size=""&{alert(1)}"">",Input sanitized. Script not executed.
+Product-923,Product,Security - XSS,sku,"Inject XSS: <LINK REL=""stylesheet"" HREF=""javascript:alert(1);"">",Input sanitized. Script not executed.
+Product-924,Product,Security - XSS,sku,"Inject XSS: <META HTTP-EQUIV=""refresh"" CONTENT=""0;url=javascript:alert(1);"">",Input sanitized. Script not executed.
+Product-925,Product,Security - XSS,sku,"Inject XSS: <TABLE BACKGROUND=""javascript:alert(1)"">",Input sanitized. Script not executed.
+Product-926,Product,Security - XSS,sku,"Inject XSS: <DIV STYLE=""background-image: url(javascript:alert(1))"">",Input sanitized. Script not executed.
+Product-927,Product,Security - XSS,sku,"Inject XSS: <DIV STYLE=""width: expression(alert(1));"">",Input sanitized. Script not executed.
+Product-928,Product,Security - XSS,sku,"Inject XSS: <OBJECT TYPE=""text/x-scriptlet"" DATA=""http://ha.ckers.org/scriptlet.html""></OBJECT>",Input sanitized. Script not executed.
+Product-929,Product,Security - XSS,sku,"Inject XSS: <EMBED SRC=""http://ha.ckers.org/xss.swf"" AllowScriptAccess=""always""></EMBED>",Input sanitized. Script not executed.
+Product-930,Product,Security - XSS,sku,"Inject XSS: <a href=""javascript:alert(1)"">Click Me</a>",Input sanitized. Script not executed.
+Product-931,Product,Security - XSS,sku,Inject XSS: \x3cscript\x3ealert(1)\x3c/script\x3e,Input sanitized. Script not executed.
+Product-932,Product,Security - XSS,sku,Inject XSS: %3Cscript%3Ealert(1)%3C/script%3E,Input sanitized. Script not executed.
+Product-933,Product,Security - SQLi,sku,Inject SQL: ' OR '1'='1,Input escaped. DB integrity maintained.
+Product-934,Product,Security - SQLi,sku,Inject SQL: admin' --,Input escaped. DB integrity maintained.
+Product-935,Product,Security - SQLi,sku,Inject SQL: admin' #,Input escaped. DB integrity maintained.
+Product-936,Product,Security - SQLi,sku,Inject SQL: ' OR 1=1--,Input escaped. DB integrity maintained.
+Product-937,Product,Security - SQLi,sku,Inject SQL: 1'; DROP TABLE users--,Input escaped. DB integrity maintained.
+Product-938,Product,Security - SQLi,sku,Inject SQL: 1' OR '1'='1'--,Input escaped. DB integrity maintained.
+Product-939,Product,Security - SQLi,sku,Inject SQL: 1' OR '1'='1' #,Input escaped. DB integrity maintained.
+Product-940,Product,Security - SQLi,sku,Inject SQL: 1' OR '1'='1' /*,Input escaped. DB integrity maintained.
+Product-941,Product,Security - SQLi,sku,Inject SQL: ' OR 1=1#,Input escaped. DB integrity maintained.
+Product-942,Product,Security - SQLi,sku,Inject SQL: ' OR 1=1/*,Input escaped. DB integrity maintained.
+Product-943,Product,Security - SQLi,sku,Inject SQL: admin' AND 1=1--,Input escaped. DB integrity maintained.
+Product-944,Product,Security - SQLi,sku,Inject SQL: admin' AND 1=0--,Input escaped. DB integrity maintained.
+Product-945,Product,Security - SQLi,sku,"Inject SQL: 1' UNION SELECT username, password FROM users--",Input escaped. DB integrity maintained.
+Product-946,Product,Security - SQLi,sku,Inject SQL: 1' OR (SELECT COUNT(*) FROM users) > 0--,Input escaped. DB integrity maintained.
+Product-947,Product,Security - SQLi,sku,Inject SQL: 1' AND sleep(5)--,Input escaped. DB integrity maintained.
+Product-948,Product,Security - SQLi,sku,Inject SQL: 1' AND pg_sleep(5)--,Input escaped. DB integrity maintained.
+Product-949,Product,Security - SQLi,sku,Inject SQL: 1' WAITFOR DELAY '0:0:5'--,Input escaped. DB integrity maintained.
+Product-950,Product,Security - SQLi,sku,Inject SQL: '; EXEC xp_cmdshell('dir');--,Input escaped. DB integrity maintained.
+Product-951,Product,Security - SQLi,sku,Inject SQL: 1' OR EXISTS(SELECT * FROM information_schema.tables)--,Input escaped. DB integrity maintained.
+Product-952,Product,Security - SQLi,sku,Inject SQL: ' OR 'x'='x,Input escaped. DB integrity maintained.
+Product-953,Product,Validation - String,sku,Input boundary string length/type: A,"Validation correctly accepts, truncates, or throws error based on field limit."
+Product-954,Product,Validation - String,sku,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Product-955,Product,Validation - String,sku,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Product-956,Product,Validation - String,sku,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Product-957,Product,Validation - String,sku,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Product-958,Product,Validation - String,sku,Input boundary string length/type:  ,"Validation correctly accepts, truncates, or throws error based on field limit."
+Product-959,Product,Validation - String,sku,Input boundary string length/type:     ,"Validation correctly accepts, truncates, or throws error based on field limit."
+Product-960,Product,Validation - String,sku,Input boundary string length/type: ,"Validation correctly accepts, truncates, or throws error based on field limit."
+Product-961,Product,Validation - String,sku,Input boundary string length/type: null,"Validation correctly accepts, truncates, or throws error based on field limit."
+Product-962,Product,Validation - String,sku,Input boundary string length/type: undefined,"Validation correctly accepts, truncates, or throws error based on field limit."
+Product-963,Product,Validation - String,sku,Input boundary string length/type: NaN,"Validation correctly accepts, truncates, or throws error based on field limit."
+Product-964,Product,Validation - String,sku,Input boundary string length/type: True,"Validation correctly accepts, truncates, or throws error based on field limit."
+Product-965,Product,Validation - String,sku,Input boundary string length/type: False,"Validation correctly accepts, truncates, or throws error based on field limit."
+Product-966,Product,Validation - String,sku,Input boundary string length/type: 0,"Validation correctly accepts, truncates, or throws error based on field limit."
+Product-967,Product,Validation - String,sku,Input boundary string length/type: 1,"Validation correctly accepts, truncates, or throws error based on field limit."
+Product-968,Product,Security - XSS,description,Inject XSS: <script>alert(1)</script>,Input sanitized. Script not executed.
+Product-969,Product,Security - XSS,description,Inject XSS: <img src=x onerror=alert(1)>,Input sanitized. Script not executed.
+Product-970,Product,Security - XSS,description,Inject XSS: <svg/onload=alert(1)>,Input sanitized. Script not executed.
+Product-971,Product,Security - XSS,description,"Inject XSS: "" onmouseover=""alert(1)",Input sanitized. Script not executed.
+Product-972,Product,Security - XSS,description,Inject XSS: javascript:alert(1),Input sanitized. Script not executed.
+Product-973,Product,Security - XSS,description,"Inject XSS: <iframe src=""javascript:alert(1)"">",Input sanitized. Script not executed.
+Product-974,Product,Security - XSS,description,Inject XSS: '><script>alert(1)</script>,Input sanitized. Script not executed.
+Product-975,Product,Security - XSS,description,Inject XSS: <BODY ONLOAD=alert(1)>,Input sanitized. Script not executed.
+Product-976,Product,Security - XSS,description,"Inject XSS: <BGSOUND SRC=""javascript:alert(1);"">",Input sanitized. Script not executed.
+Product-977,Product,Security - XSS,description,"Inject XSS: <br size=""&{alert(1)}"">",Input sanitized. Script not executed.
+Product-978,Product,Security - XSS,description,"Inject XSS: <LINK REL=""stylesheet"" HREF=""javascript:alert(1);"">",Input sanitized. Script not executed.
+Product-979,Product,Security - XSS,description,"Inject XSS: <META HTTP-EQUIV=""refresh"" CONTENT=""0;url=javascript:alert(1);"">",Input sanitized. Script not executed.
+Product-980,Product,Security - XSS,description,"Inject XSS: <TABLE BACKGROUND=""javascript:alert(1)"">",Input sanitized. Script not executed.
+Product-981,Product,Security - XSS,description,"Inject XSS: <DIV STYLE=""background-image: url(javascript:alert(1))"">",Input sanitized. Script not executed.
+Product-982,Product,Security - XSS,description,"Inject XSS: <DIV STYLE=""width: expression(alert(1));"">",Input sanitized. Script not executed.
+Product-983,Product,Security - XSS,description,"Inject XSS: <OBJECT TYPE=""text/x-scriptlet"" DATA=""http://ha.ckers.org/scriptlet.html""></OBJECT>",Input sanitized. Script not executed.
+Product-984,Product,Security - XSS,description,"Inject XSS: <EMBED SRC=""http://ha.ckers.org/xss.swf"" AllowScriptAccess=""always""></EMBED>",Input sanitized. Script not executed.
+Product-985,Product,Security - XSS,description,"Inject XSS: <a href=""javascript:alert(1)"">Click Me</a>",Input sanitized. Script not executed.
+Product-986,Product,Security - XSS,description,Inject XSS: \x3cscript\x3ealert(1)\x3c/script\x3e,Input sanitized. Script not executed.
+Product-987,Product,Security - XSS,description,Inject XSS: %3Cscript%3Ealert(1)%3C/script%3E,Input sanitized. Script not executed.
+Product-988,Product,Security - SQLi,description,Inject SQL: ' OR '1'='1,Input escaped. DB integrity maintained.
+Product-989,Product,Security - SQLi,description,Inject SQL: admin' --,Input escaped. DB integrity maintained.
+Product-990,Product,Security - SQLi,description,Inject SQL: admin' #,Input escaped. DB integrity maintained.
+Product-991,Product,Security - SQLi,description,Inject SQL: ' OR 1=1--,Input escaped. DB integrity maintained.
+Product-992,Product,Security - SQLi,description,Inject SQL: 1'; DROP TABLE users--,Input escaped. DB integrity maintained.
+Product-993,Product,Security - SQLi,description,Inject SQL: 1' OR '1'='1'--,Input escaped. DB integrity maintained.
+Product-994,Product,Security - SQLi,description,Inject SQL: 1' OR '1'='1' #,Input escaped. DB integrity maintained.
+Product-995,Product,Security - SQLi,description,Inject SQL: 1' OR '1'='1' /*,Input escaped. DB integrity maintained.
+Product-996,Product,Security - SQLi,description,Inject SQL: ' OR 1=1#,Input escaped. DB integrity maintained.
+Product-997,Product,Security - SQLi,description,Inject SQL: ' OR 1=1/*,Input escaped. DB integrity maintained.
+Product-998,Product,Security - SQLi,description,Inject SQL: admin' AND 1=1--,Input escaped. DB integrity maintained.
+Product-999,Product,Security - SQLi,description,Inject SQL: admin' AND 1=0--,Input escaped. DB integrity maintained.
+Product-1000,Product,Security - SQLi,description,"Inject SQL: 1' UNION SELECT username, password FROM users--",Input escaped. DB integrity maintained.
+Product-1001,Product,Security - SQLi,description,Inject SQL: 1' OR (SELECT COUNT(*) FROM users) > 0--,Input escaped. DB integrity maintained.
+Product-1002,Product,Security - SQLi,description,Inject SQL: 1' AND sleep(5)--,Input escaped. DB integrity maintained.
+Product-1003,Product,Security - SQLi,description,Inject SQL: 1' AND pg_sleep(5)--,Input escaped. DB integrity maintained.
+Product-1004,Product,Security - SQLi,description,Inject SQL: 1' WAITFOR DELAY '0:0:5'--,Input escaped. DB integrity maintained.
+Product-1005,Product,Security - SQLi,description,Inject SQL: '; EXEC xp_cmdshell('dir');--,Input escaped. DB integrity maintained.
+Product-1006,Product,Security - SQLi,description,Inject SQL: 1' OR EXISTS(SELECT * FROM information_schema.tables)--,Input escaped. DB integrity maintained.
+Product-1007,Product,Security - SQLi,description,Inject SQL: ' OR 'x'='x,Input escaped. DB integrity maintained.
+Product-1008,Product,Validation - String,description,Input boundary string length/type: A,"Validation correctly accepts, truncates, or throws error based on field limit."
+Product-1009,Product,Validation - String,description,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Product-1010,Product,Validation - String,description,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Product-1011,Product,Validation - String,description,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Product-1012,Product,Validation - String,description,Input boundary string length/type: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,"Validation correctly accepts, truncates, or throws error based on field limit."
+Product-1013,Product,Validation - String,description,Input boundary string length/type:  ,"Validation correctly accepts, truncates, or throws error based on field limit."
+Product-1014,Product,Validation - String,description,Input boundary string length/type:     ,"Validation correctly accepts, truncates, or throws error based on field limit."
+Product-1015,Product,Validation - String,description,Input boundary string length/type: ,"Validation correctly accepts, truncates, or throws error based on field limit."
+Product-1016,Product,Validation - String,description,Input boundary string length/type: null,"Validation correctly accepts, truncates, or throws error based on field limit."
+Product-1017,Product,Validation - String,description,Input boundary string length/type: undefined,"Validation correctly accepts, truncates, or throws error based on field limit."
+Product-1018,Product,Validation - String,description,Input boundary string length/type: NaN,"Validation correctly accepts, truncates, or throws error based on field limit."
+Product-1019,Product,Validation - String,description,Input boundary string length/type: True,"Validation correctly accepts, truncates, or throws error based on field limit."
+Product-1020,Product,Validation - String,description,Input boundary string length/type: False,"Validation correctly accepts, truncates, or throws error based on field limit."
+Product-1021,Product,Validation - String,description,Input boundary string length/type: 0,"Validation correctly accepts, truncates, or throws error based on field limit."
+Product-1022,Product,Validation - String,description,Input boundary string length/type: 1,"Validation correctly accepts, truncates, or throws error based on field limit."
+Product-1023,Product,Validation - Number,unitPrice,Input edge number: -1,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Product-1024,Product,Validation - Number,unitPrice,Input edge number: -999999,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Product-1025,Product,Validation - Number,unitPrice,Input edge number: 0,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Product-1026,Product,Validation - Number,unitPrice,Input edge number: 0.00001,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Product-1027,Product,Validation - Number,unitPrice,Input edge number: 9999999999,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Product-1028,Product,Validation - Number,unitPrice,Input edge number: abc,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Product-1029,Product,Validation - Number,unitPrice,Input edge number: !@#,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Product-1030,Product,Validation - Number,unitPrice,Input edge number: 1.2.3,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Product-1031,Product,Validation - Number,unitPrice,Input edge number: 1e10,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Product-1032,Product,Validation - Number,unitPrice,"Input edge number: 10,000","Handled properly (negative/NaN blocked, large numbers formatted)."
+Product-1033,Product,Validation - Number,costPrice,Input edge number: -1,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Product-1034,Product,Validation - Number,costPrice,Input edge number: -999999,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Product-1035,Product,Validation - Number,costPrice,Input edge number: 0,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Product-1036,Product,Validation - Number,costPrice,Input edge number: 0.00001,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Product-1037,Product,Validation - Number,costPrice,Input edge number: 9999999999,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Product-1038,Product,Validation - Number,costPrice,Input edge number: abc,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Product-1039,Product,Validation - Number,costPrice,Input edge number: !@#,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Product-1040,Product,Validation - Number,costPrice,Input edge number: 1.2.3,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Product-1041,Product,Validation - Number,costPrice,Input edge number: 1e10,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Product-1042,Product,Validation - Number,costPrice,"Input edge number: 10,000","Handled properly (negative/NaN blocked, large numbers formatted)."
+Product-1043,Product,Validation - Number,qtyInStock,Input edge number: -1,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Product-1044,Product,Validation - Number,qtyInStock,Input edge number: -999999,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Product-1045,Product,Validation - Number,qtyInStock,Input edge number: 0,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Product-1046,Product,Validation - Number,qtyInStock,Input edge number: 0.00001,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Product-1047,Product,Validation - Number,qtyInStock,Input edge number: 9999999999,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Product-1048,Product,Validation - Number,qtyInStock,Input edge number: abc,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Product-1049,Product,Validation - Number,qtyInStock,Input edge number: !@#,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Product-1050,Product,Validation - Number,qtyInStock,Input edge number: 1.2.3,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Product-1051,Product,Validation - Number,qtyInStock,Input edge number: 1e10,"Handled properly (negative/NaN blocked, large numbers formatted)."
+Product-1052,Product,Validation - Number,qtyInStock,"Input edge number: 10,000","Handled properly (negative/NaN blocked, large numbers formatted)."
+Deal-1053,Deal,Logic,Dates,Expected Close Date is set BEFORE Actual Close Date,System accepts but highlights discrepancy.
+Account-1054,Account,Subform,Contact Person,Add 50 rows to subform rapidly,UI remains stable without lag.
+Account-1055,Account,Subform,Contact Person,Delete all rows from subform,"Handled gracefully, empty state shown."
+Product-1056,Product,Image,Upload,Upload 5 images,Blocked. Max limit is 4.
+Product-1057,Product,Image,Upload,Upload 10MB image,Blocked. Exceeds size limit.
+Task-1058,Task,Logic,Due Date,Set Due Date to 5 minutes ago,Task automatically marked as Overdue state.

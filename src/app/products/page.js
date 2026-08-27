@@ -2,14 +2,22 @@
 
 import React, { useState, useEffect } from "react";
 import Sidebar from "../../components/Sidebar";
-import ProductIntakeForm from "../../components/ProductIntakeForm";
+import DynamicIntakeForm from "@/components/DynamicIntakeForm";
 import SlideOverPanel from "../../components/SlideOverPanel";
 import { useRouter } from "next/navigation";
 import TableSkeleton from "../../components/skeletons/TableSkeleton";
+import DynamicModuleView from "@/components/DynamicModuleView";
+import EntityEditModal from "@/components/EntityEditModal";
 
 export default function ProductsPage() {
   const [products, setProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [blueprint, setBlueprint] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [tags, setTags] = useState([]);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [pendingTransition, setPendingTransition] = useState(null);
+
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const router = useRouter();
@@ -40,6 +48,17 @@ export default function ProductsPage() {
       const token = await getAuthToken();
       const headers = { Authorization: `Bearer ${token}` };
 
+      // Fetch User Profile
+      const meRes = await fetch('/api/me', { headers });
+      const meData = await meRes.json();
+      setCurrentUser(meData);
+
+      const bpRes = await fetch('/api/blueprint?moduleType=Product', { headers });
+      if (bpRes.ok) setBlueprint(await bpRes.json());
+
+      const tagsRes = await fetch('/api/tags?moduleType=Product', { headers });
+      if (tagsRes.ok) setTags(await tagsRes.json());
+
       const res = await fetch('/api/products', { headers });
       if (res.ok) {
         const data = await res.json();
@@ -53,6 +72,43 @@ export default function ProductsPage() {
       setIsLoading(false);
     }
   };
+  const handleProductUpdate = (updatedProduct) => {
+    setProducts(prev => prev.map(p => p.id === updatedProduct.id ? updatedProduct : p));
+    if (selectedProduct && selectedProduct.id === updatedProduct.id) {
+      setSelectedProduct(updatedProduct);
+    }
+  };
+
+  const handleTransition = async (productId, toStageId, customData, transitionId) => {
+    try {
+      const token = await getAuthToken();
+      const res = await fetch('/api/products', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          productId,
+          stageId: toStageId,
+          customData,
+          transitionId
+        })
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        handleProductUpdate(updated);
+        setSelectedProduct(null);
+        setPendingTransition(null);
+      } else {
+        const err = await res.json();
+        alert("Transition failed: " + err.error);
+      }
+    } catch (e) {
+      console.error("Transition failed", e);
+    }
+  };
+
 
   const handleAddProduct = async (newPayload) => {
     try {
@@ -78,111 +134,66 @@ export default function ProductsPage() {
     }
   };
 
-  const renderEmptyState = () => (
-    <div className="empty-state" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '4rem 2rem', textAlign: 'center', height: '100%' }}>
-      <div className="empty-state-content" style={{ maxWidth: '400px' }}>
-        <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'center' }}>
-          <svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="20" cy="30" r="4" fill="#f1f5f9" />
-            <circle cx="100" cy="20" r="2" fill="#f1f5f9" />
-            <circle cx="90" cy="100" r="6" fill="#f1f5f9" />
-            <circle cx="10" cy="90" r="3" fill="#f1f5f9" />
-            <path d="M40 20H70C75.5228 20 80 24.4772 80 30V80C80 85.5228 75.5228 90 70 90H40C34.4772 90 30 85.5228 30 80V30C30 24.4772 34.4772 20 40 20Z" fill="white" stroke="#cbd5e1" strokeWidth="3" strokeLinejoin="round" />
-            <path d="M35 25H65C70.5228 25 75 29.4772 75 35V85C75 90.5228 70.5228 95 65 95H35C29.4772 95 25 90.5228 25 85V35C25 29.4772 29.4772 25 35 25Z" fill="white" stroke="#cbd5e1" strokeWidth="3" strokeLinejoin="round" />
-            <rect x="40" y="40" width="25" height="4" rx="2" fill="#e2e8f0" />
-            <rect x="40" y="55" width="15" height="4" rx="2" fill="#e2e8f0" />
-            <rect x="40" y="70" width="20" height="4" rx="2" fill="#e2e8f0" />
-            <circle cx="75" cy="70" r="15" fill="white" stroke="#cbd5e1" strokeWidth="3" />
-            <path d="M85 80L95 90" stroke="#cbd5e1" strokeWidth="6" strokeLinecap="round" />
-            <path d="M70 65L80 75" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" />
-            <path d="M80 65L70 75" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" />
-          </svg>
-        </div>
-        <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#1e293b', marginBottom: '0.5rem' }}>There are no records in this view.</h3>
-        <p className="text-muted" style={{ marginBottom: '1.5rem', color: '#64748b' }}>Get started by creating your first product.</p>
-        <button className="btn-primary" onClick={() => setIsFormOpen(true)}>
-          + Add First Product
-        </button>
-      </div>
-    </div>
-  );
-
-  const renderListView = () => (
-    <div className="table-container" style={{ margin: '0 2rem' }}>
-      <table className="data-table">
-        <thead>
-          <tr>
-            <th style={{ width: '40px' }}>
-              <input type="checkbox" className="row-checkbox" disabled />
-            </th>
-            <th>Product Name</th>
-            <th>SKU</th>
-            <th>Stage</th>
-            <th>Created Date</th>
-          </tr>
-        </thead>
-        <tbody>
-          {products.map(product => (
-            <tr key={product.id} className="cursor-pointer hover:bg-slate-50" onClick={() => setSelectedProduct(product)}>
-              <td>
-                <input type="checkbox" className="row-checkbox" disabled />
-              </td>
-              <td className="font-medium">{product.name}</td>
-              <td>{product.sku || '-'}</td>
-              <td>
-                <span className="badge" style={{ backgroundColor: product.stage?.color || '#eee' }}>
-                  {product.stage?.name || 'Unknown'}
-                </span>
-              </td>
-              <td className="text-muted">{new Date(product.createdAt).toLocaleDateString()}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <div className="table-footer">
-        Showing {products.length} of {products.length} records
-      </div>
-    </div>
-  );
-
   return (
     <>
 
       <main className="dashboard-main">
-        <header className="dashboard-header">
-          <h1>Products</h1>
-          {products.length > 0 && (
-            <div className="header-actions" style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-              <button className="btn-primary" onClick={() => setIsFormOpen(true)}>
-                + Add Product
-              </button>
-            </div>
-          )}
-        </header>
 
         <div className="module-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           {isLoading ? (
             <div className="p-8 text-center" style={{ margin: 'auto' }}>
               <TableSkeleton />
             </div>
-          ) : products.length === 0 ? (
-            renderEmptyState()
           ) : (
-            renderListView()
+            <DynamicModuleView
+              moduleName="Product"
+              records={products}
+              blueprint={blueprint}
+              supportKanban={false}
+              onRecordClick={(product) => setSelectedProduct(product)}
+              renderHeaderActions={() => (
+                <button className="btn-primary" onClick={() => setIsFormOpen(true)} style={{ whiteSpace: 'nowrap' }}>
+                  + Add Product
+                </button>
+              )}
+            />
           )}
         </div>
       </main>
 
-      <ProductIntakeForm
+      <DynamicIntakeForm
+        moduleType="Product"
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
         onSave={handleAddProduct}
       />
+
       <SlideOverPanel
         isOpen={!!selectedProduct}
+        onClose={() => {
+          setSelectedProduct(null);
+          setPendingTransition(null);
+        }}
         lead={selectedProduct}
-        onClose={() => setSelectedProduct(null)}
+        blueprint={blueprint}
+        tags={tags}
+        currentUser={currentUser}
+        onTransition={handleTransition}
+        onLeadUpdate={handleProductUpdate}
+        pendingTransition={pendingTransition}
+        onEditClick={() => setIsEditModalOpen(true)}
       />
+
+      <EntityEditModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        entity={selectedProduct}
+        blueprint={blueprint}
+        onUpdate={handleProductUpdate}
+        currentUser={currentUser}
+        moduleName="Products"
+      />
+
     </>
   );
 }

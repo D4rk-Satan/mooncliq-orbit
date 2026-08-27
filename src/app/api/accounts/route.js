@@ -30,7 +30,7 @@ export async function POST(req) {
       });
     }
 
-        if (!initialStage) {
+    if (!initialStage) {
       initialStage = await prisma.stage.create({
         data: {
           name: 'Default',
@@ -75,7 +75,7 @@ export async function GET(req) {
     }
 
     const whereClause = { organizationId: user.organizationId };
-    
+
     // Apply Data Visibility Rules
     if (!user.profile?.canAccessSettings && user.profile?.permissions?.Account?.visibility === 'private') {
       // NOTE: Account may not have an explicit owner column right now. 
@@ -98,7 +98,7 @@ export async function GET(req) {
       accounts = accounts.filter(acc => {
         let customData = acc.customData;
         if (typeof customData === 'string') {
-          try { customData = JSON.parse(customData); } catch(e) { customData = {}; }
+          try { customData = JSON.parse(customData); } catch (e) { customData = {}; }
         }
         return customData?.owner === user.email;
       });
@@ -107,6 +107,44 @@ export async function GET(req) {
     return NextResponse.json(accounts);
   } catch (error) {
     console.error("Error fetching accounts:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}
+
+export async function PATCH(req) {
+  try {
+    const user = await getAuthUser(req);
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    if (!user.profile?.canAccessSettings && !user.profile?.permissions?.Account?.edit) {
+      return NextResponse.json({ error: "Forbidden: No permission to edit Accounts" }, { status: 403 });
+    }
+
+    const data = await req.json();
+    const { accountId, stageId, customData, tags, transitionId, ...standardFields } = data;
+
+    if (!accountId) return NextResponse.json({ error: "Missing accountId" }, { status: 400 });
+
+    let updateData = { ...standardFields };
+    if (stageId) updateData.stageId = stageId;
+    if (customData) updateData.customData = customData;
+
+    // Format Revenue correctly for Prisma
+    if (updateData.annualRevenue !== undefined) updateData.annualRevenue = parseFloat(updateData.annualRevenue) || null;
+    if (updateData.teamSize !== undefined) updateData.teamSize = parseInt(updateData.teamSize) || null;
+
+    const updatedAccount = await prisma.account.update({
+      where: { id: accountId },
+      data: updateData
+    });
+
+    if (typeof executeBackendWorkflows === "function") {
+      executeBackendWorkflows(user.organizationId, 'Account', 'Edited', updatedAccount);
+    }
+
+    return NextResponse.json(updatedAccount);
+  } catch (error) {
+    console.error("Error updating Account:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

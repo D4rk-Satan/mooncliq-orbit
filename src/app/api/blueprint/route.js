@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import prisma from '../../../lib/prisma';
 import { getAuthUser } from '../../../lib/auth';
+import { getDefaultBlueprintData } from '@/utils/blueprintDefaults';
+
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
@@ -17,10 +19,10 @@ export async function GET(request) {
         where: { organizationId: user.organizationId },
         orderBy: { updatedAt: 'desc' }
       });
-      
+
       const existingTypes = blueprints.map(b => b.moduleType);
       const missingModules = standardModules.filter(m => !existingTypes.includes(m));
-      
+
       if (missingModules.length > 0) {
         for (const mod of missingModules) {
           const newBp = await prisma.blueprint.create({
@@ -28,7 +30,8 @@ export async function GET(request) {
               organizationId: user.organizationId,
               moduleType: mod,
               name: `Default ${mod} Pipeline`,
-              version: 1
+              version: 1,
+              ...getDefaultBlueprintData(mod)
             }
           });
           blueprints.push(newBp);
@@ -38,7 +41,7 @@ export async function GET(request) {
     }
 
     let blueprint = await prisma.blueprint.findFirst({
-      where: { 
+      where: {
         moduleType,
         organizationId: user.organizationId
       },
@@ -62,7 +65,8 @@ export async function GET(request) {
           organizationId: user.organizationId,
           moduleType,
           name: `Default ${moduleType} Pipeline`,
-          version: 1
+          version: 1,
+          ...getDefaultBlueprintData(moduleType)
         },
         include: {
           fields: true,

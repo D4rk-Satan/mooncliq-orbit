@@ -1,53 +1,95 @@
 import { NextResponse } from 'next/server';
-import prisma from '../../../lib/prisma';
-import { getAuthUser } from '../../../lib/auth';
+import prisma from '@/lib/prisma';
+import { getDefaultBlueprintData } from '@/utils/blueprintDefaults';
 
-export async function GET(req) {
+export async function GET() {
   try {
-    // 1. Update all existing profiles just in case
-    await prisma.profile.updateMany({
-      data: {
-        canAccessSettings: true,
-        permissions: {
-          "Lead": { "view": true, "create": true, "edit": true, "delete": true, "visibility": "public" },
-          "Account": { "view": true, "create": true, "edit": true, "delete": true, "visibility": "public" },
-          "Task": { "view": true, "create": true, "edit": true, "delete": true, "visibility": "public" },
-          "Product": { "view": true, "create": true, "edit": true, "delete": true, "visibility": "public" }
-        }
+    let fieldsCreated = 0;
+    let blueprintsUpdated = 0;
+    let stagesCreated = 0;
+
+    // Saare blueprints nikal lo (Lead, Deal, Account)
+    const allBlueprints = await prisma.blueprint.findMany();
+
+    for (const blueprint of allBlueprints) {
+      // 1. Purani 'firstName' & 'lastName' delete karna (Sirf Lead ke liye)
+      if (blueprint.moduleType === 'Lead') {
+        await prisma.field.deleteMany({
+          where: {
+            blueprintId: blueprint.id,
+            name: { in: ['firstName', 'lastName'] }
+          }
+        });
       }
-    });
 
-    // 2. Fix users who have NO profile (rawProfile: null)
-    const usersWithoutProfile = await prisma.user.findMany({
-      where: { profileId: null }
-    });
+      // Central file se is module ke defaults uthao
+      const defaults = getDefaultBlueprintData(blueprint.moduleType);
 
-    for (const user of usersWithoutProfile) {
-      const newProfile = await prisma.profile.create({
-        data: {
-          organizationId: user.organizationId,
-          name: "Administrator",
-          canAccessSettings: true,
-          canManageUsers: true,
-          canExportData: true,
-          permissions: {
-            "Lead": { "view": true, "create": true, "edit": true, "delete": true, "visibility": "public" },
-            "Account": { "view": true, "create": true, "edit": true, "delete": true, "visibility": "public" },
-            "Task": { "view": true, "create": true, "edit": true, "delete": true, "visibility": "public" },
-            "Product": { "view": true, "create": true, "edit": true, "delete": true, "visibility": "public" }
+      if (defaults) {
+        let isUpdated = false;
+
+        // ----------------------------------------------------
+        // 2. FORM FIELDS SYNC KARNA
+        // ----------------------------------------------------
+        if (defaults.fields && defaults.fields.create) {
+          const requiredFields = defaults.fields.create;
+          const existingFields = await prisma.field.findMany({ where: { blueprintId: blueprint.id } });
+          const existingFieldNames = existingFields.map(f => f.name);
+
+          for (const sysF of requiredFields) {
+            if (!existingFieldNames.includes(sysF.name)) {
+              await prisma.field.create({ data: { ...sysF, blueprintId: blueprint.id } });
+              fieldsCreated++;
+              isUpdated = true;
+            }
           }
         }
-      });
 
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { profileId: newProfile.id }
-      });
+        // ----------------------------------------------------
+        // 3. STAGES SYNC KARNA
+        // ----------------------------------------------------
+        if (defaults.stages && defaults.stages.create) {
+          const requiredStages = defaults.stages.create;
+          const existingStages = await prisma.stage.findMany({ where: { blueprintId: blueprint.id } });
+          const existingStageNames = existingStages.map(s => s.name);
+
+          let nextOrderIndex = existingStages.length;
+
+          for (const stage of requiredStages) {
+            if (!existingStageNames.includes(stage.name)) {
+              await prisma.stage.create({
+                data: {
+                  blueprintId: blueprint.id,
+                  name: stage.name,
+                  color: stage.color,
+                  orderIndex: nextOrderIndex,
+                  requiredFields: []
+                }
+              });
+              nextOrderIndex++;
+              stagesCreated++;
+            }
+          }
+        }
+
+        // Agar fields add hue hain, toh layout ko reset kar do taaki form update ho jaye
+        if (isUpdated) {
+          await prisma.blueprint.update({
+            where: { id: blueprint.id },
+            data: { layoutConfig: null }
+          });
+          blueprintsUpdated++;
+        }
+      }
     }
 
-    return NextResponse.json({ message: "All profiles fixed and linked!" });
+    return NextResponse.json({
+      message: "Sync Complete! Single Source of Truth architecture is now active.",
+      fieldsCreated,
+      stagesCreated,
+      blueprintsUpdated
+    });
   } catch (error) {
-    console.error(error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

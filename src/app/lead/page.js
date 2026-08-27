@@ -550,7 +550,7 @@ export default function LeadModule() {
                 style={{
                   display: 'flex', flexDirection: 'column', alignItems: 'center',
                   minWidth: '60px', maxWidth: '60px',
-                  backgroundColor: '#f8fafc', border: '2px dashed #e2e8f0', borderRadius: '16px',
+                  backgroundColor: 'transparent', border: '2px dashed #e2e8f0', borderRadius: '16px',
                   padding: '1rem 0', margin: '0 0.5rem', opacity: 0.6, cursor: 'not-allowed'
                 }}
               >
@@ -583,7 +583,8 @@ export default function LeadModule() {
                 {col.leads.map(lead => {
                   const dateOptions = { day: 'numeric', month: 'short' };
                   const formattedDate = lead.createdAt ? new Date(lead.createdAt).toLocaleDateString('en-US', dateOptions) : 'No due date';
-                  const title = lead.customData?.companyName || `${lead.firstName} ${lead.lastName}`;
+                  const title = lead.fullName || lead.customData?.companyName || (lead.firstName ? `${lead.firstName} ${lead.lastName || ''}`.trim() : 'Unknown Lead');
+
                   const subtitle = lead.customData?.industry || lead.email || 'Lead';
                   // Mock notification numbers for visual demonstration
                   const callCount = Math.floor(Math.random() * 4) + 1;
@@ -733,7 +734,10 @@ export default function LeadModule() {
       let val = '';
       const standardFields = ['id', 'firstName', 'lastName', 'email', 'phone', 'owner', 'stage', 'createdAt', 'updatedAt', 'organizationId'];
 
-      if (colName === 'firstName') val = `${lead.firstName || ''} ${lead.lastName || ''}`.trim();
+      if (colName === 'firstName' || colName === 'fullName') {
+        val = lead.fullName ? lead.fullName : `${lead.firstName || ''} ${lead.lastName || ''}`.trim();
+        if (!val) val = '-';
+      }
       else if (colName === 'companyName') val = cData.companyName || '-';
       else if (colName === 'owner') return lead.owner ? (
         <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: getAvatarColor(lead.owner), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 600 }} title={lead.owner}>
@@ -765,7 +769,7 @@ export default function LeadModule() {
       return colors[Math.abs(hash) % colors.length];
     };
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, backgroundColor: '#f8fafc', padding: '1.5rem', overflow: 'hidden' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, backgroundColor: 'transparent', padding: '1.5rem', overflow: 'hidden' }}>
 
         {/* Table Container */}
         <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05)' }}>
@@ -1197,7 +1201,7 @@ export default function LeadModule() {
             <div className="p-8 text-center" style={{ margin: 'auto' }}>
               <TableSkeleton />
             </div>
-          ) : leads.length === 0 ? (
+          ) : (leads.length === 0 && searchQuery === "") ? (
             renderEmptyState()
           ) : (
             viewMode === 'kanban' ? renderKanbanView() : renderListView()

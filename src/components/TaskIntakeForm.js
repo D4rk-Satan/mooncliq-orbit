@@ -57,7 +57,7 @@ export default function TaskIntakeForm({ blueprint, isOpen, onClose, onSave, tas
           taskName: "", startDateTime: "", dueDateTime: "", repeat: "", alert: "", notes: "", owner: "", stageId: "", assignedBy: "", priority: "", relatedModule: ""
         };
         const initialCustom = {};
-        
+
         Object.keys(taskData).forEach(key => {
           if (["taskName", "startDateTime", "dueDateTime", "repeat", "alert", "notes", "owner", "stageId", "assignedBy", "priority", "relatedModule"].includes(key)) {
             initialStd[key] = taskData[key];
@@ -67,7 +67,7 @@ export default function TaskIntakeForm({ blueprint, isOpen, onClose, onSave, tas
             initialCustom[key] = taskData[key];
           }
         });
-        
+
         if (initialStd.startDateTime) initialStd.startDateTime = toLocalISO(initialStd.startDateTime);
         if (initialStd.dueDateTime) initialStd.dueDateTime = toLocalISO(initialStd.dueDateTime);
 
@@ -97,7 +97,7 @@ export default function TaskIntakeForm({ blueprint, isOpen, onClose, onSave, tas
       const fetchUsersAndMe = async () => {
         try {
           const token = await getAuthToken();
-          
+
           const meRes = await fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } });
           if (meRes.ok) {
             const meData = await meRes.json();
@@ -200,7 +200,7 @@ export default function TaskIntakeForm({ blueprint, isOpen, onClose, onSave, tas
     }
 
     let payloadData = { ...standardData };
-    
+
     if (!payloadData.startDateTime) delete payloadData.startDateTime;
     if (!payloadData.dueDateTime) delete payloadData.dueDateTime;
 
@@ -264,7 +264,7 @@ export default function TaskIntakeForm({ blueprint, isOpen, onClose, onSave, tas
                         {sectionFields.map(field => {
                           const stateOverride = standardFieldStates?.[field.name];
                           if (stateOverride?.isHidden) return null;
-                          
+
                           // Hide stageId upon creation
                           if (field.name === 'stageId' && !taskData) return null;
 
@@ -310,6 +310,7 @@ export default function TaskIntakeForm({ blueprint, isOpen, onClose, onSave, tas
                               />
                             );
                           }
+
 
                           if (field.name === 'stageId') {
                             return (
