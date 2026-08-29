@@ -106,7 +106,7 @@ export default function LeadIntakeForm({ isOpen, onClose, onSave }) {
     });
   }, [visibleFields]);
 
-  const { control, handleSubmit, trigger, formState: { errors } } = useForm({
+  const { control, handleSubmit, setValue, trigger, formState: { errors } } = useForm({
     resolver: zodResolver(dynamicSchema),
     defaultValues: { ...standardData, customData: customData }
   });

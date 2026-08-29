@@ -136,7 +136,7 @@ const EntityEditModal = ({ isOpen, onClose, entity, blueprint, onUpdate, current
   }, [visibleFields, standardFields]);
 
   // 2. React Hook Form Setup
-  const { register, handleSubmit, formState: { errors }, reset } = useForm({
+  const { register, handleSubmit, formState: { errors, isDirty }, reset } = useForm({
     resolver: zodResolver(dynamicSchema),
     defaultValues: { ...(entity || {}), customData: entity?.customData || {} } // Puraana data form me daal diya
     // Puraana data form me daal diya
@@ -146,7 +146,12 @@ const EntityEditModal = ({ isOpen, onClose, entity, blueprint, onUpdate, current
     if (isOpen && entity) {
       reset({ ...entity, customData: entity?.customData || {} });
     }
+
   }, [isOpen, entity, reset]);
+
+  useEffect(() => {
+    setHasUnsavedChanges(isDirty);
+  }, [isDirty]);
   if (!isOpen || !entity) return null;
 
 

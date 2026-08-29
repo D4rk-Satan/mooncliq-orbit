@@ -210,13 +210,11 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
 
   const renderTabContent = () => {
     if (activeTab === 'Details') {
-      const standardFields = ['firstName', 'lastName', 'email', 'phone', 'owner'];
-
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', position: 'relative', paddingBottom: '0' }}>
           {blueprint.fields.map(field => {
-            const isStandard = standardFields.includes(field.name);
-            let value = isStandard ? lead[field.name] : lead.customData?.[field.name];
+            // Check if the property exists on the root object (standard field), otherwise fallback to customData
+            let value = field.name in lead ? lead[field.name] : lead.customData?.[field.name];
 
             if (value === undefined || value === null || value === "") {
               value = "-";

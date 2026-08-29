@@ -10,7 +10,7 @@ export async function PUT(request) {
     const { blueprintId, layoutConfig, fields } = await request.json();
 
     // Verify blueprint belongs to user's org
-    const bp = await prisma.blueprint.findFirst({ where: { id: blueprintId, organizationId: user.organizationId }});
+    const bp = await prisma.blueprint.findFirst({ where: { id: blueprintId, organizationId: user.organizationId } });
     if (!bp) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     // Update layoutConfig
@@ -23,10 +23,10 @@ export async function PUT(request) {
 
     // Update fields (if provided)
     if (fields && fields.length > 0) {
-      await Promise.all(fields.map(f => 
+      await Promise.all(fields.map(f =>
         prisma.field.update({
           where: { id: f.id },
-          data: { sectionName: f.sectionName, sectionOrder: f.sectionOrder, orderIndex: f.orderIndex }
+          data: { sectionName: f.sectionName, sectionOrder: f.sectionOrder, orderIndex: f.orderIndex, isRequired: f.isRequired, isHidden: f.isHidden }
         })
       ));
     }

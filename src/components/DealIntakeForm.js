@@ -102,7 +102,7 @@ export default function DealIntakeForm({ isOpen, onClose, onSave }) {
     });
   }, [visibleFields]);
 
-  const { control, handleSubmit, trigger, formState: { errors } } = useForm({
+  const { control, handleSubmit, setValue, trigger, formState: { errors } } = useForm({
     resolver: zodResolver(dynamicSchema),
     defaultValues: { ...standardData, customData: customData }
   });
@@ -166,8 +166,10 @@ export default function DealIntakeForm({ isOpen, onClose, onSave }) {
         if (sourceVal !== undefined) {
           if (standardFieldsList.includes(mapping.targetField)) {
             setStandardData(prev => ({ ...prev, [mapping.targetField]: sourceVal }));
+            setValue(mapping.targetField, sourceVal, { shouldValidate: true, shouldDirty: true });
           } else {
             setCustomData(prev => ({ ...prev, [mapping.targetField]: sourceVal }));
+            setValue(`customData.${mapping.targetField}`, sourceVal, { shouldValidate: true, shouldDirty: true });
           }
         }
       });

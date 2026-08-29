@@ -5,12 +5,12 @@ export function getDefaultBlueprintData(mod) {
         return {
             stages: {
                 create: [
-                    { name: 'New', orderIndex: 1, color: '#fde68a' },
-                    { name: 'Contacted', orderIndex: 2, color: '#fed7aa' },
-                    { name: 'Qualified', orderIndex: 3, color: '#c4b5fd' },
-                    { name: 'Close Won', orderIndex: 4, color: '#a7f3d0' },
-                    { name: 'Close Lost', orderIndex: 5, color: '#fca5a5' },
-                    { name: 'Junk', orderIndex: 6, color: '#94a3b8' },
+                    { name: 'New', orderIndex: 1, color: '#ffae0bff' },
+                    { name: 'Contacted', orderIndex: 2, color: '#ff8800ff' },
+                    { name: 'Qualified', orderIndex: 3, color: '#886bfeff' },
+                    { name: 'Close Won', orderIndex: 4, color: '#62ffb6ff' },
+                    { name: 'Close Lost', orderIndex: 5, color: '#fe5757ff' },
+                    { name: 'Junk', orderIndex: 6, color: '#98a9c2ff' },
                 ]
             },
             fields: {
@@ -73,8 +73,8 @@ export function getDefaultBlueprintData(mod) {
                         mappings: [
                             { sourceField: 'street', targetField: 'address' },
                             { sourceField: 'email', targetField: 'email' },
-                            { sourceField: 'fullName', targetField: 'primaryContact' },
-                            { sourceField: 'phone', targetField: 'alternatePhone' }
+                            { sourceField: 'phone', targetField: 'primaryContact' },
+                            { sourceField: 'alternatePhone', targetField: 'alternatePhone' }
                         ]
                     },
                     { name: 'address', label: 'Address', type: 'Text', isRequired: false, isSystemField: true, sectionName: 'Identification', orderIndex: 3 },
