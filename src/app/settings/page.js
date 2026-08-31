@@ -85,7 +85,7 @@ export default function SettingsPage() {
   // New Stage State
   const [newStage, setNewStage] = useState({ name: "", color: "#fde68a" });
   const [isAddingStage, setIsAddingStage] = useState(false);
-
+  const [blueprintSearch, setBlueprintSearch] = useState('');
   // Rules Manager State
   const [selectedRule, setSelectedRule] = useState(null);
   const [activeRuleTab, setActiveRuleTab] = useState('before');
@@ -666,9 +666,10 @@ export default function SettingsPage() {
                     <button onClick={() => { setActiveFeature('tags'); setCurrentView('module-list'); }} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
                       Manage Tags
                     </button>
-                    <button onClick={() => { setActiveFeature('blueprint'); setCurrentView('module-list'); }} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
+                    <button onClick={() => { setActiveFeature('blueprint'); setCurrentView('blueprint-list'); }} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
                       Blueprint Engine
                     </button>
+
                   </div>
                 </div>
 
@@ -738,18 +739,21 @@ export default function SettingsPage() {
                       setShakeTrigger(prev => prev + 1);
                       return;
                     }
-                    if (currentView === 'module-list') {
+                    if (currentView === 'module-list' || currentView === 'blueprint-list') {
                       setCurrentView('hub');
                       setActiveFeature(null);
-                    } else if (['layout-builder', 'blueprint', 'tags'].includes(currentView)) {
+                    } else if (['layout-builder', 'tags'].includes(currentView)) {
                       setCurrentView('module-list');
+                    } else if (currentView === 'blueprint') {
+                      setCurrentView('blueprint-list');
                     } else {
                       setCurrentView('hub');
                     }
+
                   }}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.95rem' }}
                 >
-                  ← Back to {currentView === 'module-list' ? 'Setup' : 'Modules'}
+                  ← Back to {currentView === 'module-list' || currentView === 'blueprint-list' ? 'Setup' : 'Modules'}
                 </button>
                 <div style={{ width: '1px', height: '24px', backgroundColor: '#cbd5e1', margin: '0 1.5rem' }}></div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
@@ -762,6 +766,7 @@ export default function SettingsPage() {
                     )}
 
                     {currentView === 'blueprint' && "Pipelines & Blueprint"}
+                    {currentView === 'blueprint-list' && "Pipelines & Blueprints"}
                     {currentView === 'fields' && "Modules and Fields"}
                     {currentView === 'tags' && "Tag Definitions"}
                     {currentView === 'users' && "Users & Invitations"}
@@ -827,6 +832,67 @@ export default function SettingsPage() {
                     </div>
                   </div>
                 )}
+
+                {/* BLUEPRINT LIST TAB (NEW UI) */}
+                {currentView === 'blueprint-list' && (
+                  <div>
+                    {/* Top Action Bar */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                      <div style={{ position: 'relative', width: '300px' }}>
+                        <svg style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        <input type="text" placeholder="Search" value={blueprintSearch} onChange={(e) => setBlueprintSearch(e.target.value)} style={{ width: '100%', padding: '0.5rem 1rem 0.5rem 2rem', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '0.9rem', outline: 'none' }} />
+                      </div>
+                      <div style={{ display: 'flex', gap: '1rem' }}>
+                        <button style={{ padding: '0.5rem 1rem', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', color: '#475569', borderRadius: '6px', cursor: 'pointer', fontWeight: 500, fontSize: '0.9rem' }} onMouseEnter={e => e.target.style.backgroundColor = '#f1f5f9'} onMouseLeave={e => e.target.style.backgroundColor = '#f8fafc'}>Reorder Blueprints</button>
+                        <button style={{ padding: '0.5rem 1rem', backgroundColor: '#4f46e5', border: 'none', color: 'white', borderRadius: '6px', cursor: 'pointer', fontWeight: 500, fontSize: '0.9rem' }} onMouseEnter={e => e.target.style.backgroundColor = '#4338ca'} onMouseLeave={e => e.target.style.backgroundColor = '#4f46e5'}>+ Create Blueprint</button>
+                      </div>
+                    </div>
+
+                    {/* Table */}
+                    <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', backgroundColor: 'white' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                        <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                          <tr>
+                            <th style={{ padding: '1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Blueprint</th>
+                            <th style={{ padding: '1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600, cursor: 'pointer' }}>Modules </th>
+                            <th style={{ padding: '1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Layout</th>
+                            <th style={{ padding: '1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Field</th>
+                            <th style={{ padding: '1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Last Modified</th>
+                            <th style={{ padding: '1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600, cursor: 'pointer' }}>Status </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {['Lead', 'Deal', 'Account', 'Product', 'Task']
+                            .filter(mod => blueprintSearch.length >= 3 ? (mod.toLowerCase().includes(blueprintSearch.toLowerCase()) || (mod + " Default Flow").toLowerCase().includes(blueprintSearch.toLowerCase())) : true)
+                            .map((mod, idx) => (
+
+                              <tr key={idx} style={{ borderBottom: '1px solid #e2e8f0', transition: 'background-color 0.2s' }} onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
+                                <td style={{ padding: '1rem' }}>
+                                  <button onClick={() => { setSelectedModule(mod); setCurrentView('blueprint'); }} style={{ color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 500, padding: 0 }} onMouseEnter={e => e.target.style.textDecoration = 'underline'} onMouseLeave={e => e.target.style.textDecoration = 'none'}>{mod} Default Flow</button>
+                                </td>
+                                <td style={{ padding: '1rem', color: '#475569', fontSize: '0.9rem' }}>{mod}s</td>
+                                <td style={{ padding: '1rem', color: '#475569', fontSize: '0.9rem' }}>Standard</td>
+                                <td style={{ padding: '1rem', color: '#475569', fontSize: '0.9rem' }}>Stage</td>
+                                <td style={{ padding: '1rem', color: '#475569', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                  <div style={{ width: '24px', height: '24px', backgroundColor: '#e2e8f0', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 'bold', color: '#64748b' }}>GK</div>
+                                  Just now
+                                </td>
+                                <td style={{ padding: '1rem' }}>
+                                  <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                                    <div style={{ position: 'relative', width: '36px', height: '20px', backgroundColor: '#10b981', borderRadius: '10px' }}>
+                                      <div style={{ position: 'absolute', top: '2px', left: '18px', width: '16px', height: '16px', backgroundColor: 'white', borderRadius: '50%', transition: 'all 0.2s' }}></div>
+                                    </div>
+                                  </label>
+                                </td>
+                              </tr>
+                            ))}
+                        </tbody>
+
+                      </table>
+                    </div>
+                  </div>
+                )}
+
 
                 {/* WORKFLOWS TAB */}
                 {currentView === 'workflows' && (
