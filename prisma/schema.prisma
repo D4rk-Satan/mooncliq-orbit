@@ -97,6 +97,9 @@ model Blueprint {
   moduleType     String // e.g., "Lead", "Deal", "Ticket"
   version        Int    @default(1)
   name           String @default("Default Pipeline")
+  targetField    String   @default("")
+  entryCriteria  Json?
+  executionOrder Int      @default(0)
 
   stages      Stage[]
   transitions Transition[]
@@ -113,8 +116,6 @@ model Blueprint {
   updatedAt      DateTime @updatedAt @default(now())
 
   organization Organization @relation(fields: [organizationId], references: [id])
-
-  @@unique([organizationId, moduleType, version])
 }
 
 model Stage {

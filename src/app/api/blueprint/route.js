@@ -106,3 +106,35 @@ export async function PUT(request) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
+
+
+export async function POST(request) {
+  try {
+    const user = await getAuthUser(request);
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const data = await request.json();
+    const { name, moduleType, targetField } = data;
+
+    if (!name || !moduleType || !targetField) {
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    const newBlueprint = await prisma.blueprint.create({
+      data: {
+        organizationId: user.organizationId,
+        moduleType,
+        name,
+        targetField,
+        version: 1,
+        ...getDefaultBlueprintData(moduleType)
+      }
+    });
+
+    return NextResponse.json(newBlueprint);
+  } catch (error) {
+    console.error("Failed to create blueprint:", error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
+

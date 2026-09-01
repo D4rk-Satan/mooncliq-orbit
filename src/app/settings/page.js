@@ -86,6 +86,57 @@ export default function SettingsPage() {
   const [newStage, setNewStage] = useState({ name: "", color: "#fde68a" });
   const [isAddingStage, setIsAddingStage] = useState(false);
   const [blueprintSearch, setBlueprintSearch] = useState('');
+  const [allBlueprintsList, setAllBlueprintsList] = useState([]);
+
+  const fetchBlueprintsList = async () => {
+    try {
+      const token = await getAuthToken();
+      const res = await fetch('/api/blueprint?moduleType=ALL', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAllBlueprintsList(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch blueprints list:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchBlueprintsList();
+  }, []);
+
+  const [createBlueprintModal, setCreateBlueprintModal] = useState({ isOpen: false, name: '', module: 'Lead', targetField: 'Lead Status' });
+  const [reorderModal, setReorderModal] = useState({
+    isOpen: false,
+    module: 'Lead',
+    blueprints: [
+      { id: 1, name: 'Enterprise Lead Flow' },
+      { id: 2, name: 'VIP Partner Flow' },
+      { id: 3, name: 'Default Lead Flow' }
+    ]
+  });
+
+
+  const moveBlueprintUp = (index) => {
+    if (index === 0) return;
+    const newList = [...reorderModal.blueprints];
+    const temp = newList[index - 1];
+    newList[index - 1] = newList[index];
+    newList[index] = temp;
+    setReorderModal({ ...reorderModal, blueprints: newList });
+  };
+
+  const moveBlueprintDown = (index) => {
+    if (index === reorderModal.blueprints.length - 1) return;
+    const newList = [...reorderModal.blueprints];
+    const temp = newList[index + 1];
+    newList[index + 1] = newList[index];
+    newList[index] = temp;
+    setReorderModal({ ...reorderModal, blueprints: newList });
+  };
+
   // Rules Manager State
   const [selectedRule, setSelectedRule] = useState(null);
   const [activeRuleTab, setActiveRuleTab] = useState('before');
@@ -765,8 +816,8 @@ export default function SettingsPage() {
                             'Select Module'
                     )}
 
-                    {currentView === 'blueprint' && "Pipelines & Blueprint"}
-                    {currentView === 'blueprint-list' && "Pipelines & Blueprints"}
+                    {currentView === 'blueprint' && "Blueprint"}
+                    {currentView === 'blueprint-list' && "Blueprints"}
                     {currentView === 'fields' && "Modules and Fields"}
                     {currentView === 'tags' && "Tag Definitions"}
                     {currentView === 'users' && "Users & Invitations"}
@@ -843,8 +894,12 @@ export default function SettingsPage() {
                         <input type="text" placeholder="Search" value={blueprintSearch} onChange={(e) => setBlueprintSearch(e.target.value)} style={{ width: '100%', padding: '0.5rem 1rem 0.5rem 2rem', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '0.9rem', outline: 'none' }} />
                       </div>
                       <div style={{ display: 'flex', gap: '1rem' }}>
-                        <button style={{ padding: '0.5rem 1rem', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', color: '#475569', borderRadius: '6px', cursor: 'pointer', fontWeight: 500, fontSize: '0.9rem' }} onMouseEnter={e => e.target.style.backgroundColor = '#f1f5f9'} onMouseLeave={e => e.target.style.backgroundColor = '#f8fafc'}>Reorder Blueprints</button>
-                        <button style={{ padding: '0.5rem 1rem', backgroundColor: '#4f46e5', border: 'none', color: 'white', borderRadius: '6px', cursor: 'pointer', fontWeight: 500, fontSize: '0.9rem' }} onMouseEnter={e => e.target.style.backgroundColor = '#4338ca'} onMouseLeave={e => e.target.style.backgroundColor = '#4f46e5'}>+ Create Blueprint</button>
+                        <button onClick={() => {
+                          const leadBlueprints = allBlueprintsList.filter(bp => bp.moduleType === 'Lead').sort((a, b) => (a.executionOrder || 0) - (b.executionOrder || 0));
+                          setReorderModal({ isOpen: true, module: 'Lead', blueprints: leadBlueprints });
+                        }} style={{ padding: '0.5rem 1rem', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', color: '#475569', borderRadius: '6px', cursor: 'pointer', fontWeight: 500, fontSize: '0.9rem' }} onMouseEnter={e => e.target.style.backgroundColor = '#f1f5f9'} onMouseLeave={e => e.target.style.backgroundColor = '#f8fafc'}>Reorder Blueprints</button>
+
+                        <button onClick={() => setCreateBlueprintModal({ isOpen: true, name: '', module: 'Lead', targetField: 'Lead Status' })} style={{ padding: '0.5rem 1rem', backgroundColor: '#4f46e5', border: 'none', color: 'white', borderRadius: '6px', cursor: 'pointer', fontWeight: 500, fontSize: '0.9rem' }} onMouseEnter={e => e.target.style.backgroundColor = '#4338ca'} onMouseLeave={e => e.target.style.backgroundColor = '#4f46e5'}>+ Create Blueprint</button>
                       </div>
                     </div>
 
@@ -853,36 +908,33 @@ export default function SettingsPage() {
                       <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                         <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
                           <tr>
-                            <th style={{ padding: '1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Blueprint</th>
+                            <th style={{ padding: '1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Blueprint Name</th>
                             <th style={{ padding: '1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600, cursor: 'pointer' }}>Modules </th>
-                            <th style={{ padding: '1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Layout</th>
                             <th style={{ padding: '1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Field</th>
                             <th style={{ padding: '1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Last Modified</th>
                             <th style={{ padding: '1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600, cursor: 'pointer' }}>Status </th>
                           </tr>
                         </thead>
                         <tbody>
-                          {['Lead', 'Deal', 'Account', 'Product', 'Task']
-                            .filter(mod => blueprintSearch.length >= 3 ? (mod.toLowerCase().includes(blueprintSearch.toLowerCase()) || (mod + " Default Flow").toLowerCase().includes(blueprintSearch.toLowerCase())) : true)
-                            .map((mod, idx) => (
-
-                              <tr key={idx} style={{ borderBottom: '1px solid #e2e8f0', transition: 'background-color 0.2s' }} onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
-                                <td style={{ padding: '1rem' }}>
-                                  <button onClick={() => { setSelectedModule(mod); setCurrentView('blueprint'); }} style={{ color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 500, padding: 0 }} onMouseEnter={e => e.target.style.textDecoration = 'underline'} onMouseLeave={e => e.target.style.textDecoration = 'none'}>{mod} Default Flow</button>
-                                </td>
-                                <td style={{ padding: '1rem', color: '#475569', fontSize: '0.9rem' }}>{mod}s</td>
-                                <td style={{ padding: '1rem', color: '#475569', fontSize: '0.9rem' }}>Standard</td>
-                                <td style={{ padding: '1rem', color: '#475569', fontSize: '0.9rem' }}>Stage</td>
-                                <td style={{ padding: '1rem', color: '#475569', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          {allBlueprintsList
+                            .filter(bp => blueprintSearch.length >= 3 ?
+                              (bp.name.toLowerCase().includes(blueprintSearch.toLowerCase()) || bp.moduleType.toLowerCase().includes(blueprintSearch.toLowerCase())) : true)
+                            .map((bp) => (
+                              <tr key={bp.id} style={{ borderBottom: '1px solid #e2e8f0', transition: 'background-color 0.2s' }} onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
+                                <td style={{ padding: '1rem', color: '#1e293b', fontWeight: 500, fontSize: '0.9rem' }}>{bp.name}</td>
+                                <td style={{ padding: '1rem', color: '#64748b', fontSize: '0.9rem' }}>{bp.moduleType}</td>
+                                <td style={{ padding: '1rem', color: '#64748b', fontSize: '0.9rem' }}>{bp.targetField || 'N/A'}</td>
+                                <td style={{ padding: '1rem', color: '#64748b', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                   <div style={{ width: '24px', height: '24px', backgroundColor: '#e2e8f0', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 'bold', color: '#64748b' }}>GK</div>
                                   Just now
                                 </td>
                                 <td style={{ padding: '1rem' }}>
-                                  <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
-                                    <div style={{ position: 'relative', width: '36px', height: '20px', backgroundColor: '#10b981', borderRadius: '10px' }}>
-                                      <div style={{ position: 'absolute', top: '2px', left: '18px', width: '16px', height: '16px', backgroundColor: 'white', borderRadius: '50%', transition: 'all 0.2s' }}></div>
-                                    </div>
-                                  </label>
+                                  <span style={{ display: 'inline-flex', alignItems: 'center', padding: '0.25rem 0.75rem', backgroundColor: bp.isActive ? '#dcfce7' : '#f1f5f9', color: bp.isActive ? '#166534' : '#64748b', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 600 }}>
+                                    {bp.isActive ? 'Active' : 'Inactive'}
+                                  </span>
+                                </td>
+                                <td style={{ padding: '1rem', textAlign: 'right' }}>
+                                  <button onClick={() => { setSelectedModule(bp.moduleType); fetchBlueprint(); setCurrentView('blueprint'); }} style={{ padding: '0.4rem 0.75rem', backgroundColor: 'transparent', border: '1px solid #e2e8f0', borderRadius: '6px', cursor: 'pointer', color: '#4f46e5', fontWeight: 500, fontSize: '0.85rem' }}>Edit Flow</button>
                                 </td>
                               </tr>
                             ))}
@@ -2388,6 +2440,223 @@ export default function SettingsPage() {
       )}
 
       <ConfirmModal {...confirmState} />
+      {/* CREATE BLUEPRINT MODAL */}
+      {createBlueprintModal.isOpen && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+          <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '1.5rem', width: '400px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}>
+            <h3 style={{ margin: '0 0 1.5rem 0', fontSize: '1.25rem', color: '#0f172a', fontWeight: 600 }}>Create New Blueprint</h3>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '0.5rem' }}>Blueprint Name</label>
+                <input
+                  type="text"
+                  value={createBlueprintModal.name}
+                  onChange={(e) => setCreateBlueprintModal({ ...createBlueprintModal, name: e.target.value })}
+                  placeholder="e.g. Enterprise Sales Flow"
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '0.9rem', outline: 'none' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '0.5rem' }}>Target Module</label>
+                <select
+                  value={createBlueprintModal.module}
+                  onChange={(e) => setCreateBlueprintModal({ ...createBlueprintModal, module: e.target.value })}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '0.9rem', outline: 'none', backgroundColor: 'white', marginBottom: '1rem' }}
+                >
+                  <option value="Lead">Leads</option>
+                  <option value="Deal">Deals</option>
+                  <option value="Account">Accounts</option>
+                  <option value="Product">Products</option>
+                  <option value="Task">Tasks</option>
+                </select>
+
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '0.5rem' }}>Target Field</label>
+                <select
+                  value={createBlueprintModal.targetField}
+                  onChange={(e) => setCreateBlueprintModal({ ...createBlueprintModal, targetField: e.target.value })}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '0.9rem', outline: 'none', backgroundColor: 'white' }}
+                >
+                  {createBlueprintModal.module === 'Lead' && (
+                    <>
+                      <option value="Lead Status">Stages</option>
+                      <option value="leadSource">Lead Source</option>
+                      <option value="priority">Priority</option>
+                    </>
+                  )}
+                  {createBlueprintModal.module === 'Deal' && (
+                    <>
+                      <option value="Stage">Stage</option>
+                      <option value="dealSource">Deal Source</option>
+                      <option value="priority">Priority</option>
+                      <option value="lossReason">Loss Reason</option>
+                    </>
+                  )}
+                  {createBlueprintModal.module === 'Account' && (
+                    <>
+                      <option value="industry">Industry</option>
+                      <option value="paymentTerms">Payment Terms</option>
+                      <option value="status">Status</option>
+                    </>
+                  )}
+                  {createBlueprintModal.module === 'Product' && (
+                    <>
+                      <option value="category">Category</option>
+                      <option value="status">Status</option>
+                    </>
+                  )}
+                  {createBlueprintModal.module === 'Task' && (
+                    <>
+                      <option value="Task Status">Task Status</option>
+                      <option value="priority">Priority</option>
+                      <option value="taskType">Task Type</option>
+                      <option value="alert">Alert</option>
+                      <option value="repeat">Repeat</option>
+                      <option value="relatedModule">Related Module</option>
+                      <option value="taskAutomation">Task Automation</option>
+                      <option value="completionSource">Completion Source</option>
+                    </>
+                  )}
+                </select>
+                <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.75rem', color: '#64748b' }}>Blueprint will track changes made to this specific field.</p>
+              </div>
+
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <button
+                onClick={() => setCreateBlueprintModal({ isOpen: false, name: '', module: 'Lead', targetField: 'Lead Status' })}
+                style={{ padding: '0.5rem 1rem', background: 'white', border: '1px solid #e2e8f0', borderRadius: '6px', cursor: 'pointer', color: '#475569', fontWeight: 500 }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    const token = await getAuthToken();
+                    const res = await fetch('/api/blueprint', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                      },
+                      body: JSON.stringify({
+                        name: createBlueprintModal.name,
+                        moduleType: createBlueprintModal.module,
+                        targetField: createBlueprintModal.targetField
+                      })
+                    });
+                    if (res.ok) {
+                      alert("Blueprint Created Successfully!");
+                      setCreateBlueprintModal({ isOpen: false, name: '', module: 'Lead', targetField: 'Lead Status' });
+                      fetchBlueprintsList();
+                    } else {
+                      alert("Error creating blueprint");
+                    }
+                  } catch (e) {
+                    console.error(e);
+                  }
+                }}
+                style={{ padding: '0.5rem 1rem', background: '#4f46e5', border: 'none', borderRadius: '6px', cursor: 'pointer', color: 'white', fontWeight: 500 }}
+              >
+                Create Blueprint
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* REORDER BLUEPRINTS MODAL */}
+      {reorderModal.isOpen && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+          <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '1.5rem', width: '450px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
+            <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.25rem', color: '#0f172a', fontWeight: 600 }}>Reorder Blueprints</h3>
+            <p style={{ margin: '0 0 1.5rem 0', fontSize: '0.85rem', color: '#64748b' }}>Set the execution priority. The blueprint at the top (Priority 1) will be checked first.</p>
+
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '0.5rem' }}>Select Module</label>
+              <select
+                value={reorderModal.module}
+                onChange={(e) => {
+                  const mod = e.target.value;
+                  const modBlueprints = allBlueprintsList.filter(bp => bp.moduleType === mod).sort((a, b) => (a.executionOrder || 0) - (b.executionOrder || 0));
+                  setReorderModal({ ...reorderModal, module: mod, blueprints: modBlueprints });
+                }}
+
+                style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '0.9rem', outline: 'none', backgroundColor: 'white' }}
+              >
+                <option value="Lead">Leads</option>
+                <option value="Deal">Deals</option>
+                <option value="Account">Accounts</option>
+              </select>
+            </div>
+
+            <div style={{ border: '1px solid #e2e8f0', borderRadius: '6px', overflow: 'hidden', marginBottom: '1.5rem' }}>
+              {reorderModal.blueprints.map((bp, index) => (
+                <div key={bp.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', borderBottom: index !== reorderModal.blueprints.length - 1 ? '1px solid #e2e8f0' : 'none', backgroundColor: index === 0 ? '#f8fafc' : 'white' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <span style={{ backgroundColor: '#e2e8f0', color: '#475569', fontSize: '0.75rem', fontWeight: 700, padding: '0.2rem 0.5rem', borderRadius: '4px' }}>#{index + 1}</span>
+                    <span style={{ fontSize: '0.9rem', color: '#1e293b', fontWeight: 500 }}>{bp.name}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button onClick={() => moveBlueprintUp(index)} disabled={index === 0} style={{ padding: '0.25rem', backgroundColor: 'transparent', border: 'none', cursor: index === 0 ? 'not-allowed' : 'pointer', color: index === 0 ? '#cbd5e1' : '#64748b' }}>
+                      <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M18 15l-6-6-6 6"></path></svg>
+                    </button>
+                    <button onClick={() => moveBlueprintDown(index)} disabled={index === reorderModal.blueprints.length - 1} style={{ padding: '0.25rem', backgroundColor: 'transparent', border: 'none', cursor: index === reorderModal.blueprints.length - 1 ? 'not-allowed' : 'pointer', color: index === reorderModal.blueprints.length - 1 ? '#cbd5e1' : '#64748b' }}>
+                      <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <button
+                onClick={() => setReorderModal({ ...reorderModal, isOpen: false })}
+                style={{ padding: '0.5rem 1rem', background: 'white', border: '1px solid #e2e8f0', borderRadius: '6px', cursor: 'pointer', color: '#475569', fontWeight: 500 }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    const payload = reorderModal.blueprints.map((bp, index) => ({
+                      id: bp.id,
+                      executionOrder: index + 1
+                    }));
+
+                    const token = await getAuthToken();
+                    const res = await fetch('/api/blueprint/reorder', {
+                      method: 'PUT',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                      },
+                      body: JSON.stringify({ blueprints: payload })
+                    });
+
+                    if (res.ok) {
+                      alert("Priority saved successfully!");
+                      fetchBlueprintsList();
+                      setReorderModal({ ...reorderModal, isOpen: false });
+                    } else {
+                      alert("Failed to save order");
+                    }
+                  } catch (error) {
+                    console.error(error);
+                    alert("An error occurred");
+                  }
+                }}
+                style={{ padding: '0.5rem 1rem', background: '#4f46e5', border: 'none', borderRadius: '6px', cursor: 'pointer', color: 'white', fontWeight: 500 }}
+              >
+                Save Order
+              </button>
+
+            </div>
+          </div>
+        </div>
+      )}
+
     </>
   );
+
 }
