@@ -91,13 +91,18 @@ export async function PUT(request) {
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const data = await request.json();
-    const { id, isActive } = data;
+    const { id, isActive, entryCriteria } = data;
 
     if (!id) return NextResponse.json({ error: "Blueprint ID is required" }, { status: 400 });
 
+    // Hum check kar rahe hain ki data me kya aaya hai, us hisab se update karenge
+    const updateData = {};
+    if (isActive !== undefined) updateData.isActive = isActive;
+    if (entryCriteria !== undefined) updateData.entryCriteria = entryCriteria;
+
     const updatedBlueprint = await prisma.blueprint.update({
       where: { id, organizationId: user.organizationId },
-      data: { isActive }
+      data: updateData
     });
 
     return NextResponse.json(updatedBlueprint);
@@ -106,6 +111,7 @@ export async function PUT(request) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
+
 
 
 export async function POST(request) {

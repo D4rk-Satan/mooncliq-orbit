@@ -1,7 +1,10 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import Sidebar from "../../components/Sidebar";
+import { ReactFlow, Controls, Background, applyNodeChanges, applyEdgeChanges, addEdge, Handle, Position } from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
+import dagre from 'dagre';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import WorkflowBuilder from '../../components/WorkflowBuilder';
 import LayoutBuilder from '../../components/LayoutBuilder';
@@ -11,52 +14,123 @@ import FormSkeleton from "../../components/skeletons/FormSkeleton";
 import ConfirmModal from "../../components/ConfirmModal";
 
 
-const DEFAULT_MODULE_FIELDS = {
-  Lead: [
-    { id: 'def_firstName', name: 'firstName', label: 'First Name' },
-    { id: 'def_lastName', name: 'lastName', label: 'Last Name' },
-    { id: 'def_email', name: 'email', label: 'Email' },
-    { id: 'def_phone', name: 'phone', label: 'Phone' },
-    { id: 'def_owner', name: 'owner', label: 'Owner' }
-  ],
-  Deal: [
-    { id: 'def_firstName', name: 'firstName', label: 'First Name' },
-    { id: 'def_lastName', name: 'lastName', label: 'Last Name' },
-    { id: 'def_email', name: 'email', label: 'Email' },
-    { id: 'def_phone', name: 'phone', label: 'Phone' },
-    { id: 'def_amount', name: 'amount', label: 'Amount' }
-  ],
-  Account: [
-    { id: 'def_companyName', name: 'companyName', label: 'Company Name' },
-    { id: 'def_email', name: 'email', label: 'Email' },
-    { id: 'def_gstNo', name: 'gstNo', label: 'GST No' },
-    { id: 'def_website', name: 'website', label: 'Website' },
-    { id: 'def_address', name: 'address', label: 'Address' },
-    { id: 'def_contactPerson', name: 'contactPerson', label: 'Contact Person' }
-  ],
-  Product: [
-    { id: 'def_name', name: 'name', label: 'Product Name' },
-    { id: 'def_sku', name: 'sku', label: 'SKU' }
-  ],
-  Task: [
-    { id: 'def_taskName', name: 'taskName', label: 'Task Name' },
-    { id: 'def_startDateTime', name: 'startDateTime', label: 'Start Date & Time' },
-    { id: 'def_dueDateTime', name: 'dueDateTime', label: 'Due Date & Time' },
-    { id: 'def_endDateTime', name: 'endDateTime', label: 'End Date & Time' },
-    { id: 'def_repeat', name: 'repeat', label: 'Repeat' },
-    { id: 'def_alert', name: 'alert', label: 'Alert' },
-    { id: 'def_notes', name: 'notes', label: 'Notes' }
-  ]
+const StartNode = ({ data }) => (
+  <div style={{ padding: '10px 20px', borderRadius: '8px', background: '#4f46e5', color: 'white', fontWeight: 'bold', fontSize: '14px', border: '2px solid #3730a3', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+    {data.label}
+    <Handle type="source" position={Position.Bottom} style={{ background: '#fff' }} />
+  </div>
+);
+
+const StageNode = ({ data }) => (
+  <div style={{ padding: '10px 20px', borderRadius: '8px', background: 'white', color: '#1e293b', fontWeight: 'bold', fontSize: '14px', border: `2px solid ${data.color || '#e2e8f0'}`, boxShadow: '0 2px 4px rgba(0,0,0,0.05)', minWidth: '150px', textAlign: 'center' }}>
+    <Handle type="target" position={Position.Top} style={{ background: '#94a3b8' }} />
+    {data.label}
+    <Handle type="source" position={Position.Bottom} style={{ background: '#94a3b8' }} />
+  </div>
+);
+
+const nodeTypes = { start: StartNode, stage: StageNode };
+
+const getLayoutedElements = (nodes, edges) => {
+  const dagreGraph = new dagre.graphlib.Graph();
+  dagreGraph.setDefaultEdgeLabel(() => ({}));
+  dagreGraph.setGraph({ rankdir: 'TB', nodesep: 50, ranksep: 80 });
+
+  nodes.forEach((node) => {
+    dagreGraph.setNode(node.id, { width: 200, height: 60 });
+  });
+  edges.forEach((edge) => {
+    dagreGraph.setEdge(edge.source, edge.target);
+  });
+  dagre.layout(dagreGraph);
+
+  const newNodes = nodes.map((node) => {
+    const nodeWithPosition = dagreGraph.node(node.id);
+    return {
+      ...node,
+      position: {
+        x: nodeWithPosition.x - 100,
+        y: nodeWithPosition.y - 30,
+      },
+    };
+  });
+  return { nodes: newNodes, edges };
 };
+
 
 export default function SettingsPage() {
   const [blueprint, setBlueprint] = useState(null);
+  const [currentView, setCurrentView] = useState("hub");
+  const [nodes, setNodes] = useState([]);
+  const [edges, setEdges] = useState([]);
+  const onNodesChange = useCallback((changes) => setNodes((nds) => applyNodeChanges(changes, nds)), []);
+  const onEdgesChange = useCallback((changes) => setEdges((eds) => applyEdgeChanges(changes, eds)), []);
+
+  useEffect(() => {
+    if (currentView === 'blueprint' && blueprint) {
+      const initialNodes = [{ id: 'start-node', type: 'start', data: { label: 'Start: Entry Criteria' } }];
+      const initialEdges = [];
+      const sortedStages = [...blueprint.stages].sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+
+      if (sortedStages.length > 0) {
+        initialEdges.push({ id: 'edge-start', source: 'start-node', target: sortedStages[0].id, label: 'Matches Criteria', style: { stroke: '#4f46e5', strokeWidth: 3 }, animated: true });
+      }
+
+      sortedStages.forEach(stage => {
+        initialNodes.push({ id: stage.id, type: 'stage', data: { label: stage.name, color: stage.color } });
+      });
+
+      blueprint.transitions.forEach(rule => {
+        if (rule.fromStages && rule.fromStages.length > 0) {
+          rule.fromStages.forEach(fromStage => {
+            initialEdges.push({
+              id: `${rule.id}-${fromStage.id}`,
+              source: fromStage.id,
+              target: rule.toStageId,
+              label: rule.name || 'Rule',
+              data: { ruleId: rule.id }, // Asli ID yahan chupa di
+              style: { stroke: '#94a3b8', strokeWidth: 2 }, animated: true
+            });
+          });
+        }
+      });
+
+
+      const layouted = getLayoutedElements(initialNodes, initialEdges);
+      setNodes(layouted.nodes);
+      setEdges(layouted.edges);
+    }
+  }, [blueprint, currentView]);
+
+  const [selectedCanvasItem, setSelectedCanvasItem] = useState(null);
+
+  const onNodeClick = useCallback((event, node) => {
+    if (node.type === 'start') {
+      setSelectedCanvasItem({ type: 'start', data: node.data });
+      // Database se aayi saved settings form me daal do
+      setEntryCriteriaForm(blueprint?.entryCriteria || { type: 'always', conditions: [] });
+    } else {
+      setSelectedCanvasItem({ type: 'node', data: node });
+    }
+  }, [blueprint]);
+
+
+  const onEdgeClick = useCallback((event, edge) => {
+    setSelectedCanvasItem({ type: 'edge', data: edge });
+  }, []);
+
+  const onConnect = useCallback((params) => {
+    // Jab aap mouse se line kheenchenge, ye trigger hoga
+    setSelectedCanvasItem({ type: 'new_edge', data: params });
+  }, []);
+
   const [isLoading, setIsLoading] = useState(true);
   const [targetBlueprintFields, setTargetBlueprintFields] = useState([]);
-  const [currentView, setCurrentView] = useState("hub");
   const [selectedModule, setSelectedModule] = useState("Lead");
   const [isLayoutDirty, setIsLayoutDirty] = useState(false);
   const [shakeTrigger, setShakeTrigger] = useState(0);
+  const [entryCriteriaForm, setEntryCriteriaForm] = useState({ type: 'always', conditions: [] });
+  const [isSavingEntry, setIsSavingEntry] = useState(false);
 
   const [confirmState, setConfirmState] = useState({ isOpen: false, title: '', message: '', onConfirm: () => { } });
 
@@ -268,11 +342,12 @@ export default function SettingsPage() {
   const [inviteData, setInviteData] = useState({ email: '', profileId: '' });
   const [inviteStatus, setInviteStatus] = useState(null);
 
-  const fetchBlueprint = async () => {
+  const fetchBlueprint = async (modOverride) => {
+    const targetModule = modOverride || selectedModule;
     setIsLoading(true);
     try {
       const token = await getAuthToken();
-      const res = await fetch(`/api/blueprint?moduleType=${selectedModule}`, {
+      const res = await fetch(`/api/blueprint?moduleType=${targetModule}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
@@ -909,10 +984,10 @@ export default function SettingsPage() {
                         <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
                           <tr>
                             <th style={{ padding: '1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Blueprint Name</th>
-                            <th style={{ padding: '1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600, cursor: 'pointer' }}>Modules </th>
+                            <th style={{ padding: '1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Modules </th>
                             <th style={{ padding: '1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Field</th>
                             <th style={{ padding: '1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Last Modified</th>
-                            <th style={{ padding: '1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600, cursor: 'pointer' }}>Status </th>
+                            <th style={{ padding: '1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600, textAlign: 'left' }}>Status </th>
                           </tr>
                         </thead>
                         <tbody>
@@ -921,21 +996,47 @@ export default function SettingsPage() {
                               (bp.name.toLowerCase().includes(blueprintSearch.toLowerCase()) || bp.moduleType.toLowerCase().includes(blueprintSearch.toLowerCase())) : true)
                             .map((bp) => (
                               <tr key={bp.id} style={{ borderBottom: '1px solid #e2e8f0', transition: 'background-color 0.2s' }} onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
-                                <td style={{ padding: '1rem', color: '#1e293b', fontWeight: 500, fontSize: '0.9rem' }}>{bp.name}</td>
+                                {/* 1. Clickable Name (Jispar click karke canvas khulega) */}
+                                <td
+                                  style={{ padding: '1rem', color: '#4f46e5', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer', textDecoration: 'underline' }}
+                                  onClick={() => { setSelectedModule(bp.moduleType); fetchBlueprint(bp.moduleType); setCurrentView('blueprint'); }}
+                                >
+                                  {bp.name}
+                                </td>
+
                                 <td style={{ padding: '1rem', color: '#64748b', fontSize: '0.9rem' }}>{bp.moduleType}</td>
+
                                 <td style={{ padding: '1rem', color: '#64748b', fontSize: '0.9rem' }}>{bp.targetField || 'N/A'}</td>
+
                                 <td style={{ padding: '1rem', color: '#64748b', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                   <div style={{ width: '24px', height: '24px', backgroundColor: '#e2e8f0', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 'bold', color: '#64748b' }}>GK</div>
                                   Just now
                                 </td>
-                                <td style={{ padding: '1rem' }}>
-                                  <span style={{ display: 'inline-flex', alignItems: 'center', padding: '0.25rem 0.75rem', backgroundColor: bp.isActive ? '#dcfce7' : '#f1f5f9', color: bp.isActive ? '#166534' : '#64748b', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 600 }}>
-                                    {bp.isActive ? 'Active' : 'Inactive'}
-                                  </span>
+
+                                {/* 2. Green Toggle Switch (Active/Inactive ke liye) aur "Edit Flow" button delete ho gaya */}
+                                <td style={{ padding: '1rem', textAlign: 'left' }}>
+                                  <label style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>
+                                    <input
+                                      type="checkbox"
+                                      style={{ display: 'none' }}
+                                      checked={bp.isActive}
+                                      onChange={async () => {
+                                        try {
+                                          const res = await fetch('/api/blueprint', {
+                                            method: 'PUT',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ id: bp.id, isActive: !bp.isActive })
+                                          });
+                                          if (res.ok) fetchBlueprintsList();
+                                        } catch (error) { console.error(error); }
+                                      }}
+                                    />
+                                    <div style={{ position: 'relative', width: '36px', height: '20px', backgroundColor: bp.isActive ? '#10b981' : '#cbd5e1', borderRadius: '10px', transition: 'background-color 0.2s' }}>
+                                      <div style={{ position: 'absolute', top: '2px', left: bp.isActive ? '18px' : '2px', width: '16px', height: '16px', backgroundColor: 'white', borderRadius: '50%', transition: 'all 0.2s' }}></div>
+                                    </div>
+                                  </label>
                                 </td>
-                                <td style={{ padding: '1rem', textAlign: 'right' }}>
-                                  <button onClick={() => { setSelectedModule(bp.moduleType); fetchBlueprint(); setCurrentView('blueprint'); }} style={{ padding: '0.4rem 0.75rem', backgroundColor: 'transparent', border: '1px solid #e2e8f0', borderRadius: '6px', cursor: 'pointer', color: '#4f46e5', fontWeight: 500, fontSize: '0.85rem' }}>Edit Flow</button>
-                                </td>
+
                               </tr>
                             ))}
                         </tbody>
@@ -999,32 +1100,251 @@ export default function SettingsPage() {
                 {currentView === 'blueprint' && (
                   <div>
                     <div style={{ marginBottom: '2rem' }}>
-                      <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '1rem' }}>Live Pipeline Preview</h2>
-                      {/* CSS Pipeline Visualization (Read-Only) */}
-                      <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0', padding: '1rem 0', overflowX: 'auto', background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1', paddingLeft: '1rem' }}>
-                        {blueprint.stages.map((stage, index) => {
-                          const nextStage = blueprint.stages[index + 1];
-                          return (
-                            <React.Fragment key={stage.id}>
-                              <div style={{
-                                border: '2px solid #e2e8f0', padding: '0.75rem 1.5rem', borderRadius: '8px', fontWeight: 600,
-                                backgroundColor: 'white', display: 'flex', alignItems: 'center', gap: '0.5rem',
-                                boxShadow: '0 1px 2px rgba(0,0,0,0.05)', flexShrink: 0
-                              }}>
-                                <div style={{ width: '12px', height: '12px', borderRadius: '3px', backgroundColor: stage.color }}></div>
-                                {stage.name}
-                              </div>
-                              {nextStage && (
-                                <div style={{ flex: 1, minWidth: '40px', height: '3px', background: '#cbd5e1', position: 'relative', margin: '0 4px' }}>
-                                  <div style={{ position: 'absolute', right: 0, top: '-4.5px', borderTop: '6px solid transparent', borderBottom: '6px solid transparent', borderLeft: `8px solid #cbd5e1` }}></div>
-                                </div>
-                              )}
-                            </React.Fragment>
-                          );
-                        })}
-                        {blueprint.stages.length === 0 && <span style={{ color: '#94a3b8' }}>No stages created yet.</span>}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                        <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Visual Blueprint Canvas</h2>
+                        <button className="btn-primary" style={{ padding: '0.4rem 1rem', fontSize: '0.9rem' }} onClick={() => setIsAddingStage(!isAddingStage)}>
+                          {isAddingStage ? 'Cancel' : '+ Add Stage'}
+                        </button>
                       </div>
+
+                      {isAddingStage && (
+                        <div style={{ display: 'flex', gap: '1rem', padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '8px', marginBottom: '1.5rem', border: '1px solid #e2e8f0', alignItems: 'center' }}>
+                          <input required type="text" placeholder="Stage Name" className="form-input bg-white" style={{ flex: 1, margin: 0 }} value={newStage.name} onChange={e => setNewStage({ ...newStage, name: e.target.value })} />
+                          <select className="form-input bg-white" style={{ width: '150px', margin: 0 }} value={newStage.color} onChange={e => setNewStage({ ...newStage, color: e.target.value })}>
+                            <option value="#f5d96bff">Yellow</option>
+                            <option value="#6aacfcff">Blue</option>
+                            <option value="#64f296ff">Green</option>
+                            <option value="#f676bfff">Pink</option>
+                            <option value="#e5e7eb">Gray</option>
+                            <option value="#8fa2edff">Indigo</option>
+                            <option value="#f53030ff">Red</option>
+                            <option value="#f975bdff">Rose</option>
+                            <option value="#80fbe2ff">Teal</option>
+                          </select>
+                          <button className="btn-primary" onClick={handleAddStage}>Save Stage</button>
+                        </div>
+                      )}
+
+                      <div style={{ display: 'flex', gap: '1.5rem', width: '100%', height: '550px' }}>
+                        {/* LEFTSIDE: CANVAS */}
+                        <div style={{ flex: 1, borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+                          <ReactFlow
+                            nodes={nodes}
+                            edges={edges}
+                            onNodesChange={onNodesChange}
+                            onEdgesChange={onEdgesChange}
+                            nodeTypes={nodeTypes}
+                            fitView
+                            onNodeClick={onNodeClick}
+                            onEdgeClick={onEdgeClick}
+                            onConnect={onConnect}
+                          >
+                            <Background color="#cbd5e1" gap={16} />
+                            <Controls />
+                          </ReactFlow>
+                        </div>
+
+                        {/* RIGHTSIDE: PROPERTIES PANEL */}
+                        {selectedCanvasItem && (
+                          <div style={{ width: '350px', backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '1.5rem', overflowY: 'auto' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: '1px solid #e2e8f0' }}>
+                              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: '#0f172a' }}>Properties</h3>
+                              <button onClick={() => setSelectedCanvasItem(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', fontSize: '1.2rem' }}>✕</button>
+                            </div>
+
+                            {selectedCanvasItem.type === 'start' && (
+                              <div>
+                                <h4 style={{ color: '#4f46e5', margin: '0 0 0.5rem 0' }}>Entry Criteria</h4>
+                                <p style={{ fontSize: '0.85rem', color: '#64748b', lineHeight: 1.5 }}>
+                                  Configure the conditions under which a record enters this blueprint.
+                                </p>
+                                <div style={{ marginTop: '1.5rem', padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                  <label className="form-label" style={{ color: '#475569' }}>Apply To:</label>
+                                  <select
+                                    className="form-input bg-white"
+                                    style={{ marginBottom: '1rem' }}
+                                    value={entryCriteriaForm.type}
+                                    onChange={(e) => setEntryCriteriaForm({ ...entryCriteriaForm, type: e.target.value })}
+                                  >
+                                    <option value="always">All Records</option>
+                                    <option value="conditions">Records matching specific conditions</option>
+                                  </select>
+
+                                  {entryCriteriaForm.type === 'conditions' && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                                      {(entryCriteriaForm.conditions || []).map((cond, idx) => (
+                                        <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+
+                                          {/* AND/OR Operator (Agar 1 se zyada condition ho) */}
+                                          {idx > 0 && (
+                                            <div style={{ display: 'flex', justifyContent: 'center', margin: '0.25rem 0' }}>
+                                              <select
+                                                className="form-input"
+                                                style={{ width: '80px', padding: '0.2rem 0.5rem', fontSize: '0.75rem', background: '#f1f5f9', border: 'none', borderRadius: '20px', textAlign: 'center', fontWeight: 600, color: '#475569' }}
+                                                value={cond.logical || 'AND'}
+                                                onChange={e => {
+                                                  const newConds = [...(entryCriteriaForm.conditions || [])];
+                                                  newConds[idx].logical = e.target.value;
+                                                  setEntryCriteriaForm({ ...entryCriteriaForm, conditions: newConds });
+                                                }}
+                                              >
+                                                <option value="AND">AND</option>
+                                                <option value="OR">OR</option>
+                                              </select>
+                                            </div>
+                                          )}
+
+                                          {/* Condition Card */}
+                                          <div style={{ padding: '0.75rem', backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid #cbd5e1', display: 'flex', flexDirection: 'column', gap: '0.5rem', position: 'relative' }}>
+
+                                            <button onClick={() => {
+                                              const newConds = (entryCriteriaForm.conditions || []).filter((_, i) => i !== idx);
+                                              setEntryCriteriaForm({ ...entryCriteriaForm, conditions: newConds });
+                                            }} style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '1rem', padding: '0.2rem' }}>✕</button>
+
+                                            <label style={{ fontSize: '0.7rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase' }}>Condition {idx + 1}</label>
+
+                                            <select className="form-input" style={{ width: '90%', fontSize: '0.85rem' }} value={cond.field} onChange={e => {
+                                              const newConds = [...(entryCriteriaForm.conditions || [])];
+                                              newConds[idx].field = e.target.value;
+                                              setEntryCriteriaForm({ ...entryCriteriaForm, conditions: newConds });
+                                            }}>
+                                              <option value="">Select Field</option>
+                                              {[...(blueprint.fields || [])].map(f => (
+                                                <option key={f.name} value={f.name}>{f.label || f.name}</option>
+                                              ))}
+                                            </select>
+
+                                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                              <select className="form-input" style={{ flex: '0 0 40%', fontSize: '0.85rem' }} value={cond.operator} onChange={e => {
+                                                const newConds = [...(entryCriteriaForm.conditions || [])];
+                                                newConds[idx].operator = e.target.value;
+                                                setEntryCriteriaForm({ ...entryCriteriaForm, conditions: newConds });
+                                              }}>
+                                                <option value="is">is</option>
+                                                <option value="isn't">isn't</option>
+                                                <option value="contains">contains</option>
+                                              </select>
+                                              <input type="text" className="form-input" style={{ flex: 1, minWidth: 0, fontSize: '0.85rem' }} placeholder="Value" value={cond.value} onChange={e => {
+                                                const newConds = [...(entryCriteriaForm.conditions || [])];
+                                                newConds[idx].value = e.target.value;
+                                                setEntryCriteriaForm({ ...entryCriteriaForm, conditions: newConds });
+                                              }} />
+                                            </div>
+                                          </div>
+                                        </div>
+                                      ))}
+
+                                      <button onClick={() => {
+                                        const newConds = [...(entryCriteriaForm.conditions || []), { field: '', operator: 'is', value: '' }];
+                                        setEntryCriteriaForm({ ...entryCriteriaForm, conditions: newConds });
+                                      }} style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontWeight: 500, padding: 0 }}>+ Add Condition</button>
+                                    </div>
+                                  )}
+
+                                  <button
+                                    className="btn-primary"
+                                    style={{ width: '100%', background: '#4f46e5' }}
+                                    disabled={isSavingEntry}
+                                    onClick={async () => {
+                                      setIsSavingEntry(true);
+                                      try {
+                                        const res = await fetch('/api/blueprint', {
+                                          method: 'PUT',
+                                          headers: { 'Content-Type': 'application/json' },
+                                          body: JSON.stringify({
+                                            id: blueprint.id,
+                                            entryCriteria: entryCriteriaForm
+                                          })
+                                        });
+                                        if (res.ok) {
+                                          alert("Entry Criteria Saved!");
+                                        }
+                                      } catch (err) {
+                                        alert("Failed to save entry criteria");
+                                      }
+                                      setIsSavingEntry(false);
+                                    }}
+                                  >
+                                    {isSavingEntry ? 'Saving...' : 'Save Entry Criteria'}
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+
+
+
+                            {selectedCanvasItem.type === 'node' && (
+                              <div>
+                                <h4 style={{ margin: '0 0 0.5rem 0', color: '#1e293b' }}>Stage: {selectedCanvasItem.data.data.label}</h4>
+                                <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '1.5rem' }}>View or delete this stage.</p>
+
+                                <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                  <label className="form-label">Color Theme</label>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem' }}>
+                                    <div style={{ width: '24px', height: '24px', borderRadius: '4px', backgroundColor: selectedCanvasItem.data.data.color }}></div>
+                                    <span style={{ fontSize: '0.9rem', color: '#64748b', fontWeight: 500 }}>{selectedCanvasItem.data.data.color}</span>
+                                  </div>
+                                  <button
+                                    onClick={() => handleDeleteStage(selectedCanvasItem.data.id)}
+                                    style={{ width: '100%', padding: '0.5rem', background: '#fef2f2', color: '#ef4444', border: '1px solid #fecaca', borderRadius: '6px', fontWeight: 500, cursor: 'pointer' }}
+                                  >
+                                    Delete Stage
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+
+
+                            {selectedCanvasItem.type === 'edge' && (
+                              <div>
+                                <h4 style={{ margin: '0 0 0.5rem 0', color: '#1e293b' }}>Rule: {selectedCanvasItem.data.label}</h4>
+                                <p style={{ fontSize: '0.85rem', color: '#64748b' }}>Configure transition field updates here.</p>
+                                <button
+                                  className="btn-primary"
+                                  style={{ width: '100%', marginTop: '1rem' }}
+                                  onClick={() => {
+                                    // Rule ID ke base par database wali details nikal rahe hain
+                                    const existingRule = blueprint.transitions.find(t => t.id === selectedCanvasItem.data.data.ruleId);
+                                    if (existingRule) openRuleModal(existingRule);
+                                  }}
+                                >
+                                  Edit Rule Settings
+                                </button>
+                              </div>
+                            )}
+
+
+                            {selectedCanvasItem.type === 'new_edge' && (
+                              <div>
+                                <h4 style={{ margin: '0 0 0.5rem 0', color: '#1e293b' }}>Create New Rule</h4>
+                                <p style={{ fontSize: '0.85rem', color: '#64748b' }}>Connect these stages logically.</p>
+                                <button
+                                  className="btn-primary"
+                                  style={{ width: '100%', marginTop: '1rem' }}
+                                  onClick={() => {
+                                    openRuleModal();
+                                    // Set a slight timeout to ensure state is set by openRuleModal first
+                                    setTimeout(() => {
+                                      setSelectedRule(prev => ({
+                                        ...prev,
+                                        fromStageIds: [selectedCanvasItem.data.source],
+                                        toStageId: selectedCanvasItem.data.target
+                                      }));
+                                    }, 0);
+                                  }}
+                                >
+                                  Configure New Rule
+                                </button>
+                              </div>
+                            )}
+
+                          </div>
+                        )}
+                      </div>
+
                     </div>
+
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
 
@@ -2211,7 +2531,7 @@ export default function SettingsPage() {
                                 }}
                               >
                                 <option value="">Select Target Field...</option>
-                                {[...(DEFAULT_MODULE_FIELDS[createRecordBuilder.targetModule] || []), ...targetBlueprintFields].map(f => (
+                                {[...(targetBlueprintFields || [])].map(f => (
                                   <option key={f.id} value={f.name}>{f.label || f.name} {f.isRequired ? '*' : ''}</option>
                                 ))}
                               </select>
@@ -2228,7 +2548,7 @@ export default function SettingsPage() {
                                 }}
                               >
                                 <option value="">Select Source Field...</option>
-                                {[...(DEFAULT_MODULE_FIELDS[selectedModule] || []), ...blueprint.fields].map(f => (
+                                {[...(blueprint.fields || [])].map(f => (
                                   <option key={f.id} value={f.name}>{f.label || f.name}</option>
                                 ))}
                               </select>
@@ -2587,6 +2907,8 @@ export default function SettingsPage() {
                 <option value="Lead">Leads</option>
                 <option value="Deal">Deals</option>
                 <option value="Account">Accounts</option>
+                <option value="Product">Products</option>
+                <option value="Task">Tasks</option>
               </select>
             </div>
 
