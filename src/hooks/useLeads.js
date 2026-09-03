@@ -8,6 +8,7 @@ export function useLeads() {
     const [currentUser, setCurrentUser] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
+    const [isSearching, setIsSearching] = useState(false);
 
 
     // Helper function to get token
@@ -69,6 +70,7 @@ export function useLeads() {
     };
 
     const fetchOnlyLeads = async (q = '') => {
+        setIsSearching(true);
         try {
             const token = await getAuthToken();
             const headers = { Authorization: `Bearer ${token}` };
@@ -80,6 +82,8 @@ export function useLeads() {
             }
         } catch (e) {
             console.error('Search fetch error:', e);
+        } finally {
+            setIsSearching(false);
         }
     };
 
@@ -89,15 +93,21 @@ export function useLeads() {
     }, []);
 
     useEffect(() => {
+        setIsSearching(true);
         const handler = setTimeout(() => {
             if (searchQuery.length >= 3 || searchQuery.length === 0) {
                 fetchOnlyLeads(searchQuery);
-            } else if (searchQuery.length === 0) {
-                fetchOnlyLeads('');
+            } else {
+                setIsSearching(false);
             }
         }, 300);
         return () => clearTimeout(handler);
     }, [searchQuery]);
+
+    const handleSetSearchQuery = (val) => {
+        setIsSearching(true);
+        setSearchQuery(val);
+    };
 
     return {
         leads,
@@ -109,6 +119,7 @@ export function useLeads() {
         fetchData,
         fetchOnlyLeads,
         searchQuery,
-        setSearchQuery
+        setSearchQuery: handleSetSearchQuery,
+        isSearching
     };
 }

@@ -56,7 +56,7 @@ const CustomDropdown = ({ value, options, onChange, placeholder }) => {
 };
 
 export default function LeadModule() {
-  const { leads, setLeads, blueprint, tags, currentUser, isLoading, fetchOnlyLeads, setSearchQuery, searchQuery } = useLeads();
+  const { leads, setLeads, blueprint, tags, currentUser, isLoading, fetchOnlyLeads, setSearchQuery, searchQuery, isSearching } = useLeads();
   const { showConfirm } = useConfirm();
   const [viewMode, setViewMode] = useState("kanban"); // "kanban" or "list"
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -1201,7 +1201,7 @@ export default function LeadModule() {
             <div className="p-8 text-center" style={{ margin: 'auto' }}>
               <TableSkeleton />
             </div>
-          ) : (leads.length === 0 && searchQuery === "") ? (
+          ) : (leads.length === 0 && searchQuery === "" && !isSearching) ? (
             renderEmptyState()
           ) : (
             viewMode === 'kanban' ? renderKanbanView() : renderListView()

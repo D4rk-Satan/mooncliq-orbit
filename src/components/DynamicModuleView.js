@@ -244,11 +244,37 @@ export default function DynamicModuleView({
   const renderEmptyState = () => (
     <div className="empty-state" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '4rem 2rem', textAlign: 'center', height: '100%' }}>
       <div className="empty-state-content" style={{ maxWidth: '400px' }}>
-        <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#1e293b', marginBottom: '0.5rem' }}>No records found</h3>
-        <p className="text-muted" style={{ marginBottom: '1.5rem', color: '#64748b' }}>Try adjusting your filters or search query.</p>
+
+        {/* Premium SVG Illustration */}
+        <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'center' }}>
+          <svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="60" cy="60" r="50" fill="#f8fafc" />
+            <circle cx="60" cy="60" r="40" fill="#f1f5f9" />
+            <rect x="45" y="45" width="40" height="45" rx="4" fill="white" stroke="#cbd5e1" strokeWidth="2" />
+            <rect x="52" y="55" width="15" height="4" rx="2" fill="#e2e8f0" />
+            <rect x="52" y="70" width="20" height="4" rx="2" fill="#e2e8f0" />
+            <circle cx="75" cy="70" r="15" fill="white" stroke="#cbd5e1" strokeWidth="3" />
+            <path d="M85 80L95 90" stroke="#cbd5e1" strokeWidth="6" strokeLinecap="round" />
+            <path d="M70 65L80 75" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" />
+            <path d="M80 65L70 75" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+        </div>
+
+        {/* Dynamic Text using moduleName */}
+        <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#1e293b', marginBottom: '0.5rem' }}>
+          There are no {moduleName}s in this view.
+        </h3>
+        <p className="text-muted" style={{ marginBottom: '1.5rem', color: '#64748b' }}>
+          Get started by creating your first {moduleName.toLowerCase()}.
+        </p>
+
+        {/* Magic Trick: Reuse the exact Add New button with permissions from Header! */}
+        {renderHeaderActions && renderHeaderActions()}
+
       </div>
     </div>
   );
+
 
   const renderKanbanView = () => {
     if (!blueprint?.stages) return null;
