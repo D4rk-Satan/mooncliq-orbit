@@ -144,51 +144,45 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
               {/* Category Header (Clickable for Accordion) */}
               {!isCollapsed && (
                 <div
-                  onClick={() => setOpenCategory(openCategory === category.name ? null : category.name)}
                   style={{
                     padding: '0.5rem 1.5rem',
                     fontSize: '0.75rem',
                     fontWeight: '600',
                     color: '#9ca3af',
                     letterSpacing: '0.05em',
-                    cursor: 'pointer',
+                    cursor: 'default',
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center'
                   }}
                 >
                   {category.name}
-                  {/* Chhota sa arrow icon (Optional, achha dikhega) */}
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: openCategory === category.name ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
-                    <polyline points="6 9 12 15 18 9"></polyline>
-                  </svg>
                 </div>
               )}
 
               {/* Category Items (Sirf tabhi dikhenge jab ye open ho, ya phir sidebar collapsed ho) */}
-              {(openCategory === category.name || isCollapsed) && (
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  {category.items.map((item, itemIdx) => (
-                    <Link
-                      key={itemIdx}
-                      href={item.href}
-                      className={`nav-item ${pathname === item.href ? "active" : ""}`}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '1rem',
-                        textDecoration: 'none',
-                        justifyContent: isCollapsed ? 'center' : 'flex-start',
-                        padding: isCollapsed ? '0.75rem 0' : '0.75rem 1.5rem',
-                        margin: isCollapsed ? '0.25rem' : '0.25rem 1rem'
-                      }}
-                    >
-                      <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} title={item.name}>{item.icon}</span>
-                      {!isCollapsed && <span style={{ whiteSpace: 'nowrap' }}>{item.name}</span>}
-                    </Link>
-                  ))}
-                </div>
-              )}
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {category.items.map((item, itemIdx) => (
+                  <Link
+                    key={itemIdx}
+                    href={item.href}
+                    className={`nav-item ${pathname === item.href ? "active" : ""}`}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '1rem',
+                      textDecoration: 'none',
+                      justifyContent: isCollapsed ? 'center' : 'flex-start',
+                      padding: isCollapsed ? '0.75rem 0' : '0.75rem 1.5rem',
+                      margin: isCollapsed ? '0.25rem' : '0.25rem 1rem'
+                    }}
+                  >
+                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} title={item.name}>{item.icon}</span>
+                    {!isCollapsed && <span style={{ whiteSpace: 'nowrap' }}>{item.name}</span>}
+                  </Link>
+                ))}
+              </div>
+
             </div>
           ))}
         </nav>
@@ -213,14 +207,14 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
                 <div style={{
                   position: 'absolute',
                   bottom: '100%',
-                  left: isCollapsed ? '1rem' : '1rem',
-                  right: isCollapsed ? 'auto' : '1rem',
-                  width: isCollapsed ? '220px' : 'auto',
+                  left: isCollapsed ? '4.5rem' : '2rem',
+                  right: 'auto',
+                  width: '260px',
                   backgroundColor: 'white',
                   borderRadius: '8px',
                   boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)',
                   border: '1px solid #e5e7eb',
-                  padding: '1rem',
+                  padding: '1.25rem',
                   marginBottom: '0.5rem',
                   zIndex: 50
                 }}>
@@ -253,7 +247,10 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
             )}
 
             {/* Profile Toggle Button (Jo hamesha dikhega) */}
-            <button
+            {/* Profile Toggle Button (Jo hamesha dikhega) */}
+            <div
+              role="button"
+              tabIndex={0}
               onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
               className="nav-item"
               style={{
@@ -263,12 +260,10 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
                 justifyContent: isCollapsed ? 'center' : 'flex-start',
                 padding: isCollapsed ? '0.75rem 0' : '0.75rem 1.5rem',
                 margin: isCollapsed ? '0.25rem' : '0.25rem 1rem',
-                background: 'none',
                 border: 'none',
                 cursor: 'pointer',
-                width: '100%',
-                color: '#64748b',
-                fontWeight: '500'
+                fontFamily: 'inherit',
+                fontSize: '1rem'
               }}
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}>
@@ -277,8 +272,8 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
               </svg>
 
               {!isCollapsed && <span style={{ whiteSpace: 'nowrap' }}>Profile</span>}
+            </div>
 
-            </button>
           </div>
           {/* ----- PROFILE POPOVER END ----- */}
 
