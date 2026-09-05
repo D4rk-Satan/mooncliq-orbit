@@ -5,12 +5,12 @@ export function getDefaultBlueprintData(mod) {
         return {
             stages: {
                 create: [
-                    { name: 'New', orderIndex: 1, color: '#ffae0bff' },
-                    { name: 'Contacted', orderIndex: 2, color: '#ff8800ff' },
-                    { name: 'Qualified', orderIndex: 3, color: '#886bfeff' },
-                    { name: 'Close Won', orderIndex: 4, color: '#62ffb6ff' },
-                    { name: 'Close Lost', orderIndex: 5, color: '#fe5757ff' },
-                    { name: 'Junk', orderIndex: 6, color: '#98a9c2ff' },
+                    { name: 'New', orderIndex: 1, color: '#ffae0bff', isSystem: true },
+                    { name: 'Contacted', orderIndex: 2, color: '#ff8800ff', isSystem: true },
+                    { name: 'Qualified', orderIndex: 3, color: '#886bfeff', isSystem: true },
+                    { name: 'Close Won', orderIndex: 4, color: '#62ffb6ff', isSystem: true },
+                    { name: 'Close Lost', orderIndex: 5, color: '#fe5757ff', isSystem: true },
+                    { name: 'Junk', orderIndex: 6, color: '#98a9c2ff', isSystem: true },
                 ]
             },
             fields: {
@@ -48,12 +48,12 @@ export function getDefaultBlueprintData(mod) {
         return {
             stages: {
                 create: [
-                    { name: 'Qualification', orderIndex: 1, color: '#3b82f6' },
-                    { name: 'Contacted', orderIndex: 2, color: '#eab308' },
-                    { name: 'Proposal', orderIndex: 3, color: '#8b5cf6' },
-                    { name: 'Negotiation', orderIndex: 4, color: '#ec4899' },
-                    { name: 'Close Won', orderIndex: 5, color: '#10b981' },
-                    { name: 'Close Lost', orderIndex: 6, color: '#ef4444' },
+                    { name: 'Qualification', orderIndex: 1, color: '#3b82f6', isSystem: true },
+                    { name: 'Contacted', orderIndex: 2, color: '#eab308', isSystem: true },
+                    { name: 'Proposal', orderIndex: 3, color: '#8b5cf6', isSystem: true },
+                    { name: 'Negotiation', orderIndex: 4, color: '#ec4899', isSystem: true },
+                    { name: 'Close Won', orderIndex: 5, color: '#10b981', isSystem: true },
+                    { name: 'Close Lost', orderIndex: 6, color: '#ef4444', isSystem: true },
                 ]
             },
             fields: {
@@ -113,8 +113,8 @@ export function getDefaultBlueprintData(mod) {
         return {
             stages: {
                 create: [
-                    { name: 'Active', orderIndex: 1, color: '#a7f3d0' },
-                    { name: 'In-Active', orderIndex: 2, color: '#fca5a5' }
+                    { name: 'Active', orderIndex: 1, color: '#a7f3d0', isSystem: true },
+                    { name: 'In-Active', orderIndex: 2, color: '#fca5a5', isSystem: true }
                 ]
             },
             fields: {
@@ -167,9 +167,9 @@ export function getDefaultBlueprintData(mod) {
         return {
             stages: {
                 create: [
-                    { name: 'Pending', orderIndex: 1, color: '#fde68a' },
-                    { name: 'Overdue', orderIndex: 2, color: '#fca5a5' },
-                    { name: 'Completed', orderIndex: 3, color: '#a7f3d0' }
+                    { name: 'Pending', orderIndex: 1, color: '#fde68a', isSystem: true },
+                    { name: 'Overdue', orderIndex: 2, color: '#fca5a5', isSystem: true },
+                    { name: 'Completed', orderIndex: 3, color: '#a7f3d0', isSystem: true }
                 ]
             },
             fields: {

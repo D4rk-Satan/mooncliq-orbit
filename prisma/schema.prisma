@@ -125,6 +125,7 @@ model Stage {
   orderIndex     Int
   requiredFields String[] // Array of field names required to enter this stage
   color          String?
+  isSystem       Boolean  @default(false) 
 
   blueprint Blueprint @relation(fields: [blueprintId], references: [id])
   leads     Lead[]

@@ -11,7 +11,7 @@ export async function POST(request) {
       where: { blueprintId },
       orderBy: { orderIndex: 'desc' }
     });
-    
+
     const nextOrder = lastStage ? lastStage.orderIndex + 1 : 1;
 
     const newStage = await prisma.stage.create({
@@ -40,14 +40,25 @@ export async function DELETE(request) {
       return NextResponse.json({ error: "Stage ID is required" }, { status: 400 });
     }
 
+    // Security Check: Prevent deleting system-locked stages
+    const stageToDelete = await prisma.stage.findUnique({ where: { id } });
+    if (!stageToDelete) {
+      return NextResponse.json({ error: "Stage not found" }, { status: 404 });
+    }
+
+    if (stageToDelete.isSystem) {
+      return NextResponse.json({ error: "System-locked stages cannot be deleted." }, { status: 403 });
+    }
+
+
     // Check if there are leads in this stage before deleting
     const leadsInStage = await prisma.lead.count({
       where: { stageId: id }
     });
 
     if (leadsInStage > 0) {
-      return NextResponse.json({ 
-        error: "Cannot delete stage because there are leads currently in it." 
+      return NextResponse.json({
+        error: "Cannot delete stage because there are leads currently in it."
       }, { status: 400 });
     }
 
