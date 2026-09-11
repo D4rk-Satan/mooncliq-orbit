@@ -71,6 +71,7 @@ if (event === 'Created') {
   useEffect(() => {
     if (monaco) {
       const provider = monaco.languages.registerCompletionItemProvider('javascript', {
+        triggerCharacters: ['.', "'", '"', '('],
         provideCompletionItems: (model, position) => {
           const word = model.getWordUntilPosition(position);
           const range = {
@@ -133,15 +134,20 @@ if (event === 'Created') {
               )
           }
           
-          // Case 4: Field name suggestions inside quotes
+          // Case 4: Field name suggestions inside FormAPI methods
           const textUntilPosition = lineContent.substring(0, position.column - 1);
-          const inQuotes = (textUntilPosition.match(/['"]/g) || []).length % 2 === 1;
           
-          if (inQuotes && moduleFields.length > 0) {
+          // Match FormAPI methods that take a field name as the first argument
+          const isFieldMethod = /FormAPI\.(getValue|setValue|hideField|showField|setMandatory|showFieldError|setReadOnly)\(['"]?[^'"]*$/.test(textUntilPosition);
+          
+          if (isFieldMethod && moduleFields.length > 0) {
+              // If the user already typed a quote, don't insert another quote
+              const hasQuote = /['"]$/.test(textUntilPosition);
+              
               suggestions.push(...moduleFields.map(f => ({
                 label: f,
                 kind: monaco.languages.CompletionItemKind.Field,
-                insertText: f,
+                insertText: hasQuote ? f : `'${f}'`,
                 documentation: `Field name: ${f}`,
                 range: range
               })));
@@ -499,7 +505,8 @@ if (event === 'Created') {
               options={{
                 minimap: { enabled: false },
                 fontSize: 14,
-                wordWrap: 'on'
+                wordWrap: 'on',
+                fixedOverflowWidgets: true
               }}
             />
           </div>
@@ -552,39 +559,49 @@ if (event === 'Created') {
           </button>
         </div>
       ) : (
-        <div style={{ display: 'grid', gap: '1rem' }}>
-          {scripts.map(script => (
-            <div key={script.id} style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-                  <span style={{ fontSize: '1.25rem' }}>
-                      {script.scriptType === 'backend' ? '☁️' : '💻'}
-                  </span>
-                  <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 600 }}>{script.name}</h3>
-                  <span style={{ padding: '0.125rem 0.5rem', backgroundColor: script.isActive ? '#dcfce7' : '#f1f5f9', color: script.isActive ? '#166534' : '#475569', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 500 }}>
-                    {script.isActive ? 'Active' : 'Inactive'}
-                  </span>
-                  <span style={{ padding: '0.125rem 0.5rem', backgroundColor: '#e0e7ff', color: '#3730a3', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 500 }}>
+        <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', backgroundColor: 'white' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+              <tr>
+                <th style={{ padding: '1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Script Name</th>
+                <th style={{ padding: '1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Module</th>
+                <th style={{ padding: '1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Type</th>
+                <th style={{ padding: '1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Trigger Event</th>
+                <th style={{ padding: '1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Status</th>
+                <th style={{ padding: '1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600, textAlign: 'right' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {scripts.map(script => (
+                <tr key={script.id} style={{ borderBottom: '1px solid #e2e8f0', transition: 'background-color 0.2s' }} onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
+                  <td style={{ padding: '1rem', color: '#4f46e5', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => setSelectedScript(script)}>
+                    {script.scriptType === 'backend' ? '☁️ ' : '💻 '} {script.name}
+                  </td>
+                  <td style={{ padding: '1rem', color: '#64748b', fontSize: '0.9rem' }}>
                     {script.moduleType}
-                  </span>
-                  <span style={{ padding: '0.125rem 0.5rem', backgroundColor: script.scriptType === 'backend' ? '#ffedd5' : '#e0f2fe', color: script.scriptType === 'backend' ? '#9a3412' : '#0369a1', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 500 }}>
-                    {script.scriptType === 'backend' ? 'Backend' : 'Frontend'}
-                  </span>
-                </div>
-                <p style={{ margin: 0, fontSize: '0.875rem', color: '#64748b', display: 'flex', gap: '0.5rem' }}>
-                  Trigger: <strong>
-                  {script.scriptType === 'backend' ? 
-                     `${script.recordEvent} / ${script.triggerCategory} - ${script.triggerEvent}`
-                     : script.triggerEvent}
-                  </strong> {script.targetField ? `(${script.targetField})` : ''}
-                </p>
-              </div>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button className="btn-outline" onClick={() => setSelectedScript(script)}>Edit</button>
-                <button className="btn-outline" style={{ color: '#ef4444', borderColor: '#fee2e2' }} onClick={() => handleDelete(script)}>Delete</button>
-              </div>
-            </div>
-          ))}
+                  </td>
+                  <td style={{ padding: '1rem', color: '#64748b', fontSize: '0.9rem' }}>
+                    <span style={{ padding: '0.25rem 0.5rem', backgroundColor: script.scriptType === 'backend' ? '#ffedd5' : '#e0f2fe', color: script.scriptType === 'backend' ? '#9a3412' : '#0369a1', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 500 }}>
+                      {script.scriptType === 'backend' ? 'Backend' : 'Frontend'}
+                    </span>
+                  </td>
+                  <td style={{ padding: '1rem', color: '#64748b', fontSize: '0.9rem' }}>
+                    {script.scriptType === 'backend' ? 
+                       `${script.recordEvent} / ${script.triggerCategory}`
+                       : script.triggerEvent} {script.targetField ? `(${script.targetField})` : ''}
+                  </td>
+                  <td style={{ padding: '1rem', textAlign: 'left' }}>
+                    <div style={{ position: 'relative', width: '36px', height: '20px', backgroundColor: script.isActive ? '#10b981' : '#cbd5e1', borderRadius: '10px' }}>
+                      <div style={{ position: 'absolute', top: '2px', left: script.isActive ? '18px' : '2px', width: '16px', height: '16px', backgroundColor: 'white', borderRadius: '50%' }}></div>
+                    </div>
+                  </td>
+                  <td style={{ padding: '1rem', textAlign: 'right' }}>
+                    <button className="btn-outline" style={{ color: '#ef4444', borderColor: '#fee2e2', padding: '0.25rem 0.75rem', fontSize: '0.8rem' }} onClick={() => handleDelete(script)}>Delete</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

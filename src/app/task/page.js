@@ -3,6 +3,9 @@
 import React, { useState, useEffect } from "react";
 import Sidebar from "../../components/Sidebar";
 import DynamicIntakeForm from "@/components/DynamicIntakeForm";
+import dynamic from "next/dynamic";
+const TaskIntakeForm = dynamic(() => import("@/components/TaskIntakeForm"), { ssr: false });
+
 import SlideOverPanel from "../../components/SlideOverPanel";
 import { useRouter } from "next/navigation";
 import TableSkeleton from "../../components/skeletons/TableSkeleton";
@@ -169,6 +172,14 @@ export default function TaskPage() {
         onClose={() => setIsFormOpen(false)}
         onSave={handleAddTask}
       />
+
+
+      {/* {isFormOpen && <TaskIntakeForm
+        blueprint={blueprint}
+        isOpen={isFormOpen}
+        onClose={() => setIsFormOpen(false)}
+        onSave={handleAddTask}
+      />} */}
 
       <SlideOverPanel
         isOpen={!!selectedTask}

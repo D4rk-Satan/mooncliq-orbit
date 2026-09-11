@@ -6,355 +6,275 @@ datasource db {
   provider = "postgresql"
 }
 
-// ------------------------------------------------------------------
-// PHASE 0: Multi-Tenant Foundation
-// ------------------------------------------------------------------
 model Organization {
-  id        String   @id @default(uuid())
-  name      String
-  createdAt DateTime @default(now())
-
-  users       User[]
-  blueprints  Blueprint[]
-  leads       Lead[]
-  auditLogs   AuditLog[]
-  tags        Tag[]
-  accounts    Account[]
-  products    Product[]
-  tasks       Task[]
-  deals       Deal[]
-  profiles    Profile[]
-  workflowRules WorkflowRule[]
-  invitations Invitation[]
-  clientScripts ClientScript[]
-  walletTransactions WalletTransaction[]
-  campaigns   Campaign[]
-  chatMessages ChatMessage[]
-
-  walletBalance Float @default(0)
-
-  // Meta WhatsApp API Credentials
+  id                    String              @id @default(uuid())
+  name                  String
+  createdAt             DateTime            @default(now())
+  walletBalance         Float               @default(0)
   whatsappAccessToken   String?
   whatsappPhoneNumberId String?
   whatsappWabaId        String?
+  accounts              Account[]
+  auditLogs             AuditLog[]
+  blueprints            Blueprint[]
+  campaigns             Campaign[]
+  chatMessages          ChatMessage[]
+  clientScripts         ClientScript[]
+  deals                 Deal[]
+  invitations           Invitation[]
+  leads                 Lead[]
+  products              Product[]
+  profiles              Profile[]
+  tags                  Tag[]
+  tasks                 Task[]
+  users                 User[]
+  walletTransactions    WalletTransaction[]
+  workflowRules         WorkflowRule[]
 }
 
-// ------------------------------------------------------------------
-// PHASE 0.5: RBAC (Role-Based Access Control)
-// ------------------------------------------------------------------
 model Profile {
-  id             String @id @default(uuid())
-  organizationId String
-  name           String // e.g. "Admin", "Sales Rep"
-
-  // High-Level Toggles
-  canAccessSettings Boolean @default(false)
-  canManageUsers    Boolean @default(false)
-  canExportData     Boolean @default(false)
-
-  // Module Level Permissions
-  permissions Json // e.g. { "Lead": { read: true, create: true, update: true, delete: false } }
-
-  organization Organization @relation(fields: [organizationId], references: [id])
-  users        User[]
-  invitations  Invitation[]
+  id                String       @id @default(uuid())
+  organizationId    String
+  name              String
+  canAccessSettings Boolean      @default(false)
+  canManageUsers    Boolean      @default(false)
+  canExportData     Boolean      @default(false)
+  permissions       Json
+  invitations       Invitation[]
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  users             User[]
 }
 
 model User {
-  id             String   @id // AWS Cognito User ID
-  email          String   @unique
+  id             String       @id
+  email          String       @unique
   organizationId String
+  createdAt      DateTime     @default(now())
   profileId      String?
-  isActive       Boolean  @default(true) // For revoking access
-  createdAt      DateTime @default(now())
-
-  organization Organization @relation(fields: [organizationId], references: [id])
-  profile      Profile?     @relation(fields: [profileId], references: [id])
+  isActive       Boolean      @default(true)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  profile        Profile?     @relation(fields: [profileId], references: [id], onDelete: Cascade)
 }
 
 model Invitation {
-  id             String   @id @default(uuid())
+  id             String       @id @default(uuid())
   email          String
-  token          String   @unique
+  token          String       @unique
   organizationId String
-  profileId      String // The RBAC role they will get
-  status         String   @default("PENDING") // PENDING, ACCEPTED, EXPIRED
+  profileId      String
+  status         String       @default("PENDING")
   expiresAt      DateTime
-  createdAt      DateTime @default(now())
-
-  organization Organization @relation(fields: [organizationId], references: [id])
-  profile      Profile      @relation(fields: [profileId], references: [id])
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  profile        Profile      @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
   @@unique([email, organizationId])
 }
 
-// ------------------------------------------------------------------
-// PHASE 1: The Blueprint Contract (Config)
-// ------------------------------------------------------------------
 model Blueprint {
-  id             String @id @default(uuid())
+  id             String       @id @default(uuid())
   organizationId String
-  moduleType     String // e.g., "Lead", "Deal", "Ticket"
-  version        Int    @default(1)
-  name           String @default("Default Pipeline")
-  targetField    String   @default("")
+  moduleType     String
+  version        Int          @default(1)
+  name           String       @default("Default Pipeline")
+  layoutConfig   Json?
+  isActive       Boolean      @default(true)
+  updatedAt      DateTime     @default(now()) @updatedAt
   entryCriteria  Json?
-  executionOrder Int      @default(0)
-
-  stages      Stage[]
-  transitions Transition[]
-  fields      Field[]
-  leads       Lead[]
-  accounts    Account[]
-  products    Product[]
-  tasks       Task[]
-  deals       Deal[]
-
-  layoutConfig Json? // Array of { id: string, name: string, columns: 1|2|3, order: number }
-
-  isActive       Boolean  @default(true)
-  updatedAt      DateTime @updatedAt @default(now())
-
-  organization Organization @relation(fields: [organizationId], references: [id])
+  executionOrder Int          @default(0)
+  targetField    String       @default("")
+  accounts       Account[]
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  deals          Deal[]
+  fields         Field[]
+  leads          Lead[]
+  products       Product[]
+  stages         Stage[]
+  tasks          Task[]
+  transitions    Transition[]
 }
 
 model Stage {
-  id             String   @id @default(uuid())
-  blueprintId    String
-  name           String // e.g., "New", "Contacted"
-  orderIndex     Int
-  requiredFields String[] // Array of field names required to enter this stage
-  color          String?
-  isSystem       Boolean  @default(false) 
-
-  blueprint Blueprint @relation(fields: [blueprintId], references: [id])
-  leads     Lead[]
-  accounts  Account[]
-  products  Product[]
-  tasks     Task[]
-  deals     Deal[]
-
-  outgoingTransitions Transition[] @relation("FromStages")
+  id                  String       @id @default(uuid())
+  blueprintId         String
+  name                String
+  orderIndex          Int
+  requiredFields      String[]
+  color               String?
+  isSystem            Boolean      @default(false)
+  accounts            Account[]
+  deals               Deal[]
+  leads               Lead[]
+  products            Product[]
+  blueprint           Blueprint    @relation(fields: [blueprintId], references: [id], onDelete: Cascade)
+  tasks               Task[]
   incomingTransitions Transition[] @relation("ToStage")
+  outgoingTransitions Transition[] @relation("FromStages")
 }
 
 model Field {
-  id          String   @id @default(uuid())
-  blueprintId String
-  name        String // JSON key, e.g., "industry"
-  label       String // Display name, e.g., "Industry"
-  type        String // "text", "number", "select", "currency", "lookup"
-  options     String[] // Dropdown options
-  isRequired  Boolean  @default(false)
-  orderIndex  Int
-
-  // Lookup specific fields
+  id                 String    @id @default(uuid())
+  blueprintId        String
+  name               String
+  label              String
+  type               String
+  options            String[]
+  isRequired         Boolean   @default(false)
+  orderIndex         Int
+  isBiDirectional    Boolean   @default(false)
+  isMultiSelect      Boolean   @default(false)
   targetModule       String?
-  targetDisplayField String?
-  isMultiSelect      Boolean @default(false)
-  isBiDirectional    Boolean @default(false)
-  relatedListLabel   String?
-  isPublic           Boolean @default(true)
-  filters            Json?
   mappings           Json?
+  targetDisplayField String?
+  filters            Json?
+  isPublic           Boolean   @default(true)
+  relatedListLabel   String?
   subformFields      Json?
-
-  // Layout Builder & Section Support
-  sectionName        String  @default("General Information")
-  sectionOrder       Int     @default(0)
-  isSystemField      Boolean @default(false)
-  isHidden           Boolean @default(false)
-
-  blueprint Blueprint @relation(fields: [blueprintId], references: [id])
+  isHidden           Boolean   @default(false)
+  isSystemField      Boolean   @default(false)
+  sectionName        String    @default("General Information")
+  sectionOrder       Int       @default(0)
+  blueprint          Blueprint @relation(fields: [blueprintId], references: [id], onDelete: Cascade)
 }
 
 model Transition {
-  id              String    @id @default(uuid())
-  blueprintId     String
-  name            String // e.g., "Qualify Lead" or "Move to Trash"
-  fromStages      Stage[]   @relation("FromStages")
-  toStageId       String
-  requiredFields  String[] // Fields required to execute this transition
-  necessaryFields String[] // High-friction security checkpoint fields
-  visibleFields   String[] //  Fields shown on transition, but not mandatory
-  blueprint       Blueprint @relation(fields: [blueprintId], references: [id])
-  toStage         Stage     @relation("ToStage", fields: [toStageId], references: [id], onDelete: Cascade)
-  isGlobal        Boolean   @default(false)
-
-  // Advanced Workflow Controls
-  executionCriteria Json? // { type: 'all' | 'matching', conditions: [] }
-  customMessage     String?
+  id                String    @id @default(uuid())
+  blueprintId       String
+  name              String
+  toStageId         String
+  requiredFields    String[]
+  necessaryFields   String[]
+  isGlobal          Boolean   @default(false)
+  afterActions      Json?
   checklists        String[]
-  afterActions      Json? // { emails: [], webhooks: [], etc. }
+  customMessage     String?
+  executionCriteria Json?
+  visibleFields     String[]
+  blueprint         Blueprint @relation(fields: [blueprintId], references: [id], onDelete: Cascade)
+  toStage           Stage     @relation("ToStage", fields: [toStageId], references: [id], onDelete: Cascade)
+  fromStages        Stage[]   @relation("FromStages")
 }
 
-// ------------------------------------------------------------------
-// PHASE 2: The Data & Audit Layer
-// ------------------------------------------------------------------
 model Lead {
-  id             String @id @default(uuid())
-  organizationId String
-  blueprintId    String
-  stageId        String // Dropdown (New / Contacted / Qualified / Close Won / Close Lost / Junk)
-
-  // 1. Identification
-  fullName      String? // (Mandatory UI par hoga, abhi DB me optional rakh rahe hain migration tak)
-  firstName     String? // (Old: Delete later)
-  lastName      String? // (Old: Delete later)
-  companyName   String?
-  
-  // Address Block
-  street        String?
-  city          String?
-  state         String?
-  country       String?
-  zipCode       String?
-
-  // 2. Contact
-  email          String?
-  phone          String?
-  alternatePhone String?
-
-  // 3. Classification & Sales Process
-  owner            String? // (Login User Default)
-  leadSource       String? // (Website / Referral / Campaign / Cold Call / Event / Other)
-  priority         String? // (Low / Medium / High)
+  id               String       @id @default(uuid())
+  organizationId   String
+  blueprintId      String
+  stageId          String
+  firstName        String?
+  lastName         String?
+  email            String?
+  phone            String?
+  owner            String?
+  customData       Json         @default("{}")
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  alternatePhone   String?
+  city             String?
+  companyName      String?
+  country          String?
+  fullName         String?
+  lastActivityDate DateTime?
+  lastModifiedById String?
+  leadSource       String?
   nextFollowUpDate DateTime?
-  notes            String? @db.Text // Long Text ke liye @db.Text lagana better hai
-
-  // 4. System Fields (Preview Screen Only)
-  createdAt        DateTime @default(now()) // (Created Date)
-  updatedAt        DateTime @updatedAt      // (Last Modified Date auto updates)
-  lastActivityDate DateTime? // (Update on calls/emails/notes)
-  lastModifiedById String?   // (User ID jisne last modify kiya)
-
-  // Dynamic payload for Custom Fields
-  customData Json  @default("{}")
-  tags       Tag[]
-
-  organization Organization @relation(fields: [organizationId], references: [id])
-  blueprint    Blueprint    @relation(fields: [blueprintId], references: [id])
-  stage        Stage        @relation(fields: [stageId], references: [id])
-  auditLogs    AuditLog[]
+  notes            String?
+  priority         String?
+  state            String?
+  street           String?
+  zipCode          String?
+  auditLogs        AuditLog[]
+  blueprint        Blueprint    @relation(fields: [blueprintId], references: [id], onDelete: Cascade)
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  stage            Stage        @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  tags             Tag[]        @relation("LeadToTag")
 }
 
 model AuditLog {
-  id             String   @id @default(uuid())
+  id             String       @id @default(uuid())
   organizationId String
   leadId         String
-  actionType     String // e.g., "LeadCreated", "StageMoved", "FieldUpdated"
-  details        Json // e.g., { fromStage: "New", toStage: "Contacted" }
-  createdAt      DateTime @default(now())
-
-  organization Organization @relation(fields: [organizationId], references: [id])
-  lead         Lead         @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  actionType     String
+  details        Json
+  createdAt      DateTime     @default(now())
+  lead           Lead         @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 }
 
 model Tag {
-  id             String   @id @default(uuid())
+  id             String       @id @default(uuid())
   organizationId String
-  moduleType     String   @default("Lead")
+  moduleType     String       @default("Lead")
   name           String
-  color          String   @default("#ef4444")
-  createdAt      DateTime @default(now())
-
-  organization Organization @relation(fields: [organizationId], references: [id])
-  leads        Lead[]
-  deals        Deal[]
+  color          String       @default("#ef4444")
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  deals          Deal[]       @relation("DealToTag")
+  leads          Lead[]       @relation("LeadToTag")
 }
 
 model Account {
-  id             String @id @default(uuid())
-  organizationId String
-  blueprintId    String
-  stageId        String
-
-  // ---------------- IDENTIFICATION ----------------
-  accountName   String
-  industry      String?
-  website       String?
-
-  // ---------------- CONTACT ----------------
-  email           String?
-  primaryContact  String?
-  billingAddress  String?
-  shippingAddress String?
-  contactPerson   String? 
-
-  // ---------------- BUSINESS DETAILS ----------------
-  teamSize      Int?
-  annualRevenue Float?
-  taxId         String?
-  paymentTerms  String?
-
-  // ---------------- RELATIONSHIP & OWNERSHIP ----------------
-  status        String   @default("Active")
-  owner         String?
-  parentAccount String?
-  relatedDeals  String?
-  relatedLeads  String?
-
-  // ---------------- SYSTEM FIELDS ----------------
+  id               String       @id @default(uuid())
+  organizationId   String
+  blueprintId      String
+  stageId          String
+  email            String?
+  website          String?
+  contactPerson    String?
+  customData       Json         @default("{}")
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  accountName      String
+  annualRevenue    Float?
+  billingAddress   String?
+  industry         String?
   lastActivityDate DateTime?
   lastModifiedById String?
-
-  // Dynamic payload for custom fields
-  customData Json @default("{}")
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  organization Organization @relation(fields: [organizationId], references: [id])
-  blueprint    Blueprint    @relation(fields: [blueprintId], references: [id])
-  stage        Stage        @relation(fields: [stageId], references: [id])
+  owner            String?
+  parentAccount    String?
+  paymentTerms     String?
+  primaryContact   String?
+  relatedDeals     String?
+  relatedLeads     String?
+  shippingAddress  String?
+  status           String       @default("Active")
+  taxId            String?
+  teamSize         Int?
+  blueprint        Blueprint    @relation(fields: [blueprintId], references: [id], onDelete: Cascade)
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  stage            Stage        @relation(fields: [stageId], references: [id], onDelete: Cascade)
 }
 
-
 model Product {
-  id             String @id @default(uuid())
-  organizationId String
-  blueprintId    String
-  stageId        String
-
-  // Default/Standard Fields
+  id               String       @id @default(uuid())
+  organizationId   String
+  blueprintId      String
+  stageId          String
   name             String
-  sku              String?   // SKU ko optional kar diya gaya hai
-  
-  // --- NAYE FIELDS YAHAN SE ADD KIYE HAIN ---
+  sku              String?
+  customData       Json         @default("{}")
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
   category         String?
-  description      String?
-  status           String    @default("Active")
-  unitPrice        Float?
   costPrice        Float?
-  totalRevenue     Float?
-  images           Json?     // S3 links ki array save karne ke liye
-  // ------------------------------------------
-
-  // Dynamic payload for custom fields
-  customData Json @default("{}")
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  description      String?
+  images           Json?
   lastActivityDate DateTime?
   lastModifiedById String?
+  status           String       @default("Active")
+  totalRevenue     Float?
+  unitPrice        Float?
+  blueprint        Blueprint    @relation(fields: [blueprintId], references: [id], onDelete: Cascade)
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  stage            Stage        @relation(fields: [stageId], references: [id], onDelete: Cascade)
 
-  // Relations
-  organization Organization @relation(fields: [organizationId], references: [id])
-  blueprint    Blueprint    @relation(fields: [blueprintId], references: [id])
-  stage        Stage        @relation(fields: [stageId], references: [id])
-
-  // Isse DB level par assure hoga ki ek company me do products ka same SKU nahi ho sakta
   @@unique([organizationId, sku])
 }
 
 model Task {
-  id             String @id @default(uuid())
-  organizationId String
-  blueprintId    String
-  stageId        String
-
-  // Default/Standard Fields
+  id               String       @id @default(uuid())
+  organizationId   String
+  blueprintId      String
+  stageId          String
   taskName         String
   startDateTime    DateTime?
   dueDateTime      DateTime?
@@ -362,119 +282,88 @@ model Task {
   repeat           String?
   alert            String?
   notes            String?
+  customData       Json         @default("{}")
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
   owner            String?
-  
-  // --- NAYE FIELDS YAHAN SE ADD KIYE HAIN ---
-  priority         String?
-  taskType         String?
   assignedBy       String?
-  relatedModule    String?
-  relatedRecordId  String?
-  taskAutomation   String?
   completionSource String?
   lastActivityDate DateTime?
   lastModifiedById String?
-  // ------------------------------------------
-
-  // Dynamic payload for custom fields
-  customData Json @default("{}")
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  organization Organization @relation(fields: [organizationId], references: [id])
-  blueprint    Blueprint    @relation(fields: [blueprintId], references: [id])
-  stage        Stage        @relation(fields: [stageId], references: [id])
+  priority         String?
+  relatedModule    String?
+  relatedRecordId  String?
+  taskAutomation   String?
+  taskType         String?
+  blueprint        Blueprint    @relation(fields: [blueprintId], references: [id], onDelete: Cascade)
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  stage            Stage        @relation(fields: [stageId], references: [id], onDelete: Cascade)
 }
-
 
 model Deal {
-  id             String @id @default(uuid())
-  organizationId String
-  blueprintId    String
-  stageId        String
-
-  // 1. Identification
-  dealName          String?
-  companyName       String?
-  address           String?
-  convertedFromLead String?
-
-  // 2. Contact
+  id                String       @id @default(uuid())
+  organizationId    String
+  blueprintId       String
+  stageId           String
   email             String?
-  primaryContact    String?
-  alternatePhone    String?
-
-  // 3. Financials
-  dealValue         Float?      
-  probability       Float?      
-  weightedValue     Float?      
-  expectedCloseDate DateTime?   
-  actualCloseDate   DateTime?   
-
-  // 4. Sales Process
   owner             String?
+  customData        Json         @default("{}")
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  actualCloseDate   DateTime?
+  address           String?
+  alternatePhone    String?
+  companyName       String?
+  convertedFromLead String?
+  dealName          String?
   dealSource        String?
-  priority          String?
-  nextStep          String?
-  nextFollowUpDate  DateTime?   
-  lossReason        String?
-  products          Json?
-  notes             String?
-
-  // 5. System Fields
+  dealValue         Float?
+  expectedCloseDate DateTime?
   lastActivityDate  DateTime?
-  lastModifiedById  String?     
-
-  // Dynamic payload
-  customData Json  @default("{}")
-  tags       Tag[]
-
-  createdAt DateTime @default(now()) 
-  updatedAt DateTime @updatedAt      
-
-  organization Organization @relation(fields: [organizationId], references: [id])
-  blueprint    Blueprint    @relation(fields: [blueprintId], references: [id])
-  stage        Stage        @relation(fields: [stageId], references: [id])
+  lossReason        String?
+  nextFollowUpDate  DateTime?
+  nextStep          String?
+  notes             String?
+  primaryContact    String?
+  priority          String?
+  probability       Float?
+  products          Json?
+  weightedValue     Float?
+  lastModifiedById  String?
+  blueprint         Blueprint    @relation(fields: [blueprintId], references: [id], onDelete: Cascade)
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  stage             Stage        @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  tags              Tag[]        @relation("DealToTag")
 }
 
-
 model WorkflowRule {
-  id             String   @id @default(uuid())
-  organizationId String
-  moduleType     String
-  name           String
-  recordEvent    String
+  id              String       @id @default(uuid())
+  organizationId  String
+  moduleType      String
+  name            String
+  recordEvent     String
   triggerCategory String
   triggerEvent    String
   targetFields    String[]
   code            String
-  isActive        Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  organization   Organization @relation(fields: [organizationId], references: [id])
+  isActive        Boolean      @default(true)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 }
 
 model ClientScript {
-  id            String   @id @default(uuid())
+  id             String       @id @default(uuid())
   organizationId String
-  name          String
-  moduleType    String   // e.g., "Lead", "Deal", "Product"
-  triggerEvent  String   // "onLoad", "onChange", "onSave"
-  targetField   String?  // Only populated if triggerEvent is "onChange"
-  code          String   // The JavaScript code
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  organization   Organization @relation(fields: [organizationId], references: [id])
-}
-
-enum TransactionType {
-  CREDIT
-  DEBIT
+  name           String
+  moduleType     String
+  triggerEvent   String
+  targetField    String?
+  code           String
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 }
 
 model WalletTransaction {
@@ -485,41 +374,40 @@ model WalletTransaction {
   description    String
   referenceId    String?
   createdAt      DateTime        @default(now())
-
-  organization   Organization @relation(fields: [organizationId], references: [id])
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 }
 
-// ------------------------------------------------------------------
-// PHASE 2.2b: SQS Bulk Campaign Engine
-// ------------------------------------------------------------------
 model Campaign {
-  id             String   @id @default(uuid())
+  id             String       @id @default(uuid())
   organizationId String
   name           String
-  status         String   @default("DRAFT") // DRAFT, PROCESSING, COMPLETED
-  estimatedCost  Float    @default(0)
-  totalLeads     Int      @default(0)
-  successCount   Int      @default(0)
-  failedCount    Int      @default(0)
+  status         String       @default("DRAFT")
+  estimatedCost  Float        @default(0)
+  totalLeads     Int          @default(0)
+  successCount   Int          @default(0)
+  failedCount    Int          @default(0)
   templateBody   String
-  targetStageId  String?  // If they targeted a specific stage
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  organization   Organization @relation(fields: [organizationId], references: [id])
+  targetStageId  String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 }
 
 model ChatMessage {
-  id             String   @id @default(uuid())
+  id             String       @id @default(uuid())
   organizationId String
-  direction      String   // OUTBOUND or INBOUND
+  direction      String
   toPhone        String
   fromPhone      String?
   body           String
-  status         String   // SENT, DELIVERED, READ, FAILED
-  cost           Float    @default(0)
-  campaignId     String?  // Null if it was a 1-on-1 manual message
-  createdAt      DateTime @default(now())
+  status         String
+  cost           Float        @default(0)
+  campaignId     String?
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
 
-  organization   Organization @relation(fields: [organizationId], references: [id])
+enum TransactionType {
+  CREDIT
+  DEBIT
 }

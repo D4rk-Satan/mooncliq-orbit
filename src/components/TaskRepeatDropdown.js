@@ -16,20 +16,25 @@ export default function TaskRepeatDropdown({ field, value, onChange }) {
   ];
 
   const handleSelectChange = (e) => {
+    console.log(e.target.value); // Naya Alert Yahan
+
     const val = e.target.value;
     if (val === 'CUSTOM') {
+      onChange('CUSTOM');
       setShowModal(true);
     } else {
       onChange(val);
+      setShowModal(false); // Agar dusra option chuna toh modal band ho jaye
     }
   };
+
 
   const handleCustomSave = () => {
     let freq = 'DAILY';
     if (customFreq === 'Weekly') freq = 'WEEKLY';
     if (customFreq === 'Monthly') freq = 'MONTHLY';
     if (customFreq === 'Yearly') freq = 'YEARLY';
-    
+
     onChange(`FREQ=${freq};INTERVAL=${customInterval}`);
     setShowModal(false);
   };
@@ -38,11 +43,12 @@ export default function TaskRepeatDropdown({ field, value, onChange }) {
   const displayValue = isPredefined ? value : (value ? 'CUSTOM' : '');
 
   return (
-    <div className="form-group">
+    <div className="form-group" style={{ position: 'relative' }}>
+
       <label className="form-label" htmlFor={field.name}>
         {field.label} {field.isRequired && <span className="text-red-500">*</span>}
       </label>
-      
+
       <select
         id={field.name}
         className="form-input bg-white"
@@ -61,26 +67,13 @@ export default function TaskRepeatDropdown({ field, value, onChange }) {
           Custom rule: {value}
         </div>
       )}
-
       {showModal && (
-        <div style={{ marginTop: '10px', padding: '12px', border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: '#f8fafc' }}>
-          <label style={{ fontSize: '13px', fontWeight: '500', color: '#475569', marginBottom: '8px', display: 'block' }}>Set Custom Recurrence</label>
-          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '12px' }}>
-            <span style={{ fontSize: '13px', alignSelf: 'center' }}>Repeat every</span>
-            <input 
-              type="number" 
-              min="1" 
-              className="form-input" 
-              style={{ width: '60px' }}
-              value={customInterval} 
-              onChange={e => setCustomInterval(e.target.value)} 
-            />
-            <select 
-              className="form-input bg-white" 
-              style={{ flex: 1 }}
-              value={customFreq} 
-              onChange={e => setCustomFreq(e.target.value)}
-            >
+        <div style={{ position: 'absolute', zIndex: 9999, top: '100%', left: 0, marginTop: '8px', backgroundColor: '#fff', border: '1px solid #cbd5e1', borderRadius: '12px', padding: '16px', width: '320px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)' }}>
+          <label style={{ fontSize: '14px', fontWeight: '600', color: '#1e293b', marginBottom: '12px', display: 'block' }}>Set Custom Recurrence</label>
+          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '16px' }}>
+            <span style={{ fontSize: '13px', alignSelf: 'center', color: '#475569' }}>Repeat every</span>
+            <input type="number" min="1" className="form-input" style={{ width: '70px', padding: '8px' }} value={customInterval} onChange={e => setCustomInterval(e.target.value)} />
+            <select className="form-input bg-white" style={{ flex: 1, padding: '8px' }} value={customFreq} onChange={e => setCustomFreq(e.target.value)}>
               <option value="Daily">day(s)</option>
               <option value="Weekly">week(s)</option>
               <option value="Monthly">month(s)</option>
@@ -88,11 +81,12 @@ export default function TaskRepeatDropdown({ field, value, onChange }) {
             </select>
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-            <button type="button" className="btn-outline" style={{ padding: '6px 12px', fontSize: '12px', minHeight: 'auto' }} onClick={() => setShowModal(false)}>Cancel</button>
-            <button type="button" className="btn-primary" style={{ padding: '6px 12px', fontSize: '12px', minHeight: 'auto' }} onClick={handleCustomSave}>Save Recurrence</button>
+            <button type="button" className="btn-outline" onClick={() => setShowModal(false)} style={{ padding: '6px 12px' }}>Cancel</button>
+            <button type="button" className="btn-primary" onClick={handleCustomSave} style={{ padding: '6px 16px' }}>Save</button>
           </div>
         </div>
       )}
+
     </div>
   );
 }

@@ -12,6 +12,8 @@ import ClientScriptBuilder from '../../components/ClientScriptBuilder';
 import WalletDashboard from '../../components/WalletDashboard';
 import FormSkeleton from "../../components/skeletons/FormSkeleton";
 import ConfirmModal from "../../components/ConfirmModal";
+import TaskAutomationBuilder from '../../components/TaskAutomationBuilder';
+
 
 
 const StartNode = ({ data }) => (
@@ -814,6 +816,9 @@ export default function SettingsPage() {
                     <button onClick={() => setCurrentView('client-scripts')} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
                       Custom Scripts
                     </button>
+                    <button onClick={() => setCurrentView('task-automation')} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
+                      Task Automation
+                    </button>
                   </div>
                 </div>
 
@@ -1055,6 +1060,11 @@ export default function SettingsPage() {
                 {/* CLIENT SCRIPTS TAB */}
                 {currentView === 'client-scripts' && (
                   <ClientScriptBuilder />
+                )}
+
+                {/* TASK AUTOMATION TAB */}
+                {currentView === 'task-automation' && (
+                  <TaskAutomationBuilder />
                 )}
 
                 {/* USERS TAB */}

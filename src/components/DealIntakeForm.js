@@ -79,7 +79,7 @@ export default function DealIntakeForm({ isOpen, onClose, onSave }) {
       if (type === 'email') {
         fieldValidation = z.string().email("Invalid email format").or(field.isRequired ? z.never() : z.literal('').or(z.undefined()));
       } else if (type === 'phone') {
-        fieldValidation = z.string().regex(/^[\d\+\-\(\)\s]*$/, "Invalid phone format").or(field.isRequired ? z.never() : z.literal('').or(z.undefined()));
+        fieldValidation = z.string().regex(/^(\+\d{1,3}[- ]?)?\d{10}$/, "Phone number must be exactly 10 digits").or(field.isRequired ? z.never() : z.literal('').or(z.undefined()));
       } else if (type === 'url' || type === 'website') {
         fieldValidation = z.string().url("Invalid URL format").or(field.isRequired ? z.never() : z.literal('').or(z.undefined()));
       } else if (type === 'number' || type === 'currency') {

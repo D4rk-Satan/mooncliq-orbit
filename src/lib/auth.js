@@ -31,11 +31,31 @@ export async function getAuthUser(request) {
       include: { organization: true, profile: true }
     });
 
+    // --- NAYA MIGRATION LOGIC YAHAN SE SHURU ---
+    if (!user && email) {
+      // Check if user exists by email (Migrated User Case)
+      const existingUserByEmail = await prisma.user.findUnique({
+        where: { email: email }
+      });
+
+      if (existingUserByEmail) {
+        // User migrated! Update their Cognito ID in database
+        user = await prisma.user.update({
+          where: { email: email },
+          data: { id: userId },
+          include: { organization: true, profile: true }
+        });
+      }
+    }
+    // --- NAYA MIGRATION LOGIC YAHAN KHATAM ---
+
+
+
     if (!user) {
       // Auto-provisioning!
       // 1. Create Organization
       const orgName = email ? `${email.split('@')[0]}'s Workspace` : 'My Workspace';
-      
+
       const newOrg = await prisma.organization.create({
         data: {
           name: orgName,

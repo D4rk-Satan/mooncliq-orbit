@@ -112,7 +112,7 @@ const EntityEditModal = ({ isOpen, onClose, entity, blueprint, onUpdate, current
       if (type === 'email') {
         fieldValidation = z.string().email("Sahi email daaliye").or(field.isRequired ? z.never() : z.literal('').or(z.undefined()));
       } else if (type === 'phone') {
-        fieldValidation = z.string().regex(/^[\d\+\-\(\)\s]*$/, "Sahi phone number daaliye").or(field.isRequired ? z.never() : z.literal('').or(z.undefined()));
+        fieldValidation = z.string().regex(/^(\+\d{1,3}[- ]?)?\d{10}$/, "Phone number exactly 10 digits ka hona chahiye").or(field.isRequired ? z.never() : z.literal('').or(z.undefined()));
       } else if (type === 'url' || type === 'website') {
         fieldValidation = z.string().url("Sahi URL daaliye").or(field.isRequired ? z.never() : z.literal('').or(z.undefined()));
       } else if (type === 'number' || type === 'currency') {

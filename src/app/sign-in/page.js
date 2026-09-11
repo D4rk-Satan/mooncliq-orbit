@@ -22,6 +22,9 @@ export default function SignIn() {
       const { isSignedIn } = await signIn({
         username: formData.email,
         password: formData.password,
+        options: {
+          authFlowType: 'USER_PASSWORD_AUTH'
+        }
       });
       
       if (isSignedIn) {

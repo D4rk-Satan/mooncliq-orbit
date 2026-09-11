@@ -1,6 +1,9 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import DynamicField from "./FieldRegistry";
 import useClientScripts from "@/hooks/useClientScripts";
 import FormSkeleton from "./skeletons/FormSkeleton";
@@ -40,6 +43,70 @@ export default function TaskIntakeForm({ blueprint, isOpen, onClose, onSave, tas
     blueprint: localBlueprint, setBlueprint
   });
 
+  const { visibleFields, orderedSections } = useMemo(() => {
+    if (!localBlueprint?.fields) return { visibleFields: [], orderedSections: [] };
+    const vf = localBlueprint.fields.filter(f => !f.isHidden && !scriptFieldStates?.[f.name]?.isHidden);
+
+    let os = [];
+    if (localBlueprint?.layoutConfig && Array.isArray(localBlueprint.layoutConfig) && localBlueprint.layoutConfig.length > 0) {
+      os = [...localBlueprint.layoutConfig].sort((a, b) => a.order - b.order);
+    } else {
+      const uniqueNames = [...new Set(vf.map(f => f.sectionName || 'Task Information'))];
+      os = uniqueNames.map(name => ({ name, columns: 3 }));
+    }
+    return { visibleFields: vf, orderedSections: os };
+  }, [localBlueprint, scriptFieldStates]);
+
+  const standardFields = [
+    "taskName", "startDateTime", "dueDateTime", "repeat", "alert", "notes", "owner", "stageId", "assignedBy", "priority", "relatedModule"
+  ];
+
+  const dynamicSchema = useMemo(() => {
+    let schemaObj = {};
+    let customDataSchema = {};
+
+    visibleFields.forEach(field => {
+      let fieldValidation = z.any().optional();
+      const type = field.type?.toLowerCase();
+
+      const alwaysRequired = ['taskName', 'owner', 'startDateTime', 'dueDateTime'];
+      const stateOverride = scriptFieldStates?.[field.name];
+      const isRequired = alwaysRequired.includes(field.name) || (stateOverride?.isRequired !== undefined ? stateOverride.isRequired : field.isRequired);
+
+      if (isRequired) {
+        fieldValidation = z.any().refine(val => val !== undefined && val !== null && String(val).trim() !== '', {
+          message: `${field.label || field.name} is required`
+        });
+      }
+
+      if (standardFields.includes(field.name)) {
+        schemaObj[field.name] = fieldValidation;
+      } else {
+        customDataSchema[field.name] = fieldValidation;
+      }
+    });
+
+    return z.object({
+      ...schemaObj,
+      customData: z.object(customDataSchema).optional()
+    }).refine((data) => {
+      if (data.startDateTime && data.dueDateTime) {
+        return new Date(data.dueDateTime) > new Date(data.startDateTime);
+      }
+      return true;
+    }, {
+      message: "Due Date must be greater than Start Date",
+      path: ["dueDateTime"]
+    });
+  }, [visibleFields, scriptFieldStates]);
+
+  // Hook Form Initialize kar rahe hain
+  const { control, handleSubmit, reset, formState: { errors } } = useForm({
+    resolver: zodResolver(dynamicSchema),
+    defaultValues: { ...standardData, customData: customData }
+  });
+
+
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
@@ -73,6 +140,7 @@ export default function TaskIntakeForm({ blueprint, isOpen, onClose, onSave, tas
 
         setStandardData(initialStd);
         setCustomData(initialCustom);
+        reset({ ...initialStd, customData: initialCustom });
       } else {
         setStandardData({
           taskName: "",
@@ -88,6 +156,8 @@ export default function TaskIntakeForm({ blueprint, isOpen, onClose, onSave, tas
           relatedModule: ""
         });
         setCustomData({});
+        reset({ taskName: "", startDateTime: "", dueDateTime: "", repeat: "", alert: "", notes: "", owner: "", stageId: localBlueprint?.stages?.[0]?.id || "", assignedBy: currentUserEmail, priority: "", relatedModule: "", customData: {} });
+
       }
     }
   }, [isOpen, taskData, localBlueprint, currentUserEmail]);
@@ -175,43 +245,42 @@ export default function TaskIntakeForm({ blueprint, isOpen, onClose, onSave, tas
     }
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const onFormSubmit = async (formData) => {
+    // Client script save logic
+    const canSave = await executeScript("onSave");
+    if (!canSave) return;
 
-    if (!standardData.taskName?.trim()) {
-      alert("Task Name is mandatory.");
-      return;
-    }
-    if (!standardData.owner) {
-      alert("Assign To (Owner) is mandatory.");
-      return;
-    }
-    if (!standardData.startDateTime) {
-      alert("Start Date & Time is mandatory.");
-      return;
-    }
-    if (!standardData.dueDateTime) {
-      alert("Due Date & Time is mandatory.");
-      return;
-    }
-    if (new Date(standardData.dueDateTime) <= new Date(standardData.startDateTime)) {
-      alert("Due Date & Time must be strictly greater than Start Date & Time.");
-      return;
-    }
+    let payloadData = { ...formData };
+    delete payloadData.customData;
 
-    let payloadData = { ...standardData };
-
+    // Date safai
     if (!payloadData.startDateTime) delete payloadData.startDateTime;
     if (!payloadData.dueDateTime) delete payloadData.dueDateTime;
 
     onSave({
       ...payloadData,
-      customData,
+      customData: formData.customData || {},
       blueprintId: localBlueprint?.id
     });
 
     onClose();
   };
+
+
+  {/* let payloadData = { ...standardData };
+
+  if (!payloadData.startDateTime) delete payloadData.startDateTime;
+  if (!payloadData.dueDateTime) delete payloadData.dueDateTime;
+
+  onSave({
+    ...payloadData,
+    customData,
+    blueprintId: localBlueprint?.id
+  });
+
+  onClose();
+};  
+*/}
 
   const toLocalISO = (isoString) => {
     if (!isoString) return "";
@@ -276,63 +345,57 @@ export default function TaskIntakeForm({ blueprint, isOpen, onClose, onSave, tas
                             isRequired: alwaysRequired.includes(field.name) || isRequiredByRule
                           };
 
-                          if (field.name === 'owner' || field.name === 'assignedBy') {
-                            return (
-                              <TaskUserDropdown
-                                key={field.id}
-                                field={modifiedField}
-                                value={standardData[field.name]}
-                                users={users}
-                                readOnly={field.name === 'assignedBy'} // assignedBy should be read-only if we just autofill it, or just allow change? The user said "usme by default jo user log in he uska naam autofill aayega". We'll allow them to change it if they want. So readOnly={false}
-                                onChange={(val) => handleFieldChange(field, field.name, val)}
-                              />
-                            );
-                          }
-
-                          if (field.name === 'repeat') {
-                            return (
-                              <TaskRepeatDropdown
-                                key={field.id}
-                                field={modifiedField}
-                                value={standardData.repeat}
-                                onChange={(val) => handleFieldChange(field, 'repeat', val)}
-                              />
-                            );
-                          }
-
-                          if (field.name === 'alert') {
-                            return (
-                              <TaskAlertDropdown
-                                key={field.id}
-                                field={modifiedField}
-                                value={standardData.alert}
-                                onChange={(val) => handleFieldChange(field, 'alert', val)}
-                              />
-                            );
-                          }
-
-
-                          if (field.name === 'stageId') {
-                            return (
-                              <TaskStageDropdown
-                                key={field.id}
-                                field={modifiedField}
-                                value={standardData.stageId}
-                                blueprint={localBlueprint}
-                                onChange={(val) => handleFieldChange(field, 'stageId', val)}
-                              />
-                            );
-                          }
+                          const fieldName = field.isSystemField ? field.name : `customData.${field.name}`;
 
                           return (
-                            <DynamicField
-                              formData={{ ...standardData, ...customData }}
+                            <Controller
                               key={field.id}
-                              field={modifiedField}
-                              value={field.isSystemField ? standardData[field.name] : customData[field.name]}
-                              onChange={(name, value, record, mappings) => handleFieldChange(field, name, value, record, mappings)}
+                              name={fieldName}
+                              control={control}
+                              render={({ field: controllerField }) => {
+                                const commonProps = {
+                                  field: modifiedField,
+                                  value: controllerField.value || '',
+                                  error: errors[field.name]?.message || (errors.customData && errors.customData[field.name]?.message),
+                                  onChange: (val, record, mappings) => {
+                                    controllerField.onChange(val);
+                                    handleFieldChange(field, field.isSystemField ? field.name : field.name, val, record, mappings);
+                                  }
+                                };
+
+                                console.log("Rendering Field:", field.name);
+                                const fName = field.name.toLowerCase();
+                                let fieldComponent = null;
+
+                                if (fName === 'owner' || fName === 'assignedby') {
+                                  fieldComponent = <TaskUserDropdown {...commonProps} users={users} readOnly={field.name === 'assignedBy'} onChange={(val) => commonProps.onChange(val)} />;
+                                } else if (fName === 'repeat') {
+                                  fieldComponent = <TaskRepeatDropdown {...commonProps} onChange={(val) => commonProps.onChange(val)} />;
+                                } else if (fName === 'alert') {
+                                  fieldComponent = <TaskAlertDropdown {...commonProps} onChange={(val) => commonProps.onChange(val)} />;
+                                } else if (fName === 'stageid') {
+                                  fieldComponent = <TaskStageDropdown {...commonProps} blueprint={localBlueprint} onChange={(val) => commonProps.onChange(val)} />;
+                                } else {
+                                  fieldComponent = (
+                                    <DynamicField
+                                      formData={{ ...standardData, ...customData }}
+                                      {...commonProps}
+                                      onChange={(name, value, record, mappings) => commonProps.onChange(value, record, mappings)}
+                                    />
+                                  );
+                                }
+
+
+                                return (
+                                  <div style={{ width: '100%', position: 'relative' }}>
+                                    {fieldComponent}
+                                    {commonProps.error && <span style={{ color: '#ef4444', fontSize: '0.75rem', position: 'absolute', bottom: '-18px', left: '4px' }}>{commonProps.error}</span>}
+                                  </div>
+                                );
+                              }}
                             />
                           );
+
                         })}
                       </div>
                     </div>

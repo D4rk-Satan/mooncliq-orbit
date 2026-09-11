@@ -4,6 +4,16 @@ import React, { useEffect, useState } from "react";
 import DynamicField from "./FieldRegistry";
 import useClientScripts from "@/hooks/useClientScripts";
 import FormSkeleton from "./skeletons/FormSkeleton";
+import { z } from "zod";
+
+const accountSchema = z.object({
+  companyName: z.string().min(1, "Company Name is required"),
+  email: z.string().email("Invalid email format").optional().or(z.literal('')),
+  gstNo: z.string().optional(),
+  website: z.string().url("Invalid website URL").optional().or(z.literal('')),
+  address: z.string().optional(),
+  contactPerson: z.string().optional(),
+});
 
 export default function AccountIntakeForm({ isOpen, onClose, onSave }) {
   const [blueprint, setBlueprint] = useState(null);
@@ -21,8 +31,9 @@ export default function AccountIntakeForm({ isOpen, onClose, onSave }) {
 
   // Dynamic fields
   const [customData, setCustomData] = useState({});
+  const [validationErrors, setValidationErrors] = useState({});
 
-  const { executeScript, standardFieldStates } = useClientScripts({
+  const { executeScript, standardFieldStates, fieldErrors } = useClientScripts({
     moduleType: "Account",
     standardData, setStandardData,
     customData, setCustomData,
@@ -94,8 +105,25 @@ export default function AccountIntakeForm({ isOpen, onClose, onSave }) {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setValidationErrors({});
+    
+    // Standard validation
+    const result = accountSchema.safeParse(standardData);
+    if (!result.success) {
+      const formattedErrors = {};
+      result.error.issues.forEach(issue => {
+        formattedErrors[issue.path[0]] = issue.message;
+      });
+      setValidationErrors(formattedErrors);
+      return;
+    }
+
+    // Custom script validation
+    const canSave = await executeScript("onSave");
+    if (!canSave) return;
+
     onSave({
       ...standardData,
       customData,
@@ -161,6 +189,7 @@ export default function AccountIntakeForm({ isOpen, onClose, onSave }) {
                               field={modifiedField}
                               value={field.isSystemField ? standardData[field.name] : customData[field.name]}
                               onChange={(name, value, record, mappings) => handleFieldChange(field, name, value, record, mappings)}
+                              error={validationErrors[field.name] || fieldErrors[field.name]}
                             />
                           );
                         })}

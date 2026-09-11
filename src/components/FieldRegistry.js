@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import imageCompression from 'browser-image-compression';
+import TaskRepeatDropdown from './TaskRepeatDropdown';
+import TaskAlertDropdown from './TaskAlertDropdown';
+
 
 // image upload field (Max 4 Images, Manual Upload)
 const ImageUploadInput = ({ field, value, onChange }) => {
@@ -452,7 +455,7 @@ const SubformInput = ({ field, value, onChange, formData }) => {
 
 // --- NAYA ADD KIYA: ADDRESS BLOCK COMPONENT ---
 const AddressInput = ({ field, value, onChange, formData }) => {
-  let address = { street: '', city: '', state: '', country: '', zip: '' };
+  let address = { street: '', city: '', state: '', country: 'India', zip: '' };
   try {
     if (typeof value === 'string' && value.startsWith('{')) {
       address = JSON.parse(value);
@@ -462,7 +465,22 @@ const AddressInput = ({ field, value, onChange, formData }) => {
   } catch (e) { }
 
   const handleChange = (key, val) => {
-    const newAddress = { ...address, [key]: val };
+    let newAddress = { ...address, [key]: val };
+
+    // --- Pincode Auto-fill Logic ---
+    if (key === 'zip' && val.length === 6) {
+      fetch('/pincodes.json')
+        .then(res => res.json())
+        .then(pincodeData => {
+          if (pincodeData[val]) {
+            newAddress.city = pincodeData[val].c;
+            newAddress.state = pincodeData[val].s;
+            onChange(field.name, JSON.stringify(newAddress));
+          }
+        })
+        .catch(err => console.error("Pincode load error", err));
+    }
+
     onChange(field.name, JSON.stringify(newAddress));
   };
 
@@ -478,32 +496,41 @@ const AddressInput = ({ field, value, onChange, formData }) => {
   };
 
   return (
-    <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+    <div className="form-group" style={{ marginBottom: '1.5rem', gridColumn: '1 / -1' }}>
       <label className="form-label">{field.label} {field.isRequired && <span style={{ color: '#ef4444' }}>*</span>}</label>
 
-      <div style={{ padding: '1rem', border: '1px solid #e2e8f0', borderRadius: '8px', background: '#f8fafc', display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.5rem' }}>
+      <div style={{ padding: '1.25rem', border: '1px solid #e2e8f0', borderRadius: '10px', background: '#f8fafc', display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.5rem', boxShadow: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.02)' }}>
 
-        {/* Magic Checkbox: Sirf Shipping Address wale field me dikhega */}
-        {field.name === 'shippingAddress' && (
-          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: '#0f172a', fontWeight: 500, marginBottom: '0.5rem', cursor: 'pointer' }}>
-            <input type="checkbox" onChange={handleCopyBilling} style={{ cursor: 'pointer' }} />
-            Copy from Billing Address
-          </label>
-        )}
-
-        <input type="text" placeholder="Street" value={address.street || ''} onChange={(e) => handleChange('street', e.target.value)} className="form-control" style={{ width: '100%' }} />
+        {/* Row 1: Pincode, City, State */}
         <div style={{ display: 'flex', gap: '0.75rem' }}>
-          <input type="text" placeholder="City" value={address.city || ''} onChange={(e) => handleChange('city', e.target.value)} className="form-control" style={{ flex: 1 }} />
-          <input type="text" placeholder="State" value={address.state || ''} onChange={(e) => handleChange('state', e.target.value)} className="form-control" style={{ flex: 1 }} />
+          <input type="text" placeholder="Pincode" maxLength={6} value={address.zip || ''} onChange={(e) => handleChange('zip', e.target.value)} className="form-input" style={{ flex: 1, minWidth: '80px' }} />
+          <input type="text" placeholder="City" value={address.city || ''} onChange={(e) => handleChange('city', e.target.value)} className="form-input" style={{ flex: 1.5 }} />
+          <input type="text" placeholder="State" value={address.state || ''} onChange={(e) => handleChange('state', e.target.value)} className="form-input" style={{ flex: 1.5 }} />
         </div>
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
-          <input type="text" placeholder="Country" value={address.country || ''} onChange={(e) => handleChange('country', e.target.value)} className="form-control" style={{ flex: 1 }} />
-          <input type="text" placeholder="Zip/Postal Code" value={address.zip || ''} onChange={(e) => handleChange('zip', e.target.value)} className="form-control" style={{ flex: 1 }} />
+
+        {/* Row 2: Street Address */}
+        <input type="text" placeholder="Street Address (Building, Area, Landmark)" value={address.street || ''} onChange={(e) => handleChange('street', e.target.value)} className="form-input" style={{ width: '100%' }} />
+
+        {/* Row 3: Country & Checkbox */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <select value={address.country || 'India'} onChange={(e) => handleChange('country', e.target.value)} className="form-input" style={{ width: '150px' }}>
+            <option value="India">India</option>
+            <option value="USA">USA</option>
+            <option value="UK">UK</option>
+          </select>
+
+          {field.name === 'shippingAddress' && (
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: '#0f172a', fontWeight: 500, cursor: 'pointer' }}>
+              <input type="checkbox" onChange={handleCopyBilling} style={{ cursor: 'pointer', width: '16px', height: '16px' }} />
+              Copy from Billing
+            </label>
+          )}
         </div>
       </div>
     </div>
   );
 };
+
 // -----------------------------------------------
 
 
@@ -591,6 +618,28 @@ function ImageInput({ field, value, onChange }) {
 
 
 export default function DynamicField({ field, value, onChange, formData, error, readOnly }) {
+
+  // --- CUSTOM INTERCEPTS FOR TASK MODULE ---
+  const fName = (field?.name || '').toLowerCase();
+
+  if (fName === 'repeat') {
+    return (
+      <div style={{ position: 'relative', opacity: readOnly ? 0.6 : 1, pointerEvents: readOnly ? 'none' : 'auto' }}>
+        <TaskRepeatDropdown field={field} value={value} onChange={(val) => onChange(field.name, val)} />
+        {error && <div style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '-0.5rem', marginBottom: '0.5rem' }}>{error}</div>}
+      </div>
+    );
+  }
+  if (fName === 'alert') {
+    return (
+      <div style={{ position: 'relative', opacity: readOnly ? 0.6 : 1, pointerEvents: readOnly ? 'none' : 'auto' }}>
+        <TaskAlertDropdown field={field} value={value} onChange={(val) => onChange(field.name, val)} />
+        {error && <div style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '-0.5rem', marginBottom: '0.5rem' }}>{error}</div>}
+      </div>
+    );
+  }
+  //
+
   const safeType = field.type ? field.type.toLowerCase() : 'text';
   const Component = registry[safeType];
 
