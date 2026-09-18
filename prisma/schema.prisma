@@ -14,6 +14,9 @@ model Organization {
   whatsappAccessToken   String?
   whatsappPhoneNumberId String?
   whatsappWabaId        String?
+  industry              String?
+  logoUrl               String?
+  teamSize              String?
   accounts              Account[]
   auditLogs             AuditLog[]
   blueprints            Blueprint[]
@@ -33,16 +36,20 @@ model Organization {
 }
 
 model Profile {
-  id                String       @id @default(uuid())
-  organizationId    String
-  name              String
-  canAccessSettings Boolean      @default(false)
-  canManageUsers    Boolean      @default(false)
-  canExportData     Boolean      @default(false)
-  permissions       Json
-  invitations       Invitation[]
-  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  users             User[]
+  id                  String       @id @default(uuid())
+  organizationId      String
+  name                String
+  canAccessSettings   Boolean      @default(false)
+  canManageUsers      Boolean      @default(false)
+  canExportData       Boolean      @default(false)
+  permissions         Json
+  avatarUrl           String?
+  nickname            String?
+  onboardingCompleted Boolean      @default(false)
+  role                String?
+  invitations         Invitation[]
+  organization        Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  users               User[]
 }
 
 model User {
@@ -52,8 +59,11 @@ model User {
   createdAt      DateTime     @default(now())
   profileId      String?
   isActive       Boolean      @default(true)
+  reportsToId    String?      // Manager Hierarchy
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   profile        Profile?     @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  reportsTo      User?        @relation("ManagerHierarchy", fields: [reportsToId], references: [id], onDelete: SetNull)
+  subordinates   User[]       @relation("ManagerHierarchy")
 }
 
 model Invitation {

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '../../../lib/prisma';
 import { getAuthUser } from '../../../lib/auth';
+import { validatePermissions } from '../../../types/rbac';
 
 export async function GET(request) {
   try {
@@ -29,6 +30,13 @@ export async function POST(request) {
 
     const data = await request.json();
     const { name, canAccessSettings, canManageUsers, canExportData, permissions } = data;
+
+    if (permissions) {
+      const validation = validatePermissions(permissions);
+      if (!validation.success) {
+        return NextResponse.json({ error: "Invalid permissions format", details: validation.error.format() }, { status: 400 });
+      }
+    }
 
     const newProfile = await prisma.profile.create({
       data: {
@@ -64,6 +72,13 @@ export async function PUT(request) {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     const data = await request.json();
+
+    if (data.permissions) {
+      const validation = validatePermissions(data.permissions);
+      if (!validation.success) {
+        return NextResponse.json({ error: "Invalid permissions format", details: validation.error.format() }, { status: 400 });
+      }
+    }
     
     // Verify ownership
     const existing = await prisma.profile.findUnique({ where: { id }});

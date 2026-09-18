@@ -1,27 +1,12 @@
 import { NextResponse } from 'next/server';
 import prisma from '../../../lib/prisma';
-import { getAuthUser } from '../../../lib/auth';
+import { withPermission } from '../../../lib/rbac';
 import { executeBiDirectionalSync } from '../../../lib/syncLookups';
 import { executeBackendWorkflows } from '../../../utils/workflowEngine';
 
-export async function GET(request) {
-  console.log("PRISMA KEYS:", Object.keys(prisma));
-  console.log("PRISMA USER:", typeof prisma.user);
+export const GET = withPermission('Lead', 'view', async (request, user) => {
   try {
-    const user = await getAuthUser(request);
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
 
-    console.log("USER PROFILE CHECK:", {
-      canAccessSettings: user.profile?.canAccessSettings,
-      LeadView: user.profile?.permissions?.Lead?.view,
-      rawProfile: user.profile
-    });
-
-    if (!user.profile?.canAccessSettings && !user.profile?.permissions?.Lead?.view) {
-      return NextResponse.json({ error: "Forbidden: You do not have permission to view Leads" }, { status: 403 });
-    }
 
     const whereClause = { organizationId: user.organizationId };
 
@@ -63,17 +48,11 @@ export async function GET(request) {
     console.error("Error fetching leads:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
-}
+});
 
-export async function POST(request) {
+export const POST = withPermission('Lead', 'create', async (request, user) => {
   try {
-    const user = await getAuthUser(request);
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    if (!user.profile?.canAccessSettings && !user.profile?.permissions?.Lead?.create) {
-      return NextResponse.json({ error: "Forbidden: You do not have permission to create Leads" }, { status: 403 });
-    }
+
 
     const data = await request.json();
     const {
@@ -143,17 +122,11 @@ export async function POST(request) {
     console.error("Error creating lead:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
-}
+});
 
-export async function PATCH(request) {
+export const PATCH = withPermission('Lead', 'edit', async (request, user) => {
   try {
-    const user = await getAuthUser(request);
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    if (!user.profile?.canAccessSettings && !user.profile?.permissions?.Lead?.edit) {
-      return NextResponse.json({ error: "Forbidden: You do not have permission to edit Leads" }, { status: 403 });
-    }
+
 
     const data = await request.json();
     const {
@@ -406,4 +379,4 @@ export async function PATCH(request) {
     console.error("Error updating lead:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
-}
+});

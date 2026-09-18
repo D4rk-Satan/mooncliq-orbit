@@ -1,14 +1,10 @@
 import { NextResponse } from 'next/server';
 import prisma from '../../../lib/prisma';
 import { getAuthUser } from '../../../lib/auth';
+import { withPermission } from '@/lib/rbac';
 
-export async function POST(req) {
+export const POST = withPermission('Product', 'create', async (request, user) => {
   try {
-    const user = await getAuthUser(req);
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    if (!user.profile?.canAccessSettings && !user.profile?.permissions?.Product?.create) {
-      return NextResponse.json({ error: "Forbidden: You do not have permission to create Products" }, { status: 403 });
-    }
 
     const body = await req.json();
     const { name, sku, customData, blueprintId } = body;
@@ -56,15 +52,11 @@ export async function POST(req) {
     console.error("Error creating product:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
-}
+});
 
-export async function GET(req) {
+export const GET = withPermission('Product', 'view', async (request, user) => {
+
   try {
-    const user = await getAuthUser(req);
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    if (!user.profile?.canAccessSettings && !user.profile?.permissions?.Product?.view) {
-      return NextResponse.json({ error: "Forbidden: You do not have permission to view Products" }, { status: 403 });
-    }
 
     let products = await prisma.product.findMany({
       where: { organizationId: user.organizationId },
@@ -87,17 +79,10 @@ export async function GET(req) {
     console.error("Error fetching products:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
-}
+});
 
-
-export async function PATCH(req) {
+export const PATCH = withPermission('Product', 'edit', async (request, user) => {
   try {
-    const user = await getAuthUser(req);
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-    if (!user.profile?.canAccessSettings && !user.profile?.permissions?.Product?.edit) {
-      return NextResponse.json({ error: "Forbidden: No permission to edit Products" }, { status: 403 });
-    }
 
     const data = await req.json();
     const { productId, stageId, customData, tags, transitionId, ...standardFields } = data;
@@ -126,4 +111,4 @@ export async function PATCH(req) {
     console.error("Error updating Product:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
-}
+});

@@ -3,14 +3,10 @@ import prisma from '../../../lib/prisma';
 import { getAuthUser } from '../../../lib/auth';
 import { executeBiDirectionalSync } from '../../../lib/syncLookups';
 import { executeBackendWorkflows } from '../../../utils/workflowEngine';
+import { withPermission } from '../../../lib/rbac';
 
-export async function POST(req) {
+export const POST = withPermission('Task', 'create', async (request, user) => {
   try {
-    const user = await getAuthUser(req);
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    if (!user.profile?.canAccessSettings && !user.profile?.permissions?.Task?.create) {
-      return NextResponse.json({ error: "Forbidden: You do not have permission to create Tasks" }, { status: 403 });
-    }
 
     const body = await req.json();
     const { taskName, startDateTime, dueDateTime, endDateTime, repeat, alert, notes, customData, blueprintId } = body;
@@ -68,15 +64,11 @@ export async function POST(req) {
     console.error("Error creating task:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
-}
+});
 
-export async function GET(req) {
+export const GET = withPermission('Task', 'view', async (request, user) => {
   try {
-    const user = await getAuthUser(req);
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    if (!user.profile?.canAccessSettings && !user.profile?.permissions?.Task?.view) {
-      return NextResponse.json({ error: "Forbidden: You do not have permission to view Tasks" }, { status: 403 });
-    }
+
 
     let tasks = await prisma.task.findMany({
       where: { organizationId: user.organizationId },
@@ -99,16 +91,11 @@ export async function GET(req) {
     console.error("Error fetching tasks:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
-}
+});
 
-export async function PATCH(req) {
+export const PATCH = withPermission('Task', 'edit', async (request, user) => {
   try {
-    const user = await getAuthUser(req);
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    if (!user.profile?.canAccessSettings && !user.profile?.permissions?.Task?.edit) {
-      return NextResponse.json({ error: "Forbidden: No permission to edit Tasks" }, { status: 403 });
-    }
 
     const data = await req.json();
     const { taskId, stageId, customData, tags, transitionId, ...standardFields } = data;
@@ -139,4 +126,4 @@ export async function PATCH(req) {
     console.error("Error updating Task:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
-}
+});

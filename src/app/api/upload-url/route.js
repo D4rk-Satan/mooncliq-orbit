@@ -16,11 +16,21 @@ export async function GET(request) {
     const fileName = searchParams.get("file");
     const fileType = searchParams.get("fileType");
 
+    // Naya logic: Hum puchenge ki image kis folder me dalni hai (default: products)
+    const folder = searchParams.get("folder") || "products";
+
     if (!fileName || !fileType) {
       return NextResponse.json({ error: "Missing file name or type" }, { status: 400 });
     }
 
-    const uniqueFileName = `public/products/${Date.now()}-${fileName.replace(/\s+/g, '-')}`;
+    // Security check: Sirf allowed folders me hi image upload ho sake
+    const allowedFolders = ["products", "avatars", "logos"];
+    if (!allowedFolders.includes(folder)) {
+      return NextResponse.json({ error: "Invalid folder" }, { status: 400 });
+    }
+
+    // Naya dynamic file path
+    const uniqueFileName = `public/${folder}/${Date.now()}-${fileName.replace(/\s+/g, '-')}`;
 
     const command = new PutObjectCommand({
       Bucket: process.env.AWS_S3_BUCKET_NAME,

@@ -1,6 +1,11 @@
 import { CognitoJwtVerifier } from "aws-jwt-verify";
 import prisma from "./prisma";
 
+// Simple in-memory cache for user profiles
+// Next.js API routes run in a Node.js process, so this Map persists across requests for a while.
+const userCache = new Map();
+const CACHE_TTL_MS = 60 * 1000 * 5; // 5 minutes
+
 // Create verifier that expects valid access tokens
 const verifier = CognitoJwtVerifier.create({
   userPoolId: process.env.NEXT_PUBLIC_AWS_USER_POOL_ID,
@@ -24,6 +29,16 @@ export async function getAuthUser(request) {
     const payload = await verifier.verify(token);
     const userId = payload.sub;
     const email = payload.email;
+
+    // Check Cache First
+    if (userCache.has(userId)) {
+      const cached = userCache.get(userId);
+      if (Date.now() - cached.timestamp < CACHE_TTL_MS) {
+        return cached.user;
+      } else {
+        userCache.delete(userId); // Expired
+      }
+    }
 
     // Check if user exists in database
     let user = await prisma.user.findUnique({
@@ -107,6 +122,11 @@ export async function getAuthUser(request) {
           { blueprintId: defaultBlueprint.id, name: 'Closed', orderIndex: 4, color: '#22c55e' },
         ]
       });
+    }
+
+    // Save to Cache
+    if (user) {
+      userCache.set(userId, { user, timestamp: Date.now() });
     }
 
     return user;

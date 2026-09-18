@@ -2,14 +2,10 @@ import { NextResponse } from 'next/server';
 import prisma from '../../../lib/prisma';
 import { getAuthUser } from '../../../lib/auth';
 import { executeBackendWorkflows } from '../../../utils/workflowEngine';
+import { withPermission } from '@/lib/rbac';
 
-export async function POST(req) {
+export const POST = withPermission('Account', 'create', async (request, user) => {
   try {
-    const user = await getAuthUser(req);
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    if (!user.profile?.canAccessSettings && !user.profile?.permissions?.Account?.create) {
-      return NextResponse.json({ error: "Forbidden: You do not have permission to create Accounts" }, { status: 403 });
-    }
 
     const body = await req.json();
     const { companyName, email, gstNo, website, address, contactPerson, customData, blueprintId } = body;
@@ -64,15 +60,11 @@ export async function POST(req) {
     console.error("Error creating account:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
-}
+});
 
-export async function GET(req) {
+export const GET = withPermission('Account', 'view', async (request, user) => {
+
   try {
-    const user = await getAuthUser(req);
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    if (!user.profile?.canAccessSettings && !user.profile?.permissions?.Account?.view) {
-      return NextResponse.json({ error: "Forbidden: You do not have permission to view Accounts" }, { status: 403 });
-    }
 
     const whereClause = { organizationId: user.organizationId };
 
@@ -109,16 +101,11 @@ export async function GET(req) {
     console.error("Error fetching accounts:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
-}
+});
 
-export async function PATCH(req) {
+export const PATCH = withPermission('Account', 'edit', async (request, user) => {
   try {
-    const user = await getAuthUser(req);
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    if (!user.profile?.canAccessSettings && !user.profile?.permissions?.Account?.edit) {
-      return NextResponse.json({ error: "Forbidden: No permission to edit Accounts" }, { status: 403 });
-    }
 
     const data = await req.json();
     const { accountId, stageId, customData, tags, transitionId, ...standardFields } = data;
@@ -147,4 +134,4 @@ export async function PATCH(req) {
     console.error("Error updating Account:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
-}
+});

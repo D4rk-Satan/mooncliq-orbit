@@ -13,6 +13,8 @@ import WalletDashboard from '../../components/WalletDashboard';
 import FormSkeleton from "../../components/skeletons/FormSkeleton";
 import ConfirmModal from "../../components/ConfirmModal";
 import TaskAutomationBuilder from '../../components/TaskAutomationBuilder';
+import ProfileSettingsView from '../../components/ProfileSettingsView';
+
 
 
 
@@ -64,9 +66,56 @@ export default function SettingsPage() {
   const [blueprint, setBlueprint] = useState(null);
   const [currentView, setCurrentView] = useState("hub");
   const [nodes, setNodes] = useState([]);
+  const [orgUsers, setOrgUsers] = useState([]);
+  const [pendingInvites, setPendingInvites] = useState([]);
   const [edges, setEdges] = useState([]);
   const onNodesChange = useCallback((changes) => setNodes((nds) => applyNodeChanges(changes, nds)), []);
   const onEdgesChange = useCallback((changes) => setEdges((eds) => applyEdgeChanges(changes, eds)), []);
+
+  const fetchUsersAndInvites = async () => {
+    try {
+      const token = await getAuthToken(); // NAYA: Token nikala
+      // 1. Fetch Active Users
+      const usersRes = await fetch('/api/users', { headers: { Authorization: `Bearer ${token}` } });
+      if (usersRes.ok) setOrgUsers(await usersRes.json());
+
+      // 2. Fetch Pending Invites
+      const invitesRes = await fetch('/api/invitations', { headers: { Authorization: `Bearer ${token}` } });
+      if (invitesRes.ok) setPendingInvites(await invitesRes.json());
+    } catch (err) {
+      console.error("Failed to fetch users data", err);
+    }
+  };
+
+  // Jab user 'Users in Organization' dekhega, tabhi ye fetch hoga
+  useEffect(() => {
+    if (currentView === 'users') {
+      fetchUsersAndInvites();
+    }
+  }, [currentView]);
+
+  const handleRevokeAccess = async (userId) => {
+    if (!window.confirm("Are you sure you want to revoke this user's access?")) return;
+    try {
+      const token = await getAuthToken(); // NAYA: Yahan bhi token nikala
+      const res = await fetch('/api/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ userId, isActive: false })
+      });
+      if (res.ok) {
+        alert("Access Revoked Successfully!");
+        fetchUsersAndInvites(); // Refresh table
+      } else {
+        const data = await res.json();
+        alert(data.error || "Failed to revoke access");
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+
 
   useEffect(() => {
     if (currentView === 'blueprint' && blueprint) {
@@ -837,6 +886,10 @@ export default function SettingsPage() {
                     <button onClick={() => setCurrentView('users')} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
                       Users & Invites
                     </button>
+                    <button onClick={() => setCurrentView('profile-settings')} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
+                      Profile & Organization
+                    </button>
+
                   </div>
                 </div>
 
@@ -1073,7 +1126,7 @@ export default function SettingsPage() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                       <div>
                         <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.25rem' }}>Users in Organization</h2>
-                        <p className="text-muted" style={{ margin: 0, fontSize: '0.9rem' }}>Manage active members and pending AWS SES invitations.</p>
+                        <p className="text-muted" style={{ margin: 0, fontSize: '0.9rem' }}>Manage active members and pending invitations.</p>
                       </div>
                       <button onClick={() => setIsInviteModalOpen(true)} style={{ padding: '0.5rem 1rem', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="M12 5v14" /></svg>
@@ -1092,15 +1145,35 @@ export default function SettingsPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
-                            <td style={{ padding: '1rem', color: '#0f172a', fontWeight: 500 }}>gaurav.test@gmail.com</td>
-                            <td style={{ padding: '1rem' }}><span style={{ backgroundColor: '#f1f5f9', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem', color: '#475569', fontWeight: 600 }}>Admin</span></td>
-                            <td style={{ padding: '1rem' }}><span style={{ color: '#10b981', fontWeight: 600, fontSize: '0.85rem' }}>● Active</span></td>
-                            <td style={{ padding: '1rem' }}>
-                              <button style={{ background: 'none', border: '1px solid #ef4444', color: '#ef4444', padding: '0.25rem 0.75rem', borderRadius: '4px', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600 }}>Revoke Access</button>
-                            </td>
-                          </tr>
+                          {/* 1. Asli Active Users Dikhayenge */}
+                          {orgUsers.map(user => (
+                            <tr key={user.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                              <td style={{ padding: '1rem', color: '#0f172a', fontWeight: 500 }}>{user.email}</td>
+                              <td style={{ padding: '1rem' }}><span style={{ backgroundColor: '#f1f5f9', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem', color: '#475569', fontWeight: 600 }}>{user.profile?.name || 'No Role'}</span></td>
+                              <td style={{ padding: '1rem' }}><span style={{ color: '#10b981', fontWeight: 600, fontSize: '0.85rem' }}>● Active</span></td>
+                              <td style={{ padding: '1rem' }}>
+                                <button onClick={() => handleRevokeAccess(user.id)} style={{ background: 'none', border: '1px solid #ef4444', color: '#ef4444', padding: '0.25rem 0.75rem', borderRadius: '4px', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600 }}>Revoke Access</button>
+                              </td>
+                            </tr>
+                          ))}
+
+                          {/* 2. Pending Invites Dikhayenge */}
+                          {pendingInvites.map(invite => (
+                            <tr key={invite.id} style={{ borderBottom: '1px solid #e2e8f0', backgroundColor: '#fdf8f6' }}>
+                              <td style={{ padding: '1rem', color: '#0f172a', fontWeight: 500 }}>{invite.email} <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>(Invited)</span></td>
+                              <td style={{ padding: '1rem' }}><span style={{ backgroundColor: '#f1f5f9', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem', color: '#475569', fontWeight: 600 }}>{invite.profile?.name || 'Pending'}</span></td>
+                              <td style={{ padding: '1rem' }}><span style={{ color: '#f59e0b', fontWeight: 600, fontSize: '0.85rem' }}>○ Pending</span></td>
+                              <td style={{ padding: '1rem' }}>
+                                <button style={{ background: 'none', border: '1px solid #94a3b8', color: '#94a3b8', padding: '0.25rem 0.75rem', borderRadius: '4px', fontSize: '0.8rem', cursor: 'not-allowed', fontWeight: 600 }}>Revoke Access</button>
+                              </td>
+                            </tr>
+                          ))}
+
+                          {orgUsers.length === 0 && pendingInvites.length === 0 && (
+                            <tr><td colSpan="4" style={{ padding: '1rem', textAlign: 'center', color: '#64748b' }}>No users found.</td></tr>
+                          )}
                         </tbody>
+
                       </table>
                     </div>
                   </div>
@@ -1920,6 +1993,12 @@ export default function SettingsPage() {
                 {currentView === 'billing' && (
                   <WalletDashboard />
                 )}
+
+                {/* PROFILE SETTINGS TAB */}
+                {currentView === 'profile-settings' && (
+                  <ProfileSettingsView />
+                )}
+
 
               </div>
             </div>

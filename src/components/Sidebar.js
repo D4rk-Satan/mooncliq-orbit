@@ -13,7 +13,7 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
   const [openCategory, setOpenCategory] = useState("CRM");
 
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
-  const [userInfo, setUserInfo] = useState({ orgName: "Loading...", email: "..." });
+  const [userInfo, setUserInfo] = useState({ orgName: "Loading...", email: "...", nickname: "User", role: "Member", avatarUrl: null });
 
   React.useEffect(() => {
     async function fetchUserData() {
@@ -33,7 +33,10 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
           const user = await res.json();
           setUserInfo({
             orgName: user.organization?.name,
-            email: user.email || ""
+            email: user.email || "",
+            nickname: user.profile?.nickname || "User",
+            role: user.profile?.role || "Member",
+            avatarUrl: user.profile?.avatarUrl || null
           });
         }
       } catch (error) {
@@ -218,7 +221,7 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
                   marginBottom: '0.5rem',
                   zIndex: 50
                 }}>
-                  <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.5rem' }}>
+                  {/* <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.5rem' }}>
                     <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                     </div>
@@ -231,7 +234,33 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
                     <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
                       {userInfo.email}
                     </div>
+                  </div> 
+                  */}
+
+                  <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.5rem' }}>
+                    <div style={{ width: '56px', height: '56px', borderRadius: '50%', backgroundColor: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', border: '2px solid white', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+                      {userInfo.avatarUrl ? (
+                        <img src={userInfo.avatarUrl} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <span style={{ fontSize: '1.4rem', color: '#64748b', fontWeight: 'bold' }}>
+                          {userInfo.nickname ? userInfo.nickname.substring(0, 2).toUpperCase() : '👤'}
+                        </span>
+                      )}
+                    </div>
                   </div>
+
+                  <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+                    <div style={{ fontWeight: '700', fontSize: '0.95rem', color: '#0f172a' }}>
+                      {userInfo.nickname}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: '#4f46e5', fontWeight: '600', marginBottom: '0.3rem' }}>
+                      {userInfo.role}
+                    </div>
+                    <div style={{ fontSize: '0.7rem', color: '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {userInfo.email} • {userInfo.orgName}
+                    </div>
+                  </div>
+
 
                   <hr style={{ borderTop: '1px solid #f1f5f9', margin: '0 -1rem 0.5rem -1rem' }} />
 
