@@ -33,6 +33,8 @@ model Organization {
   users                 User[]
   walletTransactions    WalletTransaction[]
   workflowRules         WorkflowRule[]
+  customModules         CustomModule[]
+  customRecords         CustomRecord[]
 }
 
 model Profile {
@@ -102,6 +104,7 @@ model Blueprint {
   stages         Stage[]
   tasks          Task[]
   transitions    Transition[]
+  customRecords  CustomRecord[]
 }
 
 model Stage {
@@ -120,6 +123,7 @@ model Stage {
   tasks               Task[]
   incomingTransitions Transition[] @relation("ToStage")
   outgoingTransitions Transition[] @relation("FromStages")
+  customRecords       CustomRecord[]
 }
 
 model Field {
@@ -420,4 +424,37 @@ model ChatMessage {
 enum TransactionType {
   CREDIT
   DEBIT
+}
+
+model CustomModule {
+  id             String       @id @default(uuid())
+  organizationId String
+  name           String       // Plural (e.g., "Properties", "Patients")
+  singularName   String       // Singular (e.g., "Property", "Patient")
+  icon           String?      // Sidebar me dikhane ke liye Lucide-react icon ka naam
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  records        CustomRecord[]
+}
+
+model CustomRecord {
+  id               String       @id @default(uuid())
+  organizationId   String
+  customModuleId   String
+  blueprintId      String
+  stageId          String
+  owner            String?
+  customData       Json         @default("{}") // All dynamic fields (Address, Price, Disease, etc) will be saved here in JSONB
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  lastActivityDate DateTime?
+  lastModifiedById String?
+
+  customModule     CustomModule @relation(fields: [customModuleId], references: [id], onDelete: Cascade)
+  blueprint        Blueprint    @relation(fields: [blueprintId], references: [id], onDelete: Cascade)
+  stage            Stage        @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 }

@@ -14,6 +14,12 @@ import FormSkeleton from "../../components/skeletons/FormSkeleton";
 import ConfirmModal from "../../components/ConfirmModal";
 import TaskAutomationBuilder from '../../components/TaskAutomationBuilder';
 import ProfileSettingsView from '../../components/ProfileSettingsView';
+import {
+  Factory, Shirt, Scissors, Package, Warehouse, Truck, Box, Wrench,
+  Hammer, Settings, Ruler, Scale, ClipboardList, Tags, PenTool,
+  HardHat, Droplet, Zap, Flame, Ship, Train, Sprout, Barcode,
+  Receipt, ShieldCheck, Fan, Archive, Layers, Briefcase, Activity
+} from 'lucide-react';
 
 
 
@@ -59,6 +65,17 @@ const getLayoutedElements = (nodes, edges) => {
     };
   });
   return { nodes: newNodes, edges };
+};
+
+const ICON_MAP = {
+  Factory: Factory, Shirt: Shirt, Scissors: Scissors, Package: Package,
+  Warehouse: Warehouse, Truck: Truck, Box: Box, Wrench: Wrench,
+  Hammer: Hammer, Settings: Settings, Ruler: Ruler, Scale: Scale,
+  ClipboardList: ClipboardList, Tags: Tags, PenTool: PenTool,
+  HardHat: HardHat, Droplet: Droplet, Zap: Zap, Flame: Flame,
+  Ship: Ship, Train: Train, Sprout: Sprout, Barcode: Barcode,
+  Receipt: Receipt, ShieldCheck: ShieldCheck, Fan: Fan,
+  Archive: Archive, Layers: Layers, Briefcase: Briefcase, Activity: Activity
 };
 
 
@@ -180,6 +197,9 @@ export default function SettingsPage() {
   const [selectedModule, setSelectedModule] = useState("Lead");
   const [isLayoutDirty, setIsLayoutDirty] = useState(false);
   const [shakeTrigger, setShakeTrigger] = useState(0);
+  const [customModules, setCustomModules] = useState([]);
+  const [showCustomModuleModal, setShowCustomModuleModal] = useState(false);
+  const [newCustomModule, setNewCustomModule] = useState({ id: null, name: '', icon: 'Box' });
   const [entryCriteriaForm, setEntryCriteriaForm] = useState({ type: 'always', conditions: [] });
   const [isSavingEntry, setIsSavingEntry] = useState(false);
 
@@ -242,6 +262,26 @@ export default function SettingsPage() {
       { id: 3, name: 'Default Lead Flow' }
     ]
   });
+
+  // Fetch Custom Modules on page load
+  useEffect(() => {
+    async function fetchCustomModules() {
+      try {
+        const token = await getAuthToken();
+        const res = await fetch('/api/custom-modules', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          setCustomModules(data);
+        }
+      } catch (err) {
+        console.error("Error fetching custom modules:", err);
+      }
+    }
+    fetchCustomModules();
+  }, []);
 
 
   const moveBlueprintUp = (index) => {
@@ -805,6 +845,13 @@ export default function SettingsPage() {
         <option value="Account">Account</option>
         <option value="Product">Product</option>
         <option value="Task">Task</option>
+        {/* Custom Modules ko dropdown me dikhane ka loop */}
+        {customModules.map((mod) => (
+          <option key={mod.id} value={mod.id}>
+            {mod.name}
+          </option>
+        ))}
+
       </select>
     </div>
   );
@@ -840,6 +887,17 @@ export default function SettingsPage() {
                     <button onClick={() => { setActiveFeature('layout-builder'); setCurrentView('module-list'); }} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
                       Form Layout Builder
                     </button>
+                    <button
+                      onClick={() => setCurrentView('custom-modules')}
+                      style={{ textAlign: 'left', padding: '0.5rem', background: currentView === 'custom-modules' ? '#e2e8f0' : 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }}
+                      onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'}
+                      onMouseLeave={e => e.target.style.backgroundColor = currentView === 'custom-modules' ? '#e2e8f0' : 'transparent'}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        Custom Modules
+                      </div>
+                    </button>
+
                     <button onClick={() => { setActiveFeature('tags'); setCurrentView('module-list'); }} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
                       Manage Tags
                     </button>
@@ -958,12 +1016,196 @@ export default function SettingsPage() {
                     {currentView === 'client-scripts' && "Custom Scripts"}
                     {currentView === 'layout-builder' && "Form Layout Builder"}
                     {currentView === 'billing' && "Billing & Wallet"}
+                    {currentView === 'custom-modules' && "Custom Modules"}
+
                   </h2>
 
                 </div>
               </div>
 
               <div style={{ padding: '1rem' }}>
+
+
+                {/* ================= CUSTOM MODULES VIEW ================= */}
+                {currentView === 'custom-modules' && (
+                  <div style={{ padding: '2rem', maxWidth: '800px', margin: '0 auto' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                      <h2 style={{ fontSize: '1.5rem', fontWeight: 600, color: '#0f172a' }}>Custom Modules</h2>
+                      <button
+                        onClick={() => setShowCustomModuleModal(true)}
+                        style={{ backgroundColor: '#0f172a', color: 'white', padding: '0.5rem 1rem', borderRadius: '6px', border: 'none', cursor: 'pointer' }}
+                      >
+                        + Create Module
+                      </button>
+                    </div>
+
+                    {/* List of existing custom modules */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                      {customModules.length === 0 ? (
+                        <p style={{ color: '#64748b' }}>No custom modules yet. Create one to get started!</p>
+                      ) : (
+                        <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                            <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                              <tr>
+                                <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Module Name</th>
+                                <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Last Modified</th>
+                                <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Status</th>
+                                <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600, textAlign: 'right' }}>Action</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {customModules.map((mod, idx) => {
+                                const IconComponent = ICON_MAP[mod.icon] || ICON_MAP['Box'];
+                                return (
+                                  <tr key={mod.id} style={{ borderBottom: idx === customModules.length - 1 ? 'none' : '1px solid #e2e8f0', transition: 'background-color 0.2s' }} onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
+                                    <td style={{ padding: '1rem', color: '#0f172a', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                      <div style={{ background: '#e0e7ff', color: '#4f46e5', padding: '0.35rem', borderRadius: '6px' }}>
+                                        <IconComponent size={16} strokeWidth={2} />
+                                      </div>
+                                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                        <span>{mod.name}</span>
+                                        <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 400 }}>Singular: {mod.singularName}</span>
+                                      </div>
+                                    </td>
+                                    <td style={{ padding: '1rem', color: '#475569', fontSize: '0.9rem' }}>Just now</td>
+                                    <td style={{ padding: '1rem' }}>
+                                      <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                                        <div style={{ position: 'relative', width: '36px', height: '20px', backgroundColor: '#10b981', borderRadius: '10px' }}>
+                                          <div style={{ position: 'absolute', top: '2px', left: '18px', width: '16px', height: '16px', backgroundColor: 'white', borderRadius: '50%', transition: 'all 0.2s' }}></div>
+                                        </div>
+                                        <span style={{ marginLeft: '0.5rem', fontSize: '0.85rem', color: '#475569', fontWeight: 500 }}>Active</span>
+                                      </label>
+                                    </td>
+                                    <td style={{ padding: '1rem', textAlign: 'right' }}>
+                                      <button
+                                        onClick={() => {
+                                          setNewCustomModule({ id: mod.id, name: mod.name, icon: mod.icon });
+                                          setShowCustomModuleModal(true);
+                                        }}
+                                        style={{ padding: '0.4rem 0.8rem', backgroundColor: 'transparent', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer', marginRight: '0.5rem', fontSize: '0.85rem', color: '#0f172a' }}
+                                      >
+                                        Edit
+                                      </button>
+                                      <button
+                                        onClick={() => { setSelectedModule(mod.id); setCurrentView('blueprint'); }}
+                                        style={{ padding: '0.4rem 0.8rem', backgroundColor: '#0f172a', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.85rem' }}
+                                      >
+                                        Edit Layout
+                                      </button>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* CREATE MODULE MODAL */}
+                    {showCustomModuleModal && (
+                      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+                        <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '12px', width: '400px' }}>
+                          <h3 style={{ marginBottom: '1rem' }}>Create New Module</h3>
+
+                          <label style={{ display: 'block', marginBottom: '0.5rem' }}>Module Name (e.g. Properties)</label>
+                          <input
+                            type="text"
+                            value={newCustomModule.name}
+                            onChange={(e) => setNewCustomModule({ ...newCustomModule, name: e.target.value })}
+                            style={{ width: '100%', padding: '0.5rem', marginBottom: '1rem', border: '1px solid #ccc', borderRadius: '4px' }}
+                          />
+
+                          <label style={{ display: 'block', marginBottom: '0.5rem', marginTop: '1rem' }}>Select Icon</label>
+                          <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(6, 1fr)', // 1 row me 6 icons dikhenge
+                            gap: '0.5rem',
+                            marginBottom: '1.5rem',
+                            maxHeight: '160px', // Scrollable box
+                            overflowY: 'auto',
+                            padding: '0.75rem',
+                            border: '1px solid #e2e8f0',
+                            borderRadius: '6px',
+                            backgroundColor: '#f8fafc'
+                          }}>
+                            {Object.keys(ICON_MAP).map(iconKey => {
+                              const IconComponent = ICON_MAP[iconKey];
+                              const isSelected = newCustomModule.icon === iconKey;
+                              return (
+                                <div
+                                  key={iconKey}
+                                  onClick={() => setNewCustomModule({ ...newCustomModule, icon: iconKey })}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    padding: '0.5rem',
+                                    cursor: 'pointer',
+                                    borderRadius: '6px',
+                                    backgroundColor: isSelected ? '#fff' : 'transparent',
+                                    border: isSelected ? '2px solid #3b82f6' : '2px solid transparent',
+                                    boxShadow: isSelected ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                                    transition: 'all 0.2s'
+                                  }}
+                                  title={iconKey} // Hover karne par naam dikhega
+                                >
+                                  <IconComponent size={22} color={isSelected ? '#3b82f6' : '#64748b'} strokeWidth={isSelected ? 2.5 : 2} />
+                                </div>
+                              );
+                            })}
+                          </div>
+
+
+
+                          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+                            <button onClick={() => {
+                              setShowCustomModuleModal(false);
+                              setNewCustomModule({ id: null, name: '', icon: 'Box' });
+                            }} style={{ padding: '0.5rem 1rem', background: 'none', border: 'none', cursor: 'pointer' }}>Cancel</button>
+                            <button
+                              onClick={async () => {
+                                const token = await getAuthToken();
+                                const method = newCustomModule.id ? 'PUT' : 'POST';
+
+                                const res = await fetch('/api/custom-modules', {
+                                  method: method,
+                                  headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${token}`
+                                  },
+                                  body: JSON.stringify({
+                                    id: newCustomModule.id,
+                                    name: newCustomModule.name,
+                                    singularName: newCustomModule.name,
+                                    icon: newCustomModule.icon
+                                  })
+                                });
+
+                                if (res.ok) {
+                                  const savedMod = await res.json();
+                                  if (newCustomModule.id) {
+                                    // Update list if edited
+                                    setCustomModules(customModules.map(m => m.id === savedMod.id ? savedMod : m));
+                                  } else {
+                                    // Add to list if new
+                                    setCustomModules([savedMod, ...customModules]);
+                                  }
+                                  setShowCustomModuleModal(false);
+                                  setNewCustomModule({ id: null, name: '', icon: 'Box' });
+                                }
+                              }}
+                              style={{ padding: '0.5rem 1rem', backgroundColor: '#0f172a', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                            >
+                              Save
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
 
 
                 {/* MODULE LIST TAB */}
@@ -982,13 +1224,20 @@ export default function SettingsPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {['Lead', 'Deal', 'Account', 'Product', 'Task'].map((mod, idx) => (
-                            <tr key={mod} style={{ borderBottom: idx === 4 ? 'none' : '1px solid #e2e8f0', transition: 'background-color 0.2s' }} onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
+                          {[
+                            { id: 'Lead', name: 'Lead' },
+                            { id: 'Deal', name: 'Deal' },
+                            { id: 'Account', name: 'Account' },
+                            { id: 'Product', name: 'Product' },
+                            { id: 'Task', name: 'Task' },
+                            ...customModules.map(m => ({ id: m.id, name: m.name }))
+                          ].map((mod, idx, arr) => (
+                            <tr key={mod.id} style={{ borderBottom: idx === arr.length - 1 ? 'none' : '1px solid #e2e8f0', transition: 'background-color 0.2s' }} onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
                               <td style={{ padding: '1rem', color: '#0f172a', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                 <div style={{ background: '#e0e7ff', color: '#4f46e5', padding: '0.35rem', borderRadius: '6px' }}>
                                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
                                 </div>
-                                {mod}
+                                {mod.name}
                               </td>
                               <td style={{ padding: '1rem', color: '#475569', fontSize: '0.9rem' }}>Just now</td>
                               <td style={{ padding: '1rem' }}>
@@ -1001,7 +1250,7 @@ export default function SettingsPage() {
                               </td>
                               <td style={{ padding: '1rem', textAlign: 'right' }}>
                                 <button
-                                  onClick={() => { setSelectedModule(mod); setCurrentView(activeFeature); }}
+                                  onClick={() => { setSelectedModule(mod.id); setCurrentView(activeFeature); }}
                                   style={{ padding: '0.4rem 1rem', backgroundColor: 'white', color: '#0f172a', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)' }}
                                   onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'}
                                   onMouseLeave={e => e.target.style.backgroundColor = 'white'}
@@ -1011,6 +1260,7 @@ export default function SettingsPage() {
                               </td>
                             </tr>
                           ))}
+
                         </tbody>
                       </table>
                     </div>
@@ -1544,17 +1794,32 @@ export default function SettingsPage() {
                               <option value="text">Short Text</option>
                               <option value="textarea">Long Text (Text area)</option>
                               <option value="number">Number</option>
+                              <option value="decimal">Decimal (Float)</option>
                               <option value="currency">Currency</option>
+                              <option value="email">Email Address</option>
+                              <option value="phone">Phone Number</option>
+                              <option value="url">Website URL</option>
                               <option value="date">Date</option>
+                              <option value="datetime">Date & Time</option>
+                              <option value="image">Image Upload</option>
+                              <option value="file">File Upload (PDF, Docs)</option>
+                              <option value="user">User / Owner</option>
                               <option value="checkbox">Checkbox (True/False)</option>
+                              <option value="decision">Decision Box (Toggle)</option>
                               <option value="select">Dropdown (Select)</option>
+                              <option value="formula">Formula (Calculation)</option>
+                              <option value="radio">Radio Buttons</option>
+                              <option value="autonumber">Auto-Number</option>
+                              <option value="barcode">QR / Barcode Scanner</option>
+                              <option value="audio">Audio / Voice Note</option>
                               <option value="lookup">Lookup (Relationship)</option>
                               <option value="subform">Subform</option>
                             </select>
+
                           </div>
-                          {newField.type === 'select' && (
+                          {(newField.type === 'select' || newField.type === 'radio') && (
                             <div style={{ gridColumn: '1 / -1' }}>
-                              <label className="form-label">Dropdown Options (Comma Separated)</label>
+                              <label className="form-label">{newField.type === 'radio' ? 'Radio Options' : 'Dropdown Options'} (Comma Separated)</label>
                               <input
                                 required
                                 type="text"

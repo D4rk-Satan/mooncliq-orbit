@@ -39,7 +39,7 @@ export default function GlobalInboxPage() {
 
         {/* 3-Column Layout */}
         <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-          
+
           {/* Column 1: Chat List (25%) */}
           <div style={{ width: '300px', borderRight: '1px solid #e2e8f0', backgroundColor: 'white', display: 'flex', flexDirection: 'column' }}>
             <div style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0' }}>
@@ -47,10 +47,10 @@ export default function GlobalInboxPage() {
             </div>
             <div style={{ overflowY: 'auto', flex: 1 }}>
               {MOCK_LEADS.map(lead => (
-                <div 
-                  key={lead.id} 
+                <div
+                  key={lead.id}
                   onClick={() => setActiveLeadId(lead.id)}
-                  style={{ 
+                  style={{
                     padding: '1rem', borderBottom: '1px solid #f1f5f9', cursor: 'pointer', display: 'flex', gap: '0.75rem',
                     backgroundColor: activeLeadId === lead.id ? '#f8fafc' : 'white',
                     borderLeft: activeLeadId === lead.id ? '4px solid #4f46e5' : '4px solid transparent'
@@ -78,7 +78,7 @@ export default function GlobalInboxPage() {
 
           {/* Column 2: Chat Canvas (50%) */}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', backgroundColor: '#efeae2', backgroundImage: 'url("https://www.transparenttextures.com/patterns/always-grey.png")' }}>
-            
+
             {/* Chat Header */}
             {activeLead && (
               <div style={{ padding: '1rem', backgroundColor: '#f0f2f5', display: 'flex', alignItems: 'center', gap: '1rem', borderBottom: '1px solid #d1d7db' }}>
@@ -96,8 +96,8 @@ export default function GlobalInboxPage() {
             <div style={{ flex: 1, padding: '1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {activeChats.map(msg => (
                 <div key={msg.id} style={{ alignSelf: msg.sender === 'us' ? 'flex-end' : 'flex-start', maxWidth: '65%' }}>
-                  <div style={{ 
-                    backgroundColor: msg.sender === 'us' ? '#d9fdd3' : 'white', 
+                  <div style={{
+                    backgroundColor: msg.sender === 'us' ? '#d9fdd3' : 'white',
                     padding: '0.5rem 0.75rem', borderRadius: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
                     borderTopRightRadius: msg.sender === 'us' ? 0 : '8px',
                     borderTopLeftRadius: msg.sender === 'them' ? 0 : '8px'
@@ -122,16 +122,16 @@ export default function GlobalInboxPage() {
               <button style={{ background: 'none', border: 'none', color: '#54656f', cursor: 'pointer' }}>
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M1.816 15.556v.002c0 1.502.584 2.912 1.646 3.972s2.472 1.647 3.974 1.647a5.58 5.58 0 0 0 3.972-1.645l9.547-9.548c.769-.768 1.147-1.767 1.058-2.817-.079-.968-.548-1.927-1.319-2.698-1.594-1.592-4.068-1.711-5.517-.262l-7.916 7.915c-.881.881-.792 2.25.214 3.261.959.958 2.423 1.053 3.263.215l5.511-5.512c.28-.28.267-.722.053-.936l-.244-.244c-.191-.191-.567-.349-.957.04l-5.506 5.506c-.18.18-.635.127-.976-.214-.098-.097-.576-.613-.213-.973l7.915-7.917c.818-.817 2.267-.699 3.23.262.5.501.802 1.1.849 1.685.051.573-.156 1.111-.589 1.543l-9.547 9.549a3.97 3.97 0 0 1-2.829 1.171 3.975 3.975 0 0 1-2.83-1.173 3.973 3.973 0 0 1-1.172-2.828c0-1.071.415-2.076 1.172-2.83l7.209-7.211c.157-.157.264-.579.028-.814L11.5 4.36a.572.572 0 0 0-.834.018l-7.205 7.207a5.577 5.577 0 0 0-1.645 3.971z"></path></svg>
               </button>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 value={messageInput}
                 onChange={(e) => setMessageInput(e.target.value)}
-                placeholder="Type a message" 
-                style={{ flex: 1, padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', outline: 'none', backgroundColor: 'white' }} 
+                placeholder="Type a message"
+                style={{ flex: 1, padding: '0.75rem 1rem', borderRadius: '8px', border: 'none', outline: 'none', backgroundColor: 'white' }}
               />
-              <button 
-                style={{ 
-                  backgroundColor: '#4f46e5', color: 'white', border: 'none', borderRadius: '8px', 
+              <button
+                style={{
+                  backgroundColor: '#4f46e5', color: 'white', border: 'none', borderRadius: '8px',
                   padding: '0.75rem 1.5rem', fontWeight: 600, cursor: 'pointer',
                   display: 'flex', alignItems: 'center', gap: '0.5rem'
                 }}

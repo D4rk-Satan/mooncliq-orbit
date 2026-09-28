@@ -1,0 +1,194 @@
+"use client";
+
+import React, { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
+import Sidebar from "../../../components/Sidebar";
+import DynamicModuleView from "../../../components/DynamicModuleView";
+import SlideOverPanel from "../../../components/SlideOverPanel";
+import DynamicIntakeForm from "../../../components/DynamicIntakeForm";
+import EntityEditModal from "../../../components/EntityEditModal";
+import { fetchAuthSession } from "aws-amplify/auth";
+
+const getAuthToken = async () => {
+  const { tokens } = await fetchAuthSession();
+  return tokens?.idToken?.toString() || tokens?.accessToken?.toString();
+};
+
+export default function CustomModulePage() {
+  const params = useParams();
+  const moduleId = params.moduleId;
+
+  const [moduleDef, setModuleDef] = useState(null);
+  const [records, setRecords] = useState([]);
+  const [blueprint, setBlueprint] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // Form states
+  const [isNewRecordPanelOpen, setIsNewRecordPanelOpen] = useState(false);
+  const [recordToEdit, setRecordToEdit] = useState(null);
+
+  useEffect(() => {
+    async function fetchData() {
+      if (!moduleId) return;
+      try {
+        const token = await getAuthToken();
+
+        // 1. Fetch Module Info
+        const modRes = await fetch(`/api/custom-modules`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const allMods = await modRes.json();
+        const currentMod = allMods.find(m => m.id === moduleId);
+        setModuleDef(currentMod);
+
+        // 2. Fetch Module Records
+        const recRes = await fetch(`/api/custom-modules/records?moduleId=${moduleId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const recordsData = await recRes.json();
+        setRecords(recordsData);
+
+        // 3. Fetch Real Blueprint layout setup
+        const bpRes = await fetch(`/api/blueprint?moduleType=${moduleId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (bpRes.ok) {
+          const bpData = await bpRes.json();
+          setBlueprint(bpData);
+        } else {
+          setBlueprint({ moduleType: moduleId, fields: [] });
+        }
+
+      } catch (err) {
+        console.error("Error loading custom module:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchData();
+  }, [moduleId]);
+
+  const handleCreateRecord = async (newRecordData) => {
+    try {
+      const token = await getAuthToken();
+      // Adjust the API call based on how DynamicIntakeForm returns data
+      // For custom modules, the data goes into 'customData' mostly, or a mix of standard and custom.
+      // We will send a POST to custom-modules/records
+      const res = await fetch(`/api/custom-modules/records`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          customModuleId: moduleId,
+          blueprintId: blueprint?.id || "",
+          stageId: blueprint?.stages?.[0]?.id || "",
+          customData: newRecordData.customData || newRecordData,
+          owner: newRecordData.owner || null,
+          name: newRecordData.name || newRecordData.customData?.name || "New Record"
+        })
+      });
+      if (res.ok) {
+        const created = await res.json();
+        setRecords([created, ...records]);
+        setIsNewRecordPanelOpen(false);
+      }
+    } catch (err) {
+      console.error("Error creating record:", err);
+    }
+  };
+
+  const handleUpdateRecord = async (updatedData) => {
+    try {
+      const token = await getAuthToken();
+      const res = await fetch(`/api/custom-modules/records?id=${updatedData.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          customData: updatedData.customData || updatedData
+        })
+      });
+      if (res.ok) {
+        const result = await res.json();
+        setRecords(records.map(r => r.id === result.id ? result : r));
+        setRecordToEdit(null);
+      }
+    } catch (err) {
+      console.error("Error updating record:", err);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', height: '100vh', width: '100vw' }}>
+        <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <p>Loading Module...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!moduleDef) {
+    return (
+      <div style={{ display: 'flex', height: '100vh', width: '100vw' }}>
+        <div style={{ flex: 1, padding: '2rem' }}>
+          <h2>Module not found</h2>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: 'flex', height: '100vh', width: '100vw', backgroundColor: '#f8fafc', overflow: 'hidden' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+        <DynamicModuleView
+          moduleName={moduleDef.name}
+          records={records}
+          blueprint={blueprint}
+          tags={[]}
+          supportKanban={false}
+          onRecordClick={(record) => setRecordToEdit(record)} // Open edit modal on row click
+          onEditClick={(record) => setRecordToEdit(record)}
+          renderHeaderActions={() => (
+            <button
+              onClick={() => setIsNewRecordPanelOpen(true)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '0.5rem',
+                padding: '0.5rem 1rem', backgroundColor: '#3b82f6', color: '#fff',
+                border: 'none', borderRadius: '6px', fontWeight: '500', cursor: 'pointer',
+                fontSize: '0.9rem', boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              New Record
+            </button>
+          )}
+        />
+
+        {/* CREATE PANEL */}
+        <DynamicIntakeForm
+          moduleType={moduleId}
+          isOpen={isNewRecordPanelOpen}
+          onClose={() => setIsNewRecordPanelOpen(false)}
+          onSave={handleCreateRecord}
+        />
+
+
+        {/* EDIT MODAL */}
+        <EntityEditModal
+          isOpen={!!recordToEdit}
+          onClose={() => setRecordToEdit(null)}
+          entity={recordToEdit}
+          blueprint={blueprint}
+          onUpdate={handleUpdateRecord}
+          moduleName={moduleDef.name}
+        />
+      </div>
+    </div>
+  );
+}

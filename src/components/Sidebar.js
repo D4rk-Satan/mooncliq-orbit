@@ -12,6 +12,7 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
   const [isMounted, setIsMounted] = useState(false);
   const [openCategory, setOpenCategory] = useState("CRM");
 
+  const [customModules, setCustomModules] = useState([]);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [userInfo, setUserInfo] = useState({ orgName: "Loading...", email: "...", nickname: "User", role: "Member", avatarUrl: null });
 
@@ -38,6 +39,15 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
             role: user.profile?.role || "Member",
             avatarUrl: user.profile?.avatarUrl || null
           });
+        }
+        
+        // 3. Fetch custom modules
+        const modRes = await fetch('/api/custom-modules', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (modRes.ok) {
+          const mods = await modRes.json();
+          setCustomModules(mods);
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
@@ -188,6 +198,39 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
 
             </div>
           ))}
+
+          {/* CUSTOM MODULES MENU */}
+          {customModules.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              {!isCollapsed && (
+                <div style={{ padding: '0.5rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#9ca3af', letterSpacing: '0.05em', cursor: 'default', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  CUSTOM MODULES
+                </div>
+              )}
+              {customModules.map((mod) => (
+                <Link
+                  key={mod.id}
+                  href={`/custom-module/${mod.id}`}
+                  className={`nav-item ${pathname === `/custom-module/${mod.id}` ? "active" : ""}`}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '1rem', textDecoration: 'none',
+                    justifyContent: isCollapsed ? 'center' : 'flex-start',
+                    padding: isCollapsed ? '0.75rem 0' : '0.75rem 1.5rem',
+                    margin: isCollapsed ? '0.25rem' : '0.25rem 1rem'
+                  }}
+                  title={mod.name}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                    <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                  </svg>
+                  {!isCollapsed && <span style={{ whiteSpace: 'nowrap' }}>{mod.name}</span>}
+                </Link>
+              ))}
+            </div>
+          )}
+
         </nav>
 
         <div style={{ marginTop: 'auto', padding: isCollapsed ? '1rem 0' : '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', borderTop: '1px solid #e5e7eb' }}>

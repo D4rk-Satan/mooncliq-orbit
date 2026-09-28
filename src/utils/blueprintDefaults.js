@@ -186,7 +186,7 @@ export function getDefaultBlueprintData(mod) {
                     { name: 'startDateTime', label: 'Start Date & Time', type: 'Datetime', isRequired: true, isSystemField: true, sectionName: 'Scheduling', orderIndex: 7 },
                     { name: 'dueDateTime', label: 'Due Date & Time', type: 'Datetime', isRequired: true, isSystemField: true, sectionName: 'Scheduling', orderIndex: 8 },
                     // endDateTime ko form se chhupane ke liye aage isHidden: true add kiya
-                    { name: 'endDateTime', label: 'End Date & Time', type: 'Datetime', isRequired: true, isSystemField: true, sectionName: 'Scheduling', orderIndex: 9, isHidden: true },
+                    { name: 'endDateTime', label: 'End Date & Time', type: 'Datetime', isRequired: false, isSystemField: true, sectionName: 'Scheduling', orderIndex: 9, isHidden: true },
                     { name: 'alert', label: 'Alert', type: 'Select', options: ['None', '5 mins before', '15 mins before', '30 mins before', '1 hour before', 'Custom'], isRequired: false, isSystemField: true, sectionName: 'Scheduling', orderIndex: 10 },
                     { name: 'repeat', label: 'Repeat', type: 'Select', options: ['None', 'Daily', 'Weekly', 'Monthly', 'Yearly', 'Custom'], isRequired: false, isSystemField: true, sectionName: 'Scheduling', orderIndex: 11 },
 
@@ -195,7 +195,7 @@ export function getDefaultBlueprintData(mod) {
                     { name: 'relatedRecordId', label: 'Related Record', type: 'Lookup', isRequired: false, isSystemField: true, sectionName: 'Automation', orderIndex: 13 },
                     { name: 'taskAutomation', label: 'Task Automation', type: 'Select', options: ['None', 'Send Email', 'Send SMS', 'Update Field'], isRequired: false, isSystemField: true, sectionName: 'Automation', orderIndex: 14 },
                     // completionSource ko chhupane ke liye isHidden: true add kiya
-                    { name: 'completionSource', label: 'Completion Source', type: 'Select', options: ['System-verified', 'Manually marked'], isRequired: true, isSystemField: true, sectionName: 'Automation', orderIndex: 15, isHidden: true },
+                    { name: 'completionSource', label: 'Completion Source', type: 'Select', options: ['System-verified', 'Manually marked'], isRequired: false, isSystemField: true, sectionName: 'Automation', orderIndex: 15, isHidden: true },
 
                     // ----------------- SYSTEM FIELDS -----------------
                     { name: 'createdAt', label: 'Created Date', type: 'Datetime', isRequired: true, isSystemField: true, sectionName: 'System Fields', orderIndex: 16, isHidden: true },
