@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import prisma from '@/lib/prisma';
 
 // Yeh token aap kuch bhi set kar sakte hain, bas Meta me setup karte waqt yahi token daalna hoga
 const VERIFY_TOKEN = 'mooncliq_whatsapp_secret_123';
@@ -23,31 +24,39 @@ export async function POST(req) {
   try {
     const body = await req.json();
 
-    // Check if it's a WhatsApp status update or message
     if (body.object === 'whatsapp_business_account') {
       for (const entry of body.entry) {
         for (const change of entry.changes) {
           
-          // Agar message status aaya (sent, delivered, read)
-          if (change.value.statuses) {
-            const status = change.value.statuses[0];
-            console.log(`Message ${status.id} status updated to: ${status.status}`);
-          }
+          // Meta bhejta hai ki kis Phone ID par message aaya hai
+          const phoneNumberId = change.value.metadata?.phone_number_id;
 
-          // Agar naya message aaya customer se
           if (change.value.messages) {
             const message = change.value.messages[0];
-            const contact = change.value.contacts?.[0];
-            
             const senderPhone = message.from;
-            const senderName = contact?.profile?.name || 'Unknown';
             const messageText = message.text?.body || '[Non-text message]';
 
-            console.log(`🟢 NAYA MESSAGE AAYA!`);
-            console.log(`Sender: ${senderName} (${senderPhone})`);
-            console.log(`Text: ${messageText}`);
+            // 1. Ek default Organization dhoondhte hain (Local DB ke liye)
+            const org = await prisma.organization.findFirst({
+              where: { whatsappPhoneNumberId: phoneNumberId }
+            }) || await prisma.organization.findFirst(); // Agar Phone ID se nahi mili toh pehli Org le lo
 
-            // TODO: Yahan par hum message ko Database (Prisma) me save karenge aage chalkar
+            if (org) {
+              // 2. Message ko Database (ChatMessage table) me save kar do
+              await prisma.chatMessage.create({
+                data: {
+                  organizationId: org.id,
+                  direction: 'inbound', // Customer ne bheja hai isliye inbound
+                  toPhone: phoneNumberId || 'system',
+                  fromPhone: senderPhone,
+                  body: messageText,
+                  status: 'received',
+                }
+              });
+              console.log(`✅ Message saved in DB from: ${senderPhone}`);
+            } else {
+              console.log('⚠️ Organization not found in DB!');
+            }
           }
         }
       }
