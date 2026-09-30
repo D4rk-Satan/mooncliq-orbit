@@ -4,11 +4,14 @@ import prisma from '@/lib/prisma';
 export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
-    const phone = searchParams.get('phone');
+    const rawPhone = searchParams.get('phone');
 
-    if (!phone) {
+    if (!rawPhone) {
       return NextResponse.json({ error: 'Phone number is required' }, { status: 400 });
     }
+
+    // Database me phone number bina '+' ke save hota hai (e.g. 917016309253)
+    const phone = rawPhone.replace(/[^0-9]/g, '');
 
     // Fetch messages where this phone number is either sender or receiver
     const messages = await prisma.chatMessage.findMany({
