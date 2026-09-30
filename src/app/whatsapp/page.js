@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+
 
 // Use your actual test number here for testing
 const MOCK_LEADS = [
@@ -29,6 +30,43 @@ export default function WhatsAppWebClone() {
 
   const activeLead = MOCK_LEADS.find(l => l.id === activeLeadId);
   const activeChats = localChats[activeLeadId] || [];
+
+  // --- NAYA CODE YAHAN SE SHURU ---
+  useEffect(() => {
+    if (!activeLead) return;
+
+    const fetchChats = async () => {
+      try {
+        // API ko call karo active customer ke phone number ke sath
+        const res = await fetch(`/api/whatsapp/messages?phone=${activeLead.phone}`);
+        const data = await res.json();
+
+        if (data.messages) {
+          // Database ke format ko apne UI ke format me badlo
+          const formattedMessages = data.messages.map(m => ({
+            id: m.id,
+            sender: m.direction === 'inbound' ? 'them' : 'us',
+            text: m.body,
+            time: new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            status: m.status
+          }));
+
+          // UI me update kar do
+          setLocalChats(prev => ({ ...prev, [activeLeadId]: formattedMessages }));
+        }
+      } catch (error) {
+        console.error("Error fetching chats:", error);
+      }
+    };
+
+    fetchChats();
+
+    // Har 5 second me auto-refresh karne ke liye (Optional Realtime feel)
+    const interval = setInterval(fetchChats, 2000);
+    return () => clearInterval(interval);
+
+  }, [activeLeadId, activeLead]);
+  // --- NAYA CODE YAHAN KHATAM ---
 
   const handleSendMessage = async () => {
     if (!messageInput.trim() || !activeLead) return;
@@ -255,4 +293,3 @@ export default function WhatsAppWebClone() {
     </div>
   );
 }
-

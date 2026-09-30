@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import prisma from '@/lib/prisma';
 
 export async function POST(req) {
   try {
@@ -20,15 +21,19 @@ export async function POST(req) {
       to: formattedTo,
     };
 
+    let savedBodyText = '';
+
     if (type === 'template') {
       messageData.type = 'template';
       messageData.template = {
         name: templateName,
         language: { code: 'en_US' }
       };
+      savedBodyText = `[Template: ${templateName}]`;
     } else if (type === 'text') {
       messageData.type = 'text';
       messageData.text = { body: textBody };
+      savedBodyText = textBody;
     }
 
     // Call Meta API
@@ -47,6 +52,26 @@ export async function POST(req) {
       console.error("Meta API Error:", data);
       return NextResponse.json({ error: 'Failed to send message', details: data }, { status: response.status });
     }
+
+    // --- PRISMA LOGIC ADDED HERE ---
+    // Pehle ek organization dhoondhte hain
+    const org = await prisma.organization.findFirst({
+      where: { whatsappPhoneNumberId: PHONE_NUMBER_ID }
+    }) || await prisma.organization.findFirst();
+
+    if (org) {
+      await prisma.chatMessage.create({
+        data: {
+          organizationId: org.id,
+          direction: 'outbound', // Hum bhej rahe hain isliye outbound
+          toPhone: formattedTo,
+          fromPhone: PHONE_NUMBER_ID,
+          body: savedBodyText,
+          status: 'sent',
+        }
+      });
+    }
+    // ---------------------------------
 
     return NextResponse.json({ success: true, messageId: data.messages?.[0]?.id, data });
 
