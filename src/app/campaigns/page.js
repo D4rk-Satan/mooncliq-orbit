@@ -8,7 +8,7 @@ export default function CampaignsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [walletBalance, setWalletBalance] = useState(0);
-  
+
   // Form State
   const [name, setName] = useState('');
   const [templateBody, setTemplateBody] = useState('Hi {{name}}, ');
@@ -37,7 +37,7 @@ export default function CampaignsPage() {
       const { fetchAuthSession } = await import('aws-amplify/auth');
       const { tokens } = await fetchAuthSession();
       if (!tokens) return;
-      
+
       const idToken = tokens.idToken.toString();
 
       const headers = { 'Authorization': `Bearer ${idToken}` };
@@ -47,13 +47,13 @@ export default function CampaignsPage() {
         const data = await res.json();
         setCampaigns(data);
       }
-      
+
       const balRes = await fetch('/api/wallet/balance', { headers });
       if (balRes.ok) {
         const balData = await balRes.json();
         setWalletBalance(balData.balance || 0);
       }
-      
+
     } catch (err) {
       console.error("Failed to fetch data:", err);
     } finally {
@@ -78,14 +78,14 @@ export default function CampaignsPage() {
         },
         body: JSON.stringify({ name, templateBody, targetModule, customFilters })
       });
-      
+
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
       alert(`Campaign Launched! Deducted ₹${data.costDeducted}. Queued ${data.totalQueued} messages.`);
       setShowCreateModal(false);
       fetchCampaigns();
-      
+
     } catch (error) {
       alert(`Error: ${error.message}`);
     } finally {
@@ -108,26 +108,26 @@ export default function CampaignsPage() {
   return (
     <div style={{ padding: '3rem', minHeight: '100%', background: theme.bgGradient, fontFamily: 'var(--font-inter)' }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-        
+
         {/* Header Section */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3rem' }}>
           <div style={{ flex: 1 }}>
-          <h1 style={{ fontSize: '2.5rem', fontWeight: 800, margin: '0 0 0.5rem 0', fontFamily: 'var(--font-outfit)', background: 'linear-gradient(90deg, #1e293b, #475569)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-            Campaigns
-          </h1>
-          <p style={{ color: theme.textSecondary, margin: 0, fontSize: '1.1rem' }}>
-            Automate and scale your WhatsApp outreach.
-          </p>
-        </div>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <div style={{ background: 'white', padding: '0.75rem 1.25rem', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '0.75rem', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: theme.textSecondary }}>Wallet Balance:</span>
-            <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#10b981' }}>₹{walletBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+            <h1 style={{ fontSize: '2.5rem', fontWeight: 800, margin: '0 0 0.5rem 0', fontFamily: 'var(--font-outfit)', background: 'linear-gradient(90deg, #1e293b, #475569)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+              Campaigns
+            </h1>
+            <p style={{ color: theme.textSecondary, margin: 0, fontSize: '1.1rem' }}>
+              Automate and scale your WhatsApp outreach.
+            </p>
           </div>
-          <button onClick={() => setShowCreateModal(true)} style={{ background: theme.accentGradient, color: 'white', border: 'none', padding: '0.8rem 1.5rem', borderRadius: '12px', fontSize: '0.95rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 15px rgba(79, 70, 229, 0.3)' }}>
-            + Create Broadcast
-          </button>
-        </div>
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+            <div style={{ background: 'white', padding: '0.75rem 1.25rem', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '0.75rem', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
+              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: theme.textSecondary }}>Wallet Balance:</span>
+              <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#10b981' }}>₹{walletBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+            </div>
+            <button onClick={() => setShowCreateModal(true)} style={{ background: theme.accentGradient, color: 'white', border: 'none', padding: '0.8rem 1.5rem', borderRadius: '12px', fontSize: '0.95rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 15px rgba(79, 70, 229, 0.3)' }}>
+              + Create Broadcast
+            </button>
+          </div>
         </div>
 
         {/* Analytics Glass Cards (Dummy logic for now) */}
@@ -137,13 +137,13 @@ export default function CampaignsPage() {
             { label: 'Total Dispatched', value: campaigns.reduce((acc, c) => acc + c.totalLeads, 0), trend: 'Messages queued', color: '#3b82f6' },
             { label: 'Cost Incurred', value: `₹${campaigns.reduce((acc, c) => acc + c.estimatedCost, 0)}`, trend: 'Wallet deducted', color: '#f59e0b' }
           ].map((stat, i) => (
-            <div key={i} style={{ 
-              background: theme.glassBg, 
-              backdropFilter: 'blur(12px)', 
+            <div key={i} style={{
+              background: theme.glassBg,
+              backdropFilter: 'blur(12px)',
               WebkitBackdropFilter: 'blur(12px)',
-              padding: '2rem', 
-              borderRadius: '24px', 
-              border: theme.glassBorder, 
+              padding: '2rem',
+              borderRadius: '24px',
+              border: theme.glassBorder,
               boxShadow: theme.glassShadow,
               position: 'relative',
               overflow: 'hidden'
@@ -157,40 +157,40 @@ export default function CampaignsPage() {
         </div>
 
         <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: theme.textPrimary, marginBottom: '2rem', fontFamily: 'var(--font-outfit)' }}>Active & Recent Broadcasts</h2>
-        
+
         {/* Campaign List */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           {isLoading ? <p>Loading campaigns...</p> : campaigns.length === 0 ? <p>No campaigns yet.</p> : campaigns.map((campaign, idx) => (
             <div key={campaign.id}
               onMouseEnter={() => setHoveredCard(campaign.id)}
               onMouseLeave={() => setHoveredCard(null)}
-              style={{ 
-              background: theme.glassBg, 
-              backdropFilter: 'blur(12px)',
-              borderRadius: '20px', 
-              border: theme.glassBorder, 
-              padding: '2rem', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'space-between', 
-              boxShadow: theme.glassShadow,
-              transform: hoveredCard === campaign.id ? 'translateY(-2px)' : 'none',
-              transition: 'all 0.3s ease'
-            }}>
+              style={{
+                background: theme.glassBg,
+                backdropFilter: 'blur(12px)',
+                borderRadius: '20px',
+                border: theme.glassBorder,
+                padding: '2rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                boxShadow: theme.glassShadow,
+                transform: hoveredCard === campaign.id ? 'translateY(-2px)' : 'none',
+                transition: 'all 0.3s ease'
+              }}>
               <div style={{ flex: 1.2 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
                   <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: theme.textPrimary, margin: 0, fontFamily: 'var(--font-outfit)' }}>{campaign.name}</h3>
-                  <span style={{ 
-                    background: campaign.status === 'COMPLETED' ? 'rgba(100, 116, 139, 0.15)' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)', 
-                    color: campaign.status === 'COMPLETED' ? theme.textSecondary : 'white', 
-                    padding: '0.35rem 0.85rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.05em' 
+                  <span style={{
+                    background: campaign.status === 'COMPLETED' ? 'rgba(100, 116, 139, 0.15)' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                    color: campaign.status === 'COMPLETED' ? theme.textSecondary : 'white',
+                    padding: '0.35rem 0.85rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.05em'
                   }}>
                     {campaign.status}
                   </span>
                 </div>
                 <p style={{ color: theme.textSecondary, fontSize: '0.9rem', margin: 0 }}>Targeting {campaign.totalLeads} contacts</p>
               </div>
-              
+
               <div style={{ flex: 1.5, padding: '0 2rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: 600 }}>
                   <span style={{ color: theme.accent }}>
@@ -201,16 +201,16 @@ export default function CampaignsPage() {
                   </span>
                 </div>
                 <div style={{ width: '100%', backgroundColor: 'rgba(0,0,0,0.05)', borderRadius: '9999px', height: '10px', overflow: 'hidden' }}>
-                  <div style={{ 
-                    width: `${Math.round(((campaign.successCount + campaign.failedCount) / (campaign.totalLeads || 1)) * 100)}%`, 
-                    background: theme.accentGradient, 
-                    height: '100%', borderRadius: '9999px' 
+                  <div style={{
+                    width: `${Math.round(((campaign.successCount + campaign.failedCount) / (campaign.totalLeads || 1)) * 100)}%`,
+                    background: theme.accentGradient,
+                    height: '100%', borderRadius: '9999px'
                   }}></div>
                 </div>
               </div>
-              
+
               <div style={{ display: 'flex', gap: '1rem', flex: 0.8, justifyContent: 'flex-end' }}>
-                 <button style={{ padding: '0.75rem 1.5rem', border: 'none', background: 'rgba(15, 23, 42, 0.05)', borderRadius: '12px', fontWeight: 600, color: theme.textPrimary, cursor: 'pointer' }}>Analytics</button>
+                <button style={{ padding: '0.75rem 1.5rem', border: 'none', background: 'rgba(15, 23, 42, 0.05)', borderRadius: '12px', fontWeight: 600, color: theme.textPrimary, cursor: 'pointer' }}>Analytics</button>
               </div>
             </div>
           ))}
@@ -239,22 +239,22 @@ export default function CampaignsPage() {
                   </select>
                 </div>
               </div>
-              
+
               <div style={{ marginBottom: '1.5rem', background: 'rgba(241, 245, 249, 0.5)', padding: '1.5rem', borderRadius: '16px', overflowX: 'hidden' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                   <label style={{ fontSize: '0.875rem', fontWeight: 700, color: theme.textPrimary, margin: 0 }}>Target Audience Rules</label>
                   <button type="button" onClick={addFilter} style={{ background: 'white', border: '1px solid #e2e8f0', padding: '0.35rem 0.75rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', color: theme.textSecondary }}>+ Add Rule</button>
                 </div>
-                
+
                 {customFilters.length === 0 && <p style={{ fontSize: '0.85rem', color: theme.textSecondary }}>Targeting ALL records. Add a rule to filter.</p>}
-                
+
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   {customFilters.map((filter, index) => (
                     <div key={filter.id} style={{ display: 'grid', gridTemplateColumns: '70px 1fr 1fr 1.5fr 30px', gap: '0.5rem', alignItems: 'center' }}>
                       {index === 0 ? (
-                         <div style={{ fontSize: '0.75rem', fontWeight: 700, color: theme.textSecondary, textAlign: 'center' }}>WHERE</div>
+                        <div style={{ fontSize: '0.75rem', fontWeight: 700, color: theme.textSecondary, textAlign: 'center' }}>WHERE</div>
                       ) : (
-                        <select 
+                        <select
                           value={filter.logic}
                           onChange={(e) => updateFilter(filter.id, 'logic', e.target.value)}
                           style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '0.75rem', fontWeight: 'bold' }}
@@ -263,9 +263,9 @@ export default function CampaignsPage() {
                           <option value="OR">OR</option>
                         </select>
                       )}
-                      
-                      <select 
-                        value={filter.field} 
+
+                      <select
+                        value={filter.field}
                         onChange={(e) => updateFilter(filter.id, 'field', e.target.value)}
                         style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '0.85rem' }}
                       >
@@ -274,9 +274,9 @@ export default function CampaignsPage() {
                         <option value="firstName">Name / Company</option>
                         <option value="city">City</option>
                       </select>
-                      
-                      <select 
-                        value={filter.operator} 
+
+                      <select
+                        value={filter.operator}
                         onChange={(e) => updateFilter(filter.id, 'operator', e.target.value)}
                         style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '0.85rem' }}
                       >
@@ -284,14 +284,14 @@ export default function CampaignsPage() {
                         <option value="contains">Contains</option>
                         <option value="not_equals">Not Equals</option>
                       </select>
-                      
-                      <input 
-                        value={filter.value} 
+
+                      <input
+                        value={filter.value}
                         onChange={(e) => updateFilter(filter.id, 'value', e.target.value)}
-                        placeholder="Value..." 
-                        style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '0.85rem' }} 
+                        placeholder="Value..."
+                        style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '0.85rem' }}
                       />
-                      
+
                       <button type="button" onClick={() => removeFilter(filter.id)} style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         ✕
                       </button>

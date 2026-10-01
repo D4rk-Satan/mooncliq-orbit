@@ -2,8 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
-import { signIn } from 'aws-amplify/auth';
+import { useState, useEffect } from "react";
+import { signIn, getCurrentUser } from 'aws-amplify/auth';
 import { useRouter } from "next/navigation";
 
 export default function SignIn() {
@@ -12,6 +12,17 @@ export default function SignIn() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  // Check if user is already logged in when the page loads
+  useEffect(() => {
+    getCurrentUser()
+      .then(() => {
+        router.push('/dashboard');
+      })
+      .catch(() => {
+        // Not logged in, let them see the sign-in form
+      });
+  }, [router]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -31,7 +42,12 @@ export default function SignIn() {
         router.push('/dashboard');
       }
     } catch (err) {
-      setError(err.message || 'Invalid email or password.');
+      // Handle the case where AWS Cognito says user is already logged in
+      if (err.name === 'UserAlreadyAuthenticatedException' || err.message.toLowerCase().includes('already authenticated') || err.message.toLowerCase().includes('already logged in')) {
+        router.push('/dashboard');
+      } else {
+        setError(err.message || 'Invalid email or password.');
+      }
     } finally {
       setIsLoading(false);
     }

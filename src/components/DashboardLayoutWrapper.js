@@ -12,12 +12,19 @@ export default function DashboardLayoutWrapper({ children }) {
 
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(true);
+  const [refreshSidebarKey, setRefreshSidebarKey] = useState(0);
+
   useEffect(() => {
     if (!isAuthPage) {
       checkOnboardingStatus();
+    } else {
+      setIsCheckingOnboarding(false);
     }
   }, [pathname, isAuthPage]);
+
   const checkOnboardingStatus = async () => {
+    setIsCheckingOnboarding(true);
     try {
       const { fetchAuthSession } = await import('aws-amplify/auth');
       const { tokens } = await fetchAuthSession();
@@ -34,6 +41,8 @@ export default function DashboardLayoutWrapper({ children }) {
       }
     } catch (e) {
       console.error("Failed to check onboarding", e);
+    } finally {
+      setIsCheckingOnboarding(false);
     }
   };
 
@@ -42,15 +51,35 @@ export default function DashboardLayoutWrapper({ children }) {
     return <>{children}</>;
   }
 
+  // Prevents the dashboard from flashing for 2-4 seconds while API is being called
+  if (isCheckingOnboarding) {
+    return (
+      <div style={{ display: 'flex', height: '100vh', width: '100vw', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f8fafc' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ width: '40px', height: '40px', border: '4px solid #e2e8f0', borderTopColor: '#4f46e5', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+          <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+          <div style={{ color: '#64748b', fontSize: '0.9rem', fontWeight: 500 }}>Setting up your workspace...</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="dashboard-layout" style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
       {showOnboarding && (
         <OnboardingModal
           isAdmin={isAdmin}
-          onComplete={() => setShowOnboarding(false)}
+          onComplete={() => {
+            setShowOnboarding(false);
+            setRefreshSidebarKey(prev => prev + 1); // Trigger Sidebar to re-fetch profile data
+          }}
         />
       )}
-      <Sidebar isMobileMenuOpen={isMobileMenuOpen} setIsMobileMenuOpen={setIsMobileMenuOpen} />
+      <Sidebar 
+        isMobileMenuOpen={isMobileMenuOpen} 
+        setIsMobileMenuOpen={setIsMobileMenuOpen} 
+        refreshKey={refreshSidebarKey}
+      />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
         {/* MOBILE HEADER (Only visible on phones) */}

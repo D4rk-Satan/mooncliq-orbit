@@ -148,6 +148,7 @@ model Field {
   isSystemField      Boolean   @default(false)
   sectionName        String    @default("General Information")
   sectionOrder       Int       @default(0)
+  defaultValue       String?
   blueprint          Blueprint @relation(fields: [blueprintId], references: [id], onDelete: Cascade)
 }
 

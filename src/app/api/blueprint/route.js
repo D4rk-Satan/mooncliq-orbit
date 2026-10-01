@@ -17,7 +17,8 @@ export async function GET(request) {
       const standardModules = ['Lead', 'Deal', 'Account', 'Product', 'Task'];
       let blueprints = await prisma.blueprint.findMany({
         where: { organizationId: user.organizationId },
-        orderBy: { updatedAt: 'desc' }
+        orderBy: { updatedAt: 'desc' },
+        include: { fields: true, stages: true }
       });
 
       const existingTypes = blueprints.map(b => b.moduleType);
@@ -32,7 +33,8 @@ export async function GET(request) {
               name: `Default ${mod} Pipeline`,
               version: 1,
               ...getDefaultBlueprintData(mod)
-            }
+            },
+            include: { fields: true, stages: true }
           });
           blueprints.push(newBp);
         }

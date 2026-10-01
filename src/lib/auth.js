@@ -1,5 +1,6 @@
 import { CognitoJwtVerifier } from "aws-jwt-verify";
 import prisma from "./prisma";
+import { getDefaultBlueprintData } from '@/utils/blueprintDefaults';
 
 // Simple in-memory cache for user profiles
 // Next.js API routes run in a Node.js process, so this Map persists across requests for a while.
@@ -106,22 +107,18 @@ export async function getAuthUser(request) {
       });
 
       // 3. Create Default Blueprint & Stages for their Kanban board
+      // 3. Create Default Blueprint & Stages WITH FIELDS using the standard function
       const defaultBlueprint = await prisma.blueprint.create({
         data: {
           organizationId: newOrg.id,
           moduleType: 'Lead',
-          name: 'Default Pipeline',
-        }
+          name: 'Default Lead Pipeline',
+          version: 1,
+          ...getDefaultBlueprintData('Lead')
+        },
+        include: { fields: true, stages: true }
       });
 
-      await prisma.stage.createMany({
-        data: [
-          { blueprintId: defaultBlueprint.id, name: 'New', orderIndex: 1, color: '#3b82f6' },
-          { blueprintId: defaultBlueprint.id, name: 'Contacted', orderIndex: 2, color: '#eab308' },
-          { blueprintId: defaultBlueprint.id, name: 'Qualified', orderIndex: 3, color: '#8b5cf6' },
-          { blueprintId: defaultBlueprint.id, name: 'Closed', orderIndex: 4, color: '#22c55e' },
-        ]
-      });
     }
 
     // Save to Cache
