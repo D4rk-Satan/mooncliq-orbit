@@ -7,6 +7,7 @@ import DynamicModuleView from "../../../components/DynamicModuleView";
 import SlideOverPanel from "../../../components/SlideOverPanel";
 import DynamicIntakeForm from "../../../components/DynamicIntakeForm";
 import EntityEditModal from "../../../components/EntityEditModal";
+import Button from "../../../components/ui/Button";
 import { fetchAuthSession } from "aws-amplify/auth";
 
 const getAuthToken = async () => {
@@ -144,8 +145,7 @@ export default function CustomModulePage() {
   }
 
   return (
-    <div style={{ display: 'flex', height: '100vh', width: '100vw', backgroundColor: '#f8fafc', overflow: 'hidden' }}>
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
         <DynamicModuleView
           moduleName={moduleDef.name}
           records={records}
@@ -155,24 +155,17 @@ export default function CustomModulePage() {
           onRecordClick={(record) => setRecordToEdit(record)} // Open edit modal on row click
           onEditClick={(record) => setRecordToEdit(record)}
           renderHeaderActions={() => (
-            <button
-              onClick={() => setIsNewRecordPanelOpen(true)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '0.5rem',
-                padding: '0.5rem 1rem', backgroundColor: '#3b82f6', color: '#fff',
-                border: 'none', borderRadius: '6px', fontWeight: '500', cursor: 'pointer',
-                fontSize: '0.9rem', boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-              }}
-            >
+            <Button variant="primary" onClick={() => setIsNewRecordPanelOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
               New Record
-            </button>
+            </Button>
           )}
         />
 
         {/* CREATE PANEL */}
         <DynamicIntakeForm
           moduleType={moduleId}
+          moduleName={moduleDef.name}
           isOpen={isNewRecordPanelOpen}
           onClose={() => setIsNewRecordPanelOpen(false)}
           onSave={handleCreateRecord}
@@ -189,6 +182,5 @@ export default function CustomModulePage() {
           moduleName={moduleDef.name}
         />
       </div>
-    </div>
   );
 }

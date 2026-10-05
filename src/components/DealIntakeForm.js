@@ -310,7 +310,7 @@ export default function DealIntakeForm({ isOpen, onClose, onSave }) {
                                     controllerField.onChange(val);
                                     handleFieldChange(field, name, val, record, mappings);
                                   }}
-                                  error={errors?.[field.name] || fieldState.error?.message}
+                                  error={errors?.[field.name]?.message || fieldState.error?.message}
                                   readOnly={fieldReadonlyStates?.[field.name]}
                                 />
                               </div>

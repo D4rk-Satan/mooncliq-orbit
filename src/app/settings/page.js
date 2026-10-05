@@ -1312,7 +1312,7 @@ export default function SettingsPage() {
                                   {bp.name}
                                 </td>
 
-                                <td style={{ padding: '1rem', color: '#64748b', fontSize: '0.9rem' }}>{bp.moduleType}</td>
+                                <td style={{ padding: '1rem', color: '#64748b', fontSize: '0.9rem' }}>{customModules.find(m => m.id === bp.moduleType)?.name || bp.moduleType}</td>
 
                                 <td style={{ padding: '1rem', color: '#64748b', fontSize: '0.9rem' }}>{bp.targetField || 'N/A'}</td>
 
@@ -1793,6 +1793,7 @@ export default function SettingsPage() {
                             <select className="form-input bg-white" value={newField.type} onChange={e => setNewField({ ...newField, type: e.target.value })}>
                               <option value="text">Short Text</option>
                               <option value="textarea">Long Text (Text area)</option>
+                              <option value="address">Address Block</option>
                               <option value="number">Number</option>
                               <option value="decimal">Decimal (Float)</option>
                               <option value="currency">Currency</option>

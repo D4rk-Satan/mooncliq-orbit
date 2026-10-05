@@ -8,7 +8,7 @@ import { withPermission } from '../../../lib/rbac';
 export const POST = withPermission('Task', 'create', async (request, user) => {
   try {
 
-    const body = await req.json();
+    const body = await request.json();
     const { taskName, startDateTime, dueDateTime, endDateTime, repeat, alert, notes, customData, blueprintId, owner, priority, taskType, relatedModule, relatedRecordId } = body;
 
     if (!taskName || !blueprintId) {
@@ -110,7 +110,7 @@ export const PATCH = withPermission('Task', 'edit', async (request, user) => {
   try {
 
 
-    const data = await req.json();
+    const data = await request.json();
     const { taskId, stageId, customData, tags, transitionId, ...standardFields } = data;
 
     if (!taskId) return NextResponse.json({ error: "Missing taskId" }, { status: 400 });
@@ -126,23 +126,23 @@ export const PATCH = withPermission('Task', 'edit', async (request, user) => {
 
     // Validation: Start Date must be before Due Date (for Updates)
     if (updateData.startDateTime || updateData.dueDateTime) {
-       const existingTask = await prisma.task.findUnique({ where: { id: taskId }, select: { startDateTime: true, dueDateTime: true } });
-       if (existingTask) {
-           const finalStartDate = updateData.startDateTime || existingTask.startDateTime;
-           const finalDueDate = updateData.dueDateTime || existingTask.dueDateTime;
-           if (finalStartDate && finalDueDate && new Date(finalStartDate) > new Date(finalDueDate)) {
-               return NextResponse.json({ error: "Start Date cannot be after Due Date" }, { status: 400 });
-           }
-       }
+      const existingTask = await prisma.task.findUnique({ where: { id: taskId }, select: { startDateTime: true, dueDateTime: true } });
+      if (existingTask) {
+        const finalStartDate = updateData.startDateTime || existingTask.startDateTime;
+        const finalDueDate = updateData.dueDateTime || existingTask.dueDateTime;
+        if (finalStartDate && finalDueDate && new Date(finalStartDate) > new Date(finalDueDate)) {
+          return NextResponse.json({ error: "Start Date cannot be after Due Date" }, { status: 400 });
+        }
+      }
     }
 
     // Auto-fill End Date & Completion Source if stage is changed to 'Completed'
     if (updateData.stageId) {
-       const newStage = await prisma.stage.findUnique({ where: { id: updateData.stageId } });
-       if (newStage && newStage.name === 'Completed') {
-           updateData.endDateTime = new Date();
-           updateData.completionSource = 'Manually marked';
-       }
+      const newStage = await prisma.stage.findUnique({ where: { id: updateData.stageId } });
+      if (newStage && newStage.name === 'Completed') {
+        updateData.endDateTime = new Date();
+        updateData.completionSource = 'Manually marked';
+      }
     }
 
     const updatedTask = await prisma.task.update({

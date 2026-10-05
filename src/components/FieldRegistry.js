@@ -3,7 +3,7 @@ import imageCompression from 'browser-image-compression';
 import TaskRepeatDropdown from './TaskRepeatDropdown';
 import TaskAlertDropdown from './TaskAlertDropdown';
 import { Parser } from 'expr-eval';
-
+import Button from './ui/Button';
 // image upload field (Max 4 Images, Manual Upload)
 const ImageUploadInput = ({ field, value, onChange }) => {
   const [isUploading, setIsUploading] = useState(false);
@@ -307,13 +307,14 @@ const BarcodeScannerInput = ({ field, value, onChange }) => {
           placeholder="Type or Scan code..."
           style={{ flex: 1 }}
         />
-        <button
+        <Button
+          variant="outline"
           type="button"
           onClick={startScanner}
-          style={{ padding: '0.6rem 1rem', backgroundColor: '#3b82f6', color: 'white', borderRadius: '6px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 500 }}
+          style={{ height: '52px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
         >
           📷 Scan
-        </button>
+        </Button>
       </div>
 
       {isScanning && (
@@ -482,8 +483,8 @@ const FileUploadInput = ({ field, value, onChange }) => {
         )}
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <label style={{ cursor: 'pointer', padding: '0.5rem 1rem', backgroundColor: '#e2e8f0', color: '#475569', borderRadius: '6px', fontWeight: '500', fontSize: '0.85rem', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.backgroundColor = '#cbd5e1'} onMouseLeave={e => e.currentTarget.style.backgroundColor = '#e2e8f0'}>
-            Choose Files
+          <label style={{ cursor: 'pointer', height: '52px', display: 'flex', alignItems: 'center', padding: '0 1.5rem', backgroundColor: '#ffffff', color: '#0f172a', border: '1px solid #e2e8f0', borderRadius: '8px', fontWeight: '500', fontSize: '0.95rem', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.currentTarget.style.backgroundColor = '#ffffff'}>
+            + Choose Files
             <input type="file" multiple onChange={handleFileSelection} style={{ display: 'none' }} />
           </label>
 
@@ -549,7 +550,7 @@ const SelectInput = ({ field, value, onChange }) => (
 );
 
 // Renders a date input
-const DateInput = ({ field, value, onChange }) => (
+const DateInput = ({ field, value, onChange, min }) => (
   <div className="form-group">
     <label className="form-label" htmlFor={field.name}>
       {field.label} {field.isRequired && <span className="text-red-500">*</span>}
@@ -560,6 +561,7 @@ const DateInput = ({ field, value, onChange }) => (
       name={field.name}
       required={field.isRequired}
       value={value || ''}
+      min={min}
       onChange={(e) => onChange(field.name, e.target.value)}
       className="form-input"
     />
@@ -970,20 +972,22 @@ function AudioInput({ field, value, onChange }) {
       <label className="form-label" htmlFor={field.name}>
         {field.label} {field.isRequired && <span className="text-red-500">*</span>}
       </label>
-      <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginTop: '0.5rem' }}>
+      <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', height: '52px' }}>
         {isRecording ? (
-          <button type="button" onClick={stopRecording} style={{ background: '#ef4444', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontWeight: 500 }}>
+          <Button variant="outline" onClick={stopRecording} style={{ height: '52px', borderRadius: '8px', display: 'flex', alignItems: 'center' }}>
             ⏹ Stop Recording...
-          </button>
+          </Button>
         ) : (
-          <button type="button" onClick={startRecording} style={{ background: '#10b981', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontWeight: 500 }}>
+          <Button variant="outline" onClick={startRecording} style={{ height: '52px', borderRadius: '8px', display: 'flex', alignItems: 'center' }}>
             🎙️ Record Voice
-          </button>
+          </Button>
         )}
 
-        <label style={{ background: '#f1f5f9', color: '#334155', padding: '8px 16px', borderRadius: '6px', border: '1px solid #cbd5e1', cursor: 'pointer', fontWeight: 500, margin: 0 }}>
-          📁 Upload Audio
-          <input type="file" accept="audio/*" style={{ display: 'none' }} onChange={handleFileUpload} disabled={isUploading || isRecording} />
+        <label style={{ cursor: 'pointer', margin: 0, display: 'inline-block', height: '52px' }}>
+          <Button variant="outline" onClick={() => document.getElementById(`audio-upload-${field.name}`).click()} disabled={isUploading || isRecording} style={{ height: '52px', borderRadius: '8px', display: 'flex', alignItems: 'center' }}>
+            📁 Upload Audio
+          </Button>
+          <input id={`audio-upload-${field.name}`} type="file" accept="audio/*" style={{ display: 'none' }} onChange={handleFileUpload} disabled={isUploading || isRecording} />
         </label>
 
         {isUploading && <span style={{ color: '#64748b', fontSize: '0.9rem' }}>Uploading... ⏳</span>}

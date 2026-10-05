@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import TableSkeleton from "../../components/skeletons/TableSkeleton";
 import Badge from "../../components/ui/Badge";
 import Button from "../../components/ui/Button";
+import EmptyState from "../../components/ui/EmptyState";
 import { useLeads } from "../../hooks/useLeads";
 import { useConfirm } from "../../contexts/ConfirmContext";
 
@@ -411,43 +412,17 @@ export default function LeadModule() {
   };
 
   const renderEmptyState = () => (
-    <div className="empty-state" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '4rem 2rem', textAlign: 'center', height: '100%' }}>
-      <div className="empty-state-content" style={{ maxWidth: '400px' }}>
-        <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'center' }}>
-          <svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-            {/* Background decorative dots */}
-            <circle cx="20" cy="30" r="4" fill="#f1f5f9" />
-            <circle cx="100" cy="20" r="2" fill="#f1f5f9" />
-            <circle cx="90" cy="100" r="6" fill="#f1f5f9" />
-            <circle cx="10" cy="90" r="3" fill="#f1f5f9" />
-
-            {/* Document shape */}
-            <path d="M40 20H70C75.5228 20 80 24.4772 80 30V80C80 85.5228 75.5228 90 70 90H40C34.4772 90 30 85.5228 30 80V30C30 24.4772 34.4772 20 40 20Z" fill="white" stroke="#cbd5e1" strokeWidth="3" strokeLinejoin="round" />
-            <path d="M35 25H65C70.5228 25 75 29.4772 75 35V85C75 90.5228 70.5228 95 65 95H35C29.4772 95 25 90.5228 25 85V35C25 29.4772 29.4772 25 35 25Z" fill="white" stroke="#cbd5e1" strokeWidth="3" strokeLinejoin="round" />
-
-            {/* Document lines */}
-            <rect x="40" y="40" width="25" height="4" rx="2" fill="#e2e8f0" />
-            <rect x="40" y="55" width="15" height="4" rx="2" fill="#e2e8f0" />
-            <rect x="40" y="70" width="20" height="4" rx="2" fill="#e2e8f0" />
-
-            {/* Magnifying Glass */}
-            <circle cx="75" cy="70" r="15" fill="white" stroke="#cbd5e1" strokeWidth="3" />
-            <path d="M85 80L95 90" stroke="#cbd5e1" strokeWidth="6" strokeLinecap="round" />
-
-            {/* X inside magnifying glass */}
-            <path d="M70 65L80 75" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" />
-            <path d="M80 65L70 75" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" />
-          </svg>
-        </div>
-        <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#1e293b', marginBottom: '0.5rem' }}>There are no records in this view.</h3>
-        <p className="text-muted" style={{ marginBottom: '1.5rem', color: '#64748b' }}>Get started by creating your first lead in the pipeline.</p>
-        {(currentUser?.profile?.canAccessSettings || currentUser?.profile?.permissions?.Lead?.create) && (
+    <EmptyState
+      title="There are no records in this view."
+      description="Get started by creating your first lead in the pipeline."
+      actionButton={
+        (currentUser?.profile?.canAccessSettings || currentUser?.profile?.permissions?.Lead?.create) ? (
           <Button variant="primary" onClick={() => setIsFormOpen(true)}>
             + Add Lead
           </Button>
-        )}
-      </div>
-    </div>
+        ) : null
+      }
+    />
   );
 
 

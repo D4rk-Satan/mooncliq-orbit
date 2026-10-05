@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import Button from './ui/Button';
 
 export default function ProfileSettingsView() {
   const [loading, setLoading] = useState(true);
@@ -206,9 +207,9 @@ export default function ProfileSettingsView() {
       )}
 
       <div style={{ textAlign: 'right' }}>
-        <button onClick={handleSave} disabled={isSaving || isUploading} style={{ padding: '0.75rem 2.5rem', backgroundColor: isSaving ? '#94a3b8' : '#4f46e5', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: isSaving ? 'not-allowed' : 'pointer', boxShadow: '0 4px 6px -1px rgba(79, 70, 229, 0.3)' }}>
+        <Button onClick={handleSave} disabled={isSaving || isUploading} style={{ padding: '0.75rem 2.5rem' }}>
           {isSaving ? 'Saving...' : 'Save Changes'}
-        </button>
+        </Button>
       </div>
 
     </div>

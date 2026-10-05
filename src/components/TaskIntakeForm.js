@@ -101,10 +101,13 @@ export default function TaskIntakeForm({ blueprint, isOpen, onClose, onSave, tas
   }, [visibleFields, scriptFieldStates]);
 
   // Hook Form Initialize kar rahe hain
-  const { control, handleSubmit, reset, formState: { errors } } = useForm({
+  const { control, handleSubmit, reset, watch, formState: { errors } } = useForm({
     resolver: zodResolver(dynamicSchema),
     defaultValues: { ...standardData, customData: customData }
   });
+
+  // UI Guard: Watch the start date so we can block the due date calendar
+  const currentStartDate = watch("startDateTime");
 
 
   useEffect(() => {
@@ -380,6 +383,7 @@ export default function TaskIntakeForm({ blueprint, isOpen, onClose, onSave, tas
                                     <DynamicField
                                       formData={{ ...standardData, ...customData }}
                                       {...commonProps}
+                                      min={field.name === 'dueDateTime' && currentStartDate ? currentStartDate : undefined}
                                       onChange={(name, value, record, mappings) => commonProps.onChange(value, record, mappings)}
                                     />
                                   );

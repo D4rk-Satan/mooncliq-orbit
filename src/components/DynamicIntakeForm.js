@@ -8,7 +8,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 
-export default function DynamicIntakeForm({ moduleType, isOpen, onClose, onSave }) {
+export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onClose, onSave }) {
   const [blueprint, setBlueprint] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [currentStep, setCurrentStep] = useState(0);
@@ -215,7 +215,7 @@ export default function DynamicIntakeForm({ moduleType, isOpen, onClose, onSave 
             <div className="slide-header" style={{ flexShrink: 0, backgroundColor: '#ffffff', zIndex: 10, display: 'flex', flexDirection: 'column', borderBottom: '1px solid #f1f5f9' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: orderedSections.length > 1 ? '1.5rem' : '0' }}>
                 <span className="slide-eyebrow" style={{ color: 'var(--primary)', letterSpacing: '0.1em', fontWeight: 700 }}>
-                  NEW {blueprint?.moduleType?.toUpperCase() || moduleType.toUpperCase()}
+                  NEW {moduleName ? moduleName.toUpperCase() : (blueprint?.moduleType?.toUpperCase() || moduleType.toUpperCase())}
                 </span>
                 <button type="button" className="btn-close" onClick={onClose}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>

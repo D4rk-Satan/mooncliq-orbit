@@ -1,5 +1,6 @@
 import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
+import "./forms.css";
 import { ConfirmProvider } from "../contexts/ConfirmContext";
 
 const inter = Inter({ subsets: ["latin"], variable: '--font-inter' });

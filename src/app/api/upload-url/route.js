@@ -23,8 +23,8 @@ export async function GET(request) {
       return NextResponse.json({ error: "Missing file name or type" }, { status: 400 });
     }
 
-    // Security check: Sirf allowed folders me hi image upload ho sake
-    const allowedFolders = ["products", "avatars", "logos"];
+    // Security check: Sirf allowed folders me hi image/audio upload ho sake
+    const allowedFolders = ["products", "avatars", "logos", "audio"];
     if (!allowedFolders.includes(folder)) {
       return NextResponse.json({ error: "Invalid folder" }, { status: 400 });
     }

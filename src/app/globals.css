@@ -82,34 +82,7 @@ body {
 }
 
 /* Forms */
-.form-group {
-  margin-bottom: 1.5rem;
-}
 
-.form-label {
-  display: block;
-  font-size: 0.875rem;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-  color: #334155;
-}
-
-.form-input {
-  width: 100%;
-  padding: 0.875rem 1rem;
-  background-color: var(--input-bg);
-  border: 1px solid var(--input-border);
-  border-radius: 8px;
-  font-size: 1rem;
-  color: #0f172a;
-  outline: none;
-  transition: border-color 0.2s ease;
-}
-
-.form-input:focus {
-  border-color: #1c1917;
-  background-color: #ffffff;
-}
 
 .password-input-wrapper {
   position: relative;

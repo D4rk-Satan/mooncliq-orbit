@@ -152,7 +152,7 @@ export default function LookupInput({ field, value, onChange }) {
 
       <div
         className="form-input bg-white"
-        style={{ minHeight: '42px', height: 'auto', display: 'flex', flexWrap: 'wrap', gap: '0.5rem', padding: '0.25rem 0.5rem', alignItems: 'center', cursor: 'text' }}
+        style={{ minHeight: '52px', height: 'auto', display: 'flex', flexWrap: 'wrap', gap: '0.5rem', padding: '0.875rem 1rem', alignItems: 'center', cursor: 'text' }}
         onClick={() => setIsOpen(true)}
       >
         {selectedItems.map(item => (

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { fetchAuthSession } from 'aws-amplify/auth';
 
 export function useLeads() {
@@ -9,7 +9,7 @@ export function useLeads() {
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearching, setIsSearching] = useState(false);
-
+    const isFirstRender = useRef(true);
 
     // Helper function to get token
     const getAuthToken = async () => {
@@ -93,6 +93,14 @@ export function useLeads() {
     }, []);
 
     useEffect(() => {
+
+
+        if (isFirstRender.current) {
+            isFirstRender.current = false;
+            return;
+        }
+
+
         setIsSearching(true);
         const handler = setTimeout(() => {
             if (searchQuery.length >= 3 || searchQuery.length === 0) {

@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Button from './ui/Button';
 
 export default function OnboardingModal({ isAdmin = false, onComplete }) {
   const router = useRouter();
@@ -90,7 +91,6 @@ export default function OnboardingModal({ isAdmin = false, onComplete }) {
   const modalOverlay = { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 };
   const modalBox = { background: '#fff', borderRadius: '16px', padding: '2.5rem', width: '100%', maxWidth: '450px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', textAlign: 'center', position: 'relative' };
   const inputStyle = { width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid #e2e8f0', marginTop: '0.5rem', fontSize: '0.95rem', outline: 'none', boxSizing: 'border-box' };
-  const buttonStyle = { width: '100%', padding: '0.85rem', backgroundColor: '#4f46e5', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '1rem', fontWeight: 600, cursor: 'pointer', marginTop: '2rem' };
 
   return (
     <div style={modalOverlay}>
@@ -134,9 +134,9 @@ export default function OnboardingModal({ isAdmin = false, onComplete }) {
               </select>
             </label>
 
-            <button onClick={handleNext} style={buttonStyle}>
+            <Button onClick={handleNext} size="lg" style={{ width: '100%', marginTop: '2rem' }}>
               {isAdmin ? "Continue \u2192" : "Finish Setup \u2713"}
-            </button>
+            </Button>
           </div>
         )}
 
@@ -167,9 +167,9 @@ export default function OnboardingModal({ isAdmin = false, onComplete }) {
               </select>
             </label>
 
-            <button onClick={handleSave} disabled={isSaving} style={buttonStyle}>
+            <Button onClick={handleSave} disabled={isSaving} size="lg" style={{ width: '100%', marginTop: '2rem' }}>
               {isSaving ? "Saving..." : "Finish Setup \u2713"}
-            </button>
+            </Button>
             <button onClick={() => setStep(1)} style={{ width: '100%', background: 'none', border: 'none', color: '#64748b', marginTop: '1rem', cursor: 'pointer', fontSize: '0.9rem' }}>
               &larr; Back
             </button>
