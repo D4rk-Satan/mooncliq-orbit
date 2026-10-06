@@ -425,7 +425,7 @@ export default function Dashboard() {
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent'
             }}>
-              Welcome to Mooncliq Orbit!
+              Welcome to Mooncliq CRM!
             </h1>
 
             <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#475569', marginBottom: '1rem' }}>
@@ -436,23 +436,6 @@ export default function Dashboard() {
               It's a bit quiet here right now. Let's get your business rolling!
               Get started by adding your first lead or configuring your pipeline settings.
             </p>
-
-            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-              <button style={{
-                padding: '12px 24px', backgroundColor: '#4f46e5', color: '#ffffff',
-                borderRadius: '8px', border: 'none', fontSize: '0.95rem', fontWeight: 600,
-                cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 4px 6px rgba(79, 70, 229, 0.2)'
-              }}>
-                + Add First Lead
-              </button>
-              <button style={{
-                padding: '12px 24px', backgroundColor: '#ffffff', color: '#475569',
-                borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.95rem', fontWeight: 600,
-                cursor: 'pointer', transition: 'all 0.2s'
-              }}>
-                Configure Pipeline
-              </button>
-            </div>
           </div>
         </div>
       </div>

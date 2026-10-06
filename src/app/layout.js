@@ -20,7 +20,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className={`${inter.variable} ${outfit.variable}`}>
-        <NextTopLoader color="#ef4444" showSpinner={false} />
+        <NextTopLoader color="#a356ebff" showSpinner={false} />
         <Toaster position="top-right" />
         <AmplifyProvider>
           <DashboardLayoutWrapper>

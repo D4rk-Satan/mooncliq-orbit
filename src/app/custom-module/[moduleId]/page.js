@@ -29,6 +29,7 @@ export default function CustomModulePage() {
   // Form states
   const [isNewRecordPanelOpen, setIsNewRecordPanelOpen] = useState(false);
   const [recordToEdit, setRecordToEdit] = useState(null);
+  const [selectedRecord, setSelectedRecord] = useState(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -120,6 +121,9 @@ export default function CustomModulePage() {
         const result = await res.json();
         setRecords(records.map(r => r.id === result.id ? result : r));
         setRecordToEdit(null);
+        if (selectedRecord && selectedRecord.id === result.id) {
+          setSelectedRecord(result);
+        }
       }
     } catch (err) {
       console.error("Error updating record:", err);
@@ -153,8 +157,8 @@ export default function CustomModulePage() {
         blueprint={blueprint}
         tags={[]}
         supportKanban={false}
-        onRecordClick={(record) => setRecordToEdit(record)} // Open edit modal on row click
-        onEditClick={(record) => setRecordToEdit(record)}
+        onRecordClick={(record) => setSelectedRecord(record)} // Open slide over panel on row click
+        onEditClick={(record) => setRecordToEdit(record)} // Open edit modal on edit icon click
         renderHeaderActions={() => (
           <Button variant="primary" onClick={() => setIsNewRecordPanelOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
@@ -172,6 +176,18 @@ export default function CustomModulePage() {
         onSave={handleCreateRecord}
       />
 
+      {/* PREVIEW PANEL */}
+      <SlideOverPanel
+        isOpen={!!selectedRecord}
+        onClose={() => setSelectedRecord(null)}
+        lead={selectedRecord}
+        blueprint={blueprint}
+        onEditClick={() => {
+          setRecordToEdit(selectedRecord);
+          setSelectedRecord(null); // Close preview panel when editing
+        }}
+        onLeadUpdate={handleUpdateRecord}
+      />
 
       {/* EDIT MODAL */}
       <EntityEditModal

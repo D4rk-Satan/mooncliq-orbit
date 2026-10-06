@@ -57,6 +57,10 @@ export default function LeadIntakeForm({ isOpen, onClose, onSave }) {
       const uniqueNames = [...new Set(vf.map(f => f.sectionName || 'General Information'))];
       os = uniqueNames.map(name => ({ name, columns: 2 }));
     }
+
+    // Filter out sections that have no visible fields in them
+    os = os.filter(sec => vf.some(f => (f.sectionName || 'General Information') === sec.name));
+
     return { visibleFields: vf, orderedSections: os };
   }, [blueprint, standardFieldStates]);
   const standardFields = [
@@ -297,6 +301,7 @@ export default function LeadIntakeForm({ isOpen, onClose, onSave }) {
                         };
                         return (
                           <Controller
+                            key={field.id || field.name}
                             name={field.isSystemField ? field.name : `customData.${field.name}`}
                             control={control}
                             render={({ field: controllerField, fieldState }) => (

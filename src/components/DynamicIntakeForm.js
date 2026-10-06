@@ -37,6 +37,10 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
       const uniqueNames = [...new Set(vf.map(f => f.sectionName || 'General Information'))];
       os = uniqueNames.map(name => ({ name, columns: 2 }));
     }
+
+    // Filter out sections that have no visible fields in them
+    os = os.filter(sec => vf.some(f => (f.sectionName || 'General Information') === sec.name));
+
     return { visibleFields: vf, orderedSections: os, systemFieldNames: sysFields };
   }, [blueprint, standardFieldStates]);
 
@@ -425,7 +429,7 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
               </span>
 
               <button type="submit" style={{ borderRadius: '12px', padding: '0.6rem 1.5rem', backgroundColor: '#111827', color: 'white', fontWeight: 600, border: 'none', cursor: 'pointer', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-                {currentStep === orderedSections.length - 1 ? `Save ${moduleType}` : 'Next'}
+                {currentStep === orderedSections.length - 1 ? `Save ${moduleName || moduleType}` : 'Next'}
               </button>
             </div>
           </form>
