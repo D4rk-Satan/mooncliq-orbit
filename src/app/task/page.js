@@ -8,9 +8,10 @@ const TaskIntakeForm = dynamic(() => import("@/components/TaskIntakeForm"), { ss
 
 import SlideOverPanel from "../../components/SlideOverPanel";
 import { useRouter } from "next/navigation";
-import TableSkeleton from "../../components/skeletons/TableSkeleton";
 import DynamicModuleView from "@/components/DynamicModuleView";
 import EntityEditModal from "@/components/EntityEditModal";
+import GlobalLoader from "../../components/ui/GlobalLoader";
+
 
 export default function TaskPage() {
   const [tasks, setTasks] = useState([]);
@@ -147,7 +148,7 @@ export default function TaskPage() {
         <div className="module-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           {isLoading ? (
             <div className="p-8 text-center" style={{ margin: 'auto' }}>
-              <TableSkeleton />
+              <GlobalLoader />
             </div>
           ) : (
             <DynamicModuleView

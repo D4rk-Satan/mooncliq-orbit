@@ -292,7 +292,7 @@ export default function DynamicModuleView({
                 <span className="kanban-count" style={{ backgroundColor: 'rgba(255, 255, 255, 0.25)', color: '#ffffff', border: 'none', borderRadius: '50%', width: '26px', height: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 600 }}>{col.records.length}</span>
               </div>
 
-              <div className="kanban-cards" style={{ backgroundColor: col.stage.color ? `${col.stage.color}15` : '#f8fafc', borderRadius: '16px', padding: '0.75rem', minHeight: '300px', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div className="kanban-cards" style={{ backgroundColor: col.stage.color ? `${col.stage.color.substring(0, 7)}15` : '#f8fafc', borderRadius: '16px', padding: '0.75rem', minHeight: '300px', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 {col.records.map(record => {
                   const title = record.fullName || record.customData?.companyName || record.name || (record.firstName ? `${record.firstName} ${record.lastName || ''}`.trim() : 'Unknown Record');
 

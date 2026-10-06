@@ -77,10 +77,49 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
     return z.object({
       ...schemaObj,
       customData: z.object(customDataSchema).optional()
-    });
-  }, [visibleFields, systemFieldNames]);
+    }).superRefine((data, ctx) => {
+      if (moduleType === 'Task') {
+        const startVal = data.startDateTime;
+        const dueVal = data.dueDateTime;
 
-  const { control, handleSubmit, trigger, formState: { errors }, reset } = useForm({
+        const now = new Date();
+        now.setSeconds(0, 0);
+
+        if (startVal) {
+          const startD = new Date(startVal);
+          if (startD < now) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: "Start time cannot be in the past",
+              path: ["startDateTime"]
+            });
+          }
+        }
+
+        if (dueVal) {
+          const dueD = new Date(dueVal);
+          let baseDate = new Date(now);
+          if (startVal) {
+            const startD = new Date(startVal);
+            if (startD > baseDate) {
+              baseDate = startD;
+            }
+          }
+          baseDate.setMinutes(baseDate.getMinutes() + 10);
+          
+          if (dueD < baseDate) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: "Must be at least 10 minutes after Start time",
+              path: ["dueDateTime"]
+            });
+          }
+        }
+      }
+    });
+  }, [visibleFields, systemFieldNames, moduleType]);
+
+  const { control, handleSubmit, trigger, formState: { errors }, reset, watch } = useForm({
     resolver: zodResolver(dynamicSchema),
     defaultValues: { ...standardData, customData: customData }
   });
@@ -200,6 +239,38 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
     }
   };
 
+  const handleDateSelectionCorrection = (fieldName, val) => {
+    if (moduleType !== 'Task' || !val) return val;
+
+    const formatLocal = (d) => {
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      const hh = String(d.getHours()).padStart(2, '0');
+      const mins = String(d.getMinutes()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}T${hh}:${mins}`;
+    };
+
+    const now = new Date();
+    now.setSeconds(0, 0);
+
+    if (fieldName === 'startDateTime') {
+      const selectedD = new Date(val);
+      if (selectedD < now) return formatLocal(now);
+    } else if (fieldName === 'dueDateTime') {
+      const selectedD = new Date(val);
+      const startVal = watch('startDateTime');
+      let baseDate = new Date(now);
+      if (startVal) {
+        const startD = new Date(startVal);
+        if (startD > baseDate) baseDate = startD;
+      }
+      baseDate.setMinutes(baseDate.getMinutes() + 10);
+      if (selectedD < baseDate) return formatLocal(baseDate);
+    }
+    return val;
+  };
+
   return (
     <>
       <div className={`slide-backdrop ${isOpen ? 'open' : ''}`} onClick={onClose}></div>
@@ -286,9 +357,43 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
                                   key={field.id}
                                   field={modifiedField}
                                   value={controllerField.value || ''}
+                                  min={
+                                    (() => {
+                                      if (moduleType !== 'Task') return undefined;
+                                      
+                                      const formatLocal = (d) => {
+                                        const yyyy = d.getFullYear();
+                                        const mm = String(d.getMonth() + 1).padStart(2, '0');
+                                        const dd = String(d.getDate()).padStart(2, '0');
+                                        const hh = String(d.getHours()).padStart(2, '0');
+                                        const mins = String(d.getMinutes()).padStart(2, '0');
+                                        return `${yyyy}-${mm}-${dd}T${hh}:${mins}`;
+                                      };
+
+                                      const now = new Date();
+                                      const currentDateTimeString = formatLocal(now);
+                                      const currentStartDate = watch('startDateTime');
+
+                                      if (field.name === 'startDateTime') return currentDateTimeString;
+                                      
+                                      if (field.name === 'dueDateTime') {
+                                        let baseDate;
+                                        if (currentStartDate && currentStartDate > currentDateTimeString) {
+                                          baseDate = new Date(currentStartDate);
+                                        } else {
+                                          baseDate = new Date();
+                                        }
+                                        // 10 minutes ka gap add kar diya
+                                        baseDate.setMinutes(baseDate.getMinutes() + 10);
+                                        return formatLocal(baseDate);
+                                      }
+                                      return undefined;
+                                    })()
+                                  }
                                   onChange={(name, val, record, mappings) => {
-                                    controllerField.onChange(val);
-                                    handleFieldChange(field, name, val, record, mappings);
+                                    const correctedVal = handleDateSelectionCorrection(field.name, val);
+                                    controllerField.onChange(correctedVal);
+                                    handleFieldChange(field, name, correctedVal, record, mappings);
                                   }}
                                   error={fieldErrors?.[field.name] || fieldState.error?.message}
                                   readOnly={fieldReadonlyStates?.[field.name]}

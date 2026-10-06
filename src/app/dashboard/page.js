@@ -5,12 +5,7 @@ import SlideOverPanel from "../../components/SlideOverPanel";
 import Sidebar from "../../components/Sidebar";
 import { fetchAuthSession } from 'aws-amplify/auth';
 import { useEffect } from 'react';
-
-
-
-
-
-
+import GlobalLoader from "../../components/ui/GlobalLoader";
 
 
 // ---- 1. Top KPI Cards ----
@@ -364,10 +359,16 @@ export default function Dashboard() {
 
 
 
+
   // Agar data load ho raha hai toh loader dikhao
   if (isLoading || !dashboardData) {
-    return <div style={{ padding: '2rem', textAlign: 'center' }}>Loading Dashboard... 🚀</div>;
+    return (
+      <main className="dashboard-main" style={{ backgroundColor: 'var(--bg-primary)', padding: '1.5rem', overflowY: 'auto', position: 'relative', minHeight: '100vh' }}>
+        <GlobalLoader overlay={true} />
+      </main>
+    );
   }
+
 
   // AGAR EMPTY HAI TOH SEEDHA WELCOME SCREEN DIKHAO
   if (dashboardData?.isEmpty) {
@@ -461,7 +462,7 @@ export default function Dashboard() {
 
   return (
     <>
-      <main className="dashboard-main" style={{ backgroundColor: 'var(--bg-primary)', padding: '1.5rem', overflowY: 'auto' }}>
+      <main className="dashboard-main" style={{ backgroundColor: 'var(--bg-primary)', padding: '1.5rem', overflowY: 'auto', position: 'relative' }}>
 
         {/* Header Section */}
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>

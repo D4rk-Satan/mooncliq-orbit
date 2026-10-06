@@ -21,14 +21,17 @@ export default function DashboardLayoutWrapper({ children }) {
     } else {
       setIsCheckingOnboarding(false);
     }
-  }, [pathname, isAuthPage]);
+  }, [isAuthPage]);
 
   const checkOnboardingStatus = async () => {
     setIsCheckingOnboarding(true);
     try {
       const { fetchAuthSession } = await import('aws-amplify/auth');
       const { tokens } = await fetchAuthSession();
-      if (!tokens) return;
+      if (!tokens) {
+        window.location.href = '/sign-in'; // Redirect securely to login
+        return;
+      }
       const res = await fetch('/api/me', {
         headers: { Authorization: `Bearer ${tokens.idToken.toString()}` }
       });
@@ -75,9 +78,9 @@ export default function DashboardLayoutWrapper({ children }) {
           }}
         />
       )}
-      <Sidebar 
-        isMobileMenuOpen={isMobileMenuOpen} 
-        setIsMobileMenuOpen={setIsMobileMenuOpen} 
+      <Sidebar
+        isMobileMenuOpen={isMobileMenuOpen}
+        setIsMobileMenuOpen={setIsMobileMenuOpen}
         refreshKey={refreshSidebarKey}
       />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>

@@ -7,12 +7,13 @@ import LeadIntakeForm from "../../components/LeadIntakeForm";
 import SlideOverPanel from "../../components/SlideOverPanel";
 import EntityEditModal from "../../components/EntityEditModal";
 import { useRouter } from "next/navigation";
-import TableSkeleton from "../../components/skeletons/TableSkeleton";
 import Badge from "../../components/ui/Badge";
 import Button from "../../components/ui/Button";
 import EmptyState from "../../components/ui/EmptyState";
 import { useLeads } from "../../hooks/useLeads";
 import { useConfirm } from "../../contexts/ConfirmContext";
+import GlobalLoader from "../../components/ui/GlobalLoader";
+
 
 const getColumnColor = (color) => color || "#e2e8f0";
 
@@ -413,7 +414,7 @@ export default function LeadModule() {
 
   const renderEmptyState = () => (
     <EmptyState
-      title="There are no records in this view."
+      title="There are no Leads in this view."
       description="Get started by creating your first lead in the pipeline."
       actionButton={
         (currentUser?.profile?.canAccessSettings || currentUser?.profile?.permissions?.Lead?.create) ? (
@@ -554,7 +555,7 @@ export default function LeadModule() {
                 <h3 style={{ margin: 0, color: '#ffffff', fontSize: '1rem', fontWeight: 600 }}>{col.stage.name}</h3>
                 <span className="kanban-count" style={{ backgroundColor: 'rgba(255, 255, 255, 0.25)', color: '#ffffff', border: 'none', borderRadius: '50%', width: '26px', height: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 600 }}>{col.leads.length}</span>
               </div>
-              <div className="kanban-cards" style={{ backgroundColor: col.stage.color ? `${col.stage.color}15` : '#f8fafc', borderRadius: '16px', padding: '0.75rem', minHeight: '300px', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div className="kanban-cards" style={{ backgroundColor: col.stage.color ? `${col.stage.color.substring(0, 7)}15` : '#f8fafc', borderRadius: '16px', padding: '0.75rem', minHeight: '300px', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 {col.leads.map(lead => {
                   const dateOptions = { day: 'numeric', month: 'short' };
                   const formattedDate = lead.createdAt ? new Date(lead.createdAt).toLocaleDateString('en-US', dateOptions) : 'No due date';
@@ -984,21 +985,10 @@ export default function LeadModule() {
                   style={{ display: 'none' }}
                   onChange={handleImportFile}
                 />
-                {/*<Button variant="primary" onClick={() => setIsFormOpen(true)}>
-                  + Add Lead
-                </Button>*/}
-                <Button variant="primary" onClick={() => {
-                  showConfirm({
-                    title: "Danger Alert!",
-                    message: "Kya aap sach mein ek nayi lead banana chahte hain?",
-                    confirmText: "Haan, Banao!",
-                    cancelText: "Nahi, Ruk Jao",
-                    isDestructive: false, // isko true karenge toh button red aayega
-                    onConfirm: () => setIsFormOpen(true)
-                  });
-                }}>
+                <Button variant="primary" onClick={() => setIsFormOpen(true)}>
                   + Add Lead
                 </Button>
+
 
 
               </>
@@ -1174,9 +1164,9 @@ export default function LeadModule() {
         <div className="module-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           {isLoading ? (
             <div className="p-8 text-center" style={{ margin: 'auto' }}>
-              <TableSkeleton />
+              <GlobalLoader />
             </div>
-          ) : (leads.length === 0 && searchQuery === "" && !isSearching) ? (
+          ) : (leads.length === 0 && searchQuery === "") ? (
             renderEmptyState()
           ) : (
             viewMode === 'kanban' ? renderKanbanView() : renderListView()

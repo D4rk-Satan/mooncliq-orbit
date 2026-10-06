@@ -383,8 +383,24 @@ export default function TaskIntakeForm({ blueprint, isOpen, onClose, onSave, tas
                                     <DynamicField
                                       formData={{ ...standardData, ...customData }}
                                       {...commonProps}
-                                      min={field.name === 'dueDateTime' && currentStartDate ? currentStartDate : undefined}
-                                      onChange={(name, value, record, mappings) => commonProps.onChange(value, record, mappings)}
+                                      min={
+                                        (() => {
+                                          const nowISO = new Date();
+                                          nowISO.setMinutes(nowISO.getMinutes() - nowISO.getTimezoneOffset());
+                                          const currentDateTimeString = nowISO.toISOString().slice(0, 16);
+                                          if (!taskData) {
+                                            if (field.name === 'startDateTime') return currentDateTimeString;
+                                            if (field.name === 'dueDateTime') return currentStartDate && currentStartDate > currentDateTimeString ? currentStartDate : currentDateTimeString;
+                                          } else {
+                                            if (field.name === 'dueDateTime' && currentStartDate) return currentStartDate;
+                                          }
+                                          return undefined;
+                                        })()
+                                      }
+                                      onChange={(name, value, record, mappings) => {
+                                        console.log("TaskIntakeForm date min constraint check for", field.name, currentStartDate);
+                                        commonProps.onChange(value, record, mappings)
+                                      }}
                                     />
                                   );
                                 }

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getAuthUser } from '@/lib/auth';
+import { getAuthUser, clearUserCache } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 
 export async function POST(request) {
@@ -43,6 +43,9 @@ export async function POST(request) {
                 }
             });
         }
+
+        // 5. Invalidate cache so next /api/me call gets fresh data!
+        clearUserCache(session.id);
 
         return NextResponse.json({ success: true, message: "Onboarding saved successfully!" });
 

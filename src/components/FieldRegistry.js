@@ -1044,7 +1044,7 @@ function FormulaInput({ field, value, onChange, formData }) {
 
 
 
-export default function DynamicField({ field, value, onChange, formData, error, readOnly }) {
+export default function DynamicField({ field, value, onChange, formData, error, readOnly, min }) {
 
   // --- CUSTOM INTERCEPTS FOR TASK MODULE ---
   const fName = (field?.name || '').toLowerCase();
@@ -1084,6 +1084,7 @@ export default function DynamicField({ field, value, onChange, formData, error, 
         field={field}
         value={value}
         formData={formData}
+        min={min}
         onChange={(name, val, record, mappings) => onChange(name, val, record, mappings)}
       />
       {error && (

@@ -7,6 +7,10 @@ import { getDefaultBlueprintData } from '@/utils/blueprintDefaults';
 const userCache = new Map();
 const CACHE_TTL_MS = 60 * 1000 * 5; // 5 minutes
 
+export function clearUserCache(userId) {
+  if (userId) userCache.delete(userId);
+}
+
 // Create verifier that expects valid access tokens
 const verifier = CognitoJwtVerifier.create({
   userPoolId: process.env.NEXT_PUBLIC_AWS_USER_POOL_ID,

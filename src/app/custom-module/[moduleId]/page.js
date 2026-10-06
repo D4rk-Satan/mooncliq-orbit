@@ -9,6 +9,8 @@ import DynamicIntakeForm from "../../../components/DynamicIntakeForm";
 import EntityEditModal from "../../../components/EntityEditModal";
 import Button from "../../../components/ui/Button";
 import { fetchAuthSession } from "aws-amplify/auth";
+import GlobalLoader from "../../../components/ui/GlobalLoader";
+
 
 const getAuthToken = async () => {
   const { tokens } = await fetchAuthSession();
@@ -126,13 +128,12 @@ export default function CustomModulePage() {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', height: '100vh', width: '100vw' }}>
-        <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-          <p>Loading Module...</p>
-        </div>
-      </div>
+      <main className="dashboard-main" style={{ backgroundColor: 'var(--bg-primary)', padding: '1.5rem', overflowY: 'auto', position: 'relative', minHeight: '100vh' }}>
+        <GlobalLoader overlay={true} />
+      </main>
     );
   }
+
 
   if (!moduleDef) {
     return (
@@ -146,41 +147,41 @@ export default function CustomModulePage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-        <DynamicModuleView
-          moduleName={moduleDef.name}
-          records={records}
-          blueprint={blueprint}
-          tags={[]}
-          supportKanban={false}
-          onRecordClick={(record) => setRecordToEdit(record)} // Open edit modal on row click
-          onEditClick={(record) => setRecordToEdit(record)}
-          renderHeaderActions={() => (
-            <Button variant="primary" onClick={() => setIsNewRecordPanelOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-              New Record
-            </Button>
-          )}
-        />
+      <DynamicModuleView
+        moduleName={moduleDef.name}
+        records={records}
+        blueprint={blueprint}
+        tags={[]}
+        supportKanban={false}
+        onRecordClick={(record) => setRecordToEdit(record)} // Open edit modal on row click
+        onEditClick={(record) => setRecordToEdit(record)}
+        renderHeaderActions={() => (
+          <Button variant="primary" onClick={() => setIsNewRecordPanelOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            New Record
+          </Button>
+        )}
+      />
 
-        {/* CREATE PANEL */}
-        <DynamicIntakeForm
-          moduleType={moduleId}
-          moduleName={moduleDef.name}
-          isOpen={isNewRecordPanelOpen}
-          onClose={() => setIsNewRecordPanelOpen(false)}
-          onSave={handleCreateRecord}
-        />
+      {/* CREATE PANEL */}
+      <DynamicIntakeForm
+        moduleType={moduleId}
+        moduleName={moduleDef.name}
+        isOpen={isNewRecordPanelOpen}
+        onClose={() => setIsNewRecordPanelOpen(false)}
+        onSave={handleCreateRecord}
+      />
 
 
-        {/* EDIT MODAL */}
-        <EntityEditModal
-          isOpen={!!recordToEdit}
-          onClose={() => setRecordToEdit(null)}
-          entity={recordToEdit}
-          blueprint={blueprint}
-          onUpdate={handleUpdateRecord}
-          moduleName={moduleDef.name}
-        />
-      </div>
+      {/* EDIT MODAL */}
+      <EntityEditModal
+        isOpen={!!recordToEdit}
+        onClose={() => setRecordToEdit(null)}
+        entity={recordToEdit}
+        blueprint={blueprint}
+        onUpdate={handleUpdateRecord}
+        moduleName={moduleDef.name}
+      />
+    </div>
   );
 }

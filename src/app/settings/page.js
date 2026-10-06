@@ -20,7 +20,7 @@ import {
   HardHat, Droplet, Zap, Flame, Ship, Train, Sprout, Barcode,
   Receipt, ShieldCheck, Fan, Archive, Layers, Briefcase, Activity
 } from 'lucide-react';
-
+import GlobalLoader from "../../components/ui/GlobalLoader";
 
 
 
@@ -868,7 +868,7 @@ export default function SettingsPage() {
 
         <div className="module-content" style={{ padding: '1rem', maxWidth: '1200px', overflowY: 'auto', flex: 1 }}>
           {isLoading ? (
-            <FormSkeleton />
+            <GlobalLoader />
           ) : !blueprint || blueprint.error ? (
             <div>Failed to load blueprint: {blueprint?.error || "Unknown error"}</div>
           ) : currentView === 'hub' ? (
