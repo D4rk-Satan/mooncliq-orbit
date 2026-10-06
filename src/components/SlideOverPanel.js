@@ -66,8 +66,20 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
 
   const getDisplayName = (record) => {
     if (!record) return "Unknown";
+    
+    let cData = {};
+    try {
+      cData = typeof record.customData === 'string' ? JSON.parse(record.customData) : (record.customData || {});
+    } catch (e) {}
+
     // Generic name handler for all modules
-    return record.fullName || record.dealName || record.taskName || record.name || record.accountName || `${record.firstName || ''} ${record.lastName || ''}`.trim() || "Unknown";
+    let name = record.fullName || record.dealName || record.taskName || record.name || record.accountName || `${record.firstName || ''} ${record.lastName || ''}`.trim();
+    
+    if (!name) {
+       name = cData.companyName || cData.name || cData.fullName || cData.title || cData.taskName || cData.dealName;
+    }
+
+    return name || "Unknown";
   };
 
   const getInitials = (nameStr) => {

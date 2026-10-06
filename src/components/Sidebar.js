@@ -163,7 +163,41 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, refresh
         </div>
         <nav className="sidebar-nav" style={{ padding: '0.5rem 0', flex: 1, overflowY: 'auto' }}>
           {categories.map((category, idx) => (
-            <div key={idx} style={{ marginBottom: isCollapsed ? '0.5rem' : '1rem' }}>
+            <React.Fragment key={idx}>
+              {category.name === "UPCOMING" && customModules.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', marginBottom: isCollapsed ? '0.5rem' : '1rem' }}>
+                  {!isCollapsed && (
+                    <div style={{ padding: '0.5rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#9ca3af', letterSpacing: '0.05em', cursor: 'default', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      CUSTOM MODULES
+                    </div>
+                  )}
+                  {customModules.map((mod) => (
+                    <Link
+                      key={mod.id}
+                      href={`/custom-module/${mod.id}`}
+                      className={`nav-item ${pathname === `/custom-module/${mod.id}` ? "active" : ""}`}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.6rem',
+                        textDecoration: 'none',
+                        justifyContent: isCollapsed ? 'center' : 'flex-start',
+                        padding: isCollapsed ? '0.5rem 0' : '0.4rem 1.25rem',
+                        margin: isCollapsed ? '0.15rem' : '0.15rem 0.75rem',
+                        fontSize: '0.85rem',
+                        fontWeight: '500',
+                        color: '#334155'
+                      }}
+
+                      title={mod.name}
+                    >
+                      <DynamicLucideIcon name={mod.icon} />
+                      {!isCollapsed && <span style={{ whiteSpace: 'nowrap' }}>{mod.name}</span>}
+                    </Link>
+                  ))}
+                </div>
+              )}
+              <div style={{ marginBottom: isCollapsed ? '0.5rem' : '1rem' }}>
 
               {/* Category Header (Clickable for Accordion) */}
               {!isCollapsed && (
@@ -211,45 +245,9 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, refresh
                 ))}
               </div>
 
-            </div>
-          ))}
-
-          {/* CUSTOM MODULES MENU */}
-          {customModules.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              {!isCollapsed && (
-                <div style={{ padding: '0.5rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#9ca3af', letterSpacing: '0.05em', cursor: 'default', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  CUSTOM MODULES
-                </div>
-              )}
-              {customModules.map((mod) => (
-                <Link
-                  key={mod.id}
-                  href={`/custom-module/${mod.id}`}
-                  className={`nav-item ${pathname === `/custom-module/${mod.id}` ? "active" : ""}`}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.6rem',
-                    textDecoration: 'none',
-                    justifyContent: isCollapsed ? 'center' : 'flex-start',
-                    padding: isCollapsed ? '0.5rem 0' : '0.4rem 1.25rem',
-                    margin: isCollapsed ? '0.15rem' : '0.15rem 0.75rem',
-                    fontSize: '0.85rem',
-                    fontWeight: '500',
-                    color: '#334155'
-                  }}
-
-                  title={mod.name}
-                >
-                  <DynamicLucideIcon name={mod.icon} />
-                  {!isCollapsed && <span style={{ whiteSpace: 'nowrap' }}>{mod.name}</span>}
-                </Link>
-              ))}
-            </div>
-          )}
-
-        </nav>
+              </div>
+            </React.Fragment>
+          ))}        </nav>
 
         <div style={{ marginTop: 'auto', padding: isCollapsed ? '1rem 0' : '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', borderTop: '1px solid #e5e7eb' }}>
           <Link href="/settings" className={`nav-item ${pathname === "/settings" ? "active" : ""}`} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', textDecoration: 'none', justifyContent: isCollapsed ? 'center' : 'flex-start', padding: isCollapsed ? '0.5rem 0' : '0.4rem 1.25rem', margin: isCollapsed ? '0.15rem' : '0.15rem 0.75rem', fontSize: '0.85rem', fontWeight: '500', color: '#334155' }} title="Settings">
