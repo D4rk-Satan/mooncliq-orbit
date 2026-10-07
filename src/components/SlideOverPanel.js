@@ -66,17 +66,17 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
 
   const getDisplayName = (record) => {
     if (!record) return "Unknown";
-    
+
     let cData = {};
     try {
       cData = typeof record.customData === 'string' ? JSON.parse(record.customData) : (record.customData || {});
-    } catch (e) {}
+    } catch (e) { }
 
     // Generic name handler for all modules
     let name = record.fullName || record.dealName || record.taskName || record.name || record.accountName || `${record.firstName || ''} ${record.lastName || ''}`.trim();
-    
+
     if (!name) {
-       name = cData.companyName || cData.name || cData.fullName || cData.title || cData.taskName || cData.dealName;
+      name = cData.companyName || cData.name || cData.fullName || cData.title || cData.taskName || cData.dealName;
     }
 
     return name || "Unknown";
@@ -228,14 +228,41 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
             // Check if the property exists on the root object (standard field), otherwise fallback to customData
             let value = field.name in lead ? lead[field.name] : lead.customData?.[field.name];
 
+            if (field.name === 'lastModifiedById' && lead.lastModifiedByName) {
+              value = lead.lastModifiedByName;
+            }
+
             if (value === undefined || value === null || value === "") {
               value = "-";
             }
 
+
+            if (value !== '-' && (field.type?.toLowerCase() === 'datetime' || field.type?.toLowerCase() === 'date')) {
+              try {
+                const dateObj = new Date(value);
+                if (!isNaN(dateObj.getTime())) {
+                  // en-IN lagane se India format (DD-MMM-YYYY) me aayega
+                  value = dateObj.toLocaleString('en-IN', {
+                    day: '2-digit', month: 'short', year: 'numeric',
+                    hour: '2-digit', minute: '2-digit', hour12: true
+                  });
+                }
+              } catch (e) {
+                // Agar date invalid hui toh raw value hi dikha denge
+              }
+            }
+
+
+
+
             return (
               <div key={field.id}>
                 <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#94a3b8', marginBottom: '0.5rem' }}>{field.label}</div>
-                <div style={{ fontSize: '1rem', color: '#0f172a', fontWeight: 500, wordBreak: 'break-word' }}>{value}</div>
+                {field.type?.toLowerCase() === 'audio' && value !== '-' ? (
+                  <audio controls src={value} style={{ width: '100%', height: '40px' }} />
+                ) : (
+                  <div style={{ fontSize: '1rem', color: '#0f172a', fontWeight: 500, wordBreak: 'break-word' }}>{value}</div>
+                )}
               </div>
             );
           })}

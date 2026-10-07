@@ -920,6 +920,12 @@ function AudioInput({ field, value, onChange }) {
   const mediaRecorderRef = React.useRef(null);
   const audioChunksRef = React.useRef([]);
 
+  React.useEffect(() => {
+    if (value && value !== audioUrl) {
+      setAudioUrl(value);
+    }
+  }, [value]);
+
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -974,17 +980,17 @@ function AudioInput({ field, value, onChange }) {
       </label>
       <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', height: '52px' }}>
         {isRecording ? (
-          <Button variant="outline" onClick={stopRecording} style={{ height: '52px', borderRadius: '8px', display: 'flex', alignItems: 'center' }}>
+          <Button type="button" variant="outline" onClick={stopRecording} style={{ height: '52px', borderRadius: '8px', display: 'flex', alignItems: 'center' }}>
             ⏹ Stop Recording...
           </Button>
         ) : (
-          <Button variant="outline" onClick={startRecording} style={{ height: '52px', borderRadius: '8px', display: 'flex', alignItems: 'center' }}>
+          <Button type="button" variant="outline" onClick={startRecording} style={{ height: '52px', borderRadius: '8px', display: 'flex', alignItems: 'center' }}>
             🎙️ Record Voice
           </Button>
         )}
 
         <label style={{ cursor: 'pointer', margin: 0, display: 'inline-block', height: '52px' }}>
-          <Button variant="outline" onClick={() => document.getElementById(`audio-upload-${field.name}`).click()} disabled={isUploading || isRecording} style={{ height: '52px', borderRadius: '8px', display: 'flex', alignItems: 'center' }}>
+          <Button type="button" variant="outline" onClick={() => document.getElementById(`audio-upload-${field.name}`).click()} disabled={isUploading || isRecording} style={{ height: '52px', borderRadius: '8px', display: 'flex', alignItems: 'center' }}>
             📁 Upload Audio
           </Button>
           <input id={`audio-upload-${field.name}`} type="file" accept="audio/*" style={{ display: 'none' }} onChange={handleFileUpload} disabled={isUploading || isRecording} />

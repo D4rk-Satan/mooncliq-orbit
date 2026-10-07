@@ -15,15 +15,19 @@ import AmplifyProvider from "../components/AmplifyProvider";
 import DashboardLayoutWrapper from "../components/DashboardLayoutWrapper";
 import NextTopLoader from 'nextjs-toploader';
 import { Toaster } from 'react-hot-toast';
+import { cookies } from 'next/headers';
 
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children }) {
+  const cookieStore = await cookies();
+  const isOnboardingDone = cookieStore.get('mooncliq_onboarding_done')?.value === 'true';
+
   return (
     <html lang="en">
       <body className={`${inter.variable} ${outfit.variable}`}>
         <NextTopLoader color="#a356ebff" showSpinner={false} />
         <Toaster position="top-right" />
         <AmplifyProvider>
-          <DashboardLayoutWrapper>
+          <DashboardLayoutWrapper initialOnboardingDone={isOnboardingDone}>
             <ConfirmProvider>
               {children}
             </ConfirmProvider>

@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation';
 import Sidebar from './Sidebar';
 import OnboardingModal from './OnboardingModal';
 
-export default function DashboardLayoutWrapper({ children }) {
+export default function DashboardLayoutWrapper({ children, initialOnboardingDone = false }) {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const authRoutes = ['/', '/sign-in', '/sign-up', '/forgot-password'];
@@ -12,7 +12,7 @@ export default function DashboardLayoutWrapper({ children }) {
 
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(true);
+  const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(!initialOnboardingDone);
   const [refreshSidebarKey, setRefreshSidebarKey] = useState(0);
 
   useEffect(() => {
@@ -24,7 +24,8 @@ export default function DashboardLayoutWrapper({ children }) {
   }, [isAuthPage]);
 
   const checkOnboardingStatus = async () => {
-    setIsCheckingOnboarding(true);
+    // isCheckingOnboarding state is already handled by useIsomorphicLayoutEffect above
+
     try {
       const { fetchAuthSession } = await import('aws-amplify/auth');
       const { tokens } = await fetchAuthSession();
@@ -37,9 +38,17 @@ export default function DashboardLayoutWrapper({ children }) {
       });
       if (res.ok) {
         const userData = await res.json();
-        if (userData?.profile && !userData.profile.onboardingCompleted) {
-          setShowOnboarding(true);
-          setIsAdmin(userData.profile.canManageUsers === true);
+        if (userData?.profile) {
+          if (!userData.profile.onboardingCompleted) {
+            setShowOnboarding(true);
+            setIsAdmin(userData.profile.canManageUsers === true);
+            localStorage.setItem('mooncliq_onboarding_done', 'false');
+            document.cookie = "mooncliq_onboarding_done=false; path=/; max-age=31536000";
+          } else {
+            localStorage.setItem('mooncliq_onboarding_done', 'true');
+            document.cookie = "mooncliq_onboarding_done=true; path=/; max-age=31536000";
+            setIsCheckingOnboarding(false);
+          }
         }
       }
     } catch (e) {
@@ -74,6 +83,8 @@ export default function DashboardLayoutWrapper({ children }) {
           isAdmin={isAdmin}
           onComplete={() => {
             setShowOnboarding(false);
+            localStorage.setItem('mooncliq_onboarding_done', 'true');
+            document.cookie = "mooncliq_onboarding_done=true; path=/; max-age=31536000";
             setRefreshSidebarKey(prev => prev + 1); // Trigger Sidebar to re-fetch profile data
           }}
         />

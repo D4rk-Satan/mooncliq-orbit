@@ -425,6 +425,11 @@ export default function DynamicModuleView({
       else if (standardFields.includes(colName)) val = record[colName] || '-';
       else val = cData[colName] || '-';
 
+      const blueprintField = (blueprint?.fields || []).find(f => f.name === colName);
+      if (blueprintField?.type?.toLowerCase() === 'audio' && val && val !== '-') {
+        return <div onClick={(e) => e.stopPropagation()}><audio controls src={val} style={{ width: '160px', height: '32px' }} /></div>;
+      }
+
       return <div style={{ maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={val}>{val}</div>;
     };
 

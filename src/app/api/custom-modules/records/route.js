@@ -2,6 +2,31 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getAuthUser } from '@/lib/auth';
 
+async function enrichWithUserNames(recordsOrRecord) {
+    const isArray = Array.isArray(recordsOrRecord);
+    const records = isArray ? recordsOrRecord : [recordsOrRecord];
+    
+    const userIds = [...new Set(records.map(r => r.lastModifiedById).filter(Boolean))];
+    if (userIds.length === 0) return recordsOrRecord;
+
+    const users = await prisma.user.findMany({
+        where: { id: { in: userIds } },
+        include: { profile: true }
+    });
+    
+    const userMap = {};
+    users.forEach(u => {
+        userMap[u.id] = u.profile?.nickname || u.email;
+    });
+
+    const mapped = records.map(r => ({
+        ...r,
+        lastModifiedByName: r.lastModifiedById ? userMap[r.lastModifiedById] : null
+    }));
+
+    return isArray ? mapped : mapped[0];
+}
+
 export async function GET(request) {
     try {
         const user = await getAuthUser(request);
@@ -29,7 +54,8 @@ export async function GET(request) {
             }
         });
 
-        return NextResponse.json(records);
+        const enrichedRecords = await enrichWithUserNames(records);
+        return NextResponse.json(enrichedRecords);
     } catch (error) {
         console.error("Error fetching custom records:", error);
         return NextResponse.json({ error: 'Failed to fetch records' }, { status: 500 });
@@ -44,7 +70,8 @@ export async function POST(request) {
         }
 
         const data = await request.json();
-        const { customModuleId, blueprintId, stageId, owner, ...customData } = data;
+        const { customModuleId, blueprintId, stageId, owner, customData, ...flatCustomData } = data;
+        const finalCustomData = { ...(customData || {}), ...flatCustomData };
 
         if (!customModuleId || !blueprintId || !stageId) {
             return NextResponse.json({ error: 'Module, Blueprint, and Stage IDs are required' }, { status: 400 });
@@ -74,7 +101,7 @@ export async function POST(request) {
                                 const generatedValue = `${prefix}${nextNum}${suffix}`;
                                 
                                 // Insert into customData (overriding whatever client sent)
-                                customData[field.name] = generatedValue;
+                                finalCustomData[field.name] = generatedValue;
 
                                 // Increment the counter in the blueprint config
                                 field.nextNumber = nextNum + 1;
@@ -102,15 +129,81 @@ export async function POST(request) {
                 blueprintId,
                 stageId,
                 owner: owner || user.email,
-                customData, // All dynamic fields including generated auto-numbers go here
+                customData: finalCustomData, // Use the correctly extracted customData
                 lastActivityDate: new Date(),
                 lastModifiedById: user.id
+            },
+            include: {
+                stage: true
             }
         });
 
-        return NextResponse.json(newRecord, { status: 201 });
+        const enrichedNewRecord = await enrichWithUserNames(newRecord);
+        return NextResponse.json(enrichedNewRecord, { status: 201 });
     } catch (error) {
         console.error("Error creating custom record:", error);
         return NextResponse.json({ error: 'Failed to create record' }, { status: 500 });
     }
+}
+
+export async function PUT(request) {
+    try {
+        const user = await getAuthUser(request);
+        if (!user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const searchParams = request.nextUrl.searchParams;
+        const id = searchParams.get('id');
+
+        if (!id) {
+            return NextResponse.json({ error: 'id is required' }, { status: 400 });
+        }
+
+        const data = await request.json();
+        const { customData, stageId, owner } = data;
+
+        // Fetch existing record to safely merge customData
+        const existingRecord = await prisma.customRecord.findUnique({
+            where: { id }
+        });
+
+        if (!existingRecord) {
+            return NextResponse.json({ error: 'Record not found' }, { status: 404 });
+        }
+
+        // Merge the existing custom data with the new incoming custom data
+        const mergedCustomData = {
+            ...(existingRecord.customData || {}),
+            ...(customData || {})
+        };
+
+        const updateData = {
+            customData: mergedCustomData,
+            lastActivityDate: new Date(),
+            lastModifiedById: user.id
+        };
+
+        if (stageId) updateData.stageId = stageId;
+        if (owner) updateData.owner = owner;
+
+        const updatedRecord = await prisma.customRecord.update({
+            where: {
+                id: id,
+                organizationId: user.organizationId // Security check
+            },
+            data: updateData,
+            include: { stage: true }
+        });
+
+        const enrichedUpdatedRecord = await enrichWithUserNames(updatedRecord);
+        return NextResponse.json(enrichedUpdatedRecord);
+    } catch (error) {
+        console.error("Error updating custom record:", error);
+        return NextResponse.json({ error: 'Failed to update record' }, { status: 500 });
+    }
+}
+
+export async function PATCH(request) {
+    return PUT(request);
 }

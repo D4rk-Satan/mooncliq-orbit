@@ -15,6 +15,7 @@ import TaskUserDropdown from "./TaskUserDropdown";
 export default function TaskIntakeForm({ blueprint, isOpen, onClose, onSave, taskData, standardFieldStates }) {
   const [localBlueprint, setBlueprint] = useState(blueprint || null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isTimeEditedByUser, setIsTimeEditedByUser] = useState(false);
 
   // Standard fields
   const [standardData, setStandardData] = useState({
@@ -256,6 +257,19 @@ export default function TaskIntakeForm({ blueprint, isOpen, onClose, onSave, tas
     let payloadData = { ...formData };
     delete payloadData.customData;
 
+    if (!isTimeEditedByUser && !taskData) {
+      if (payloadData.startDateTime) {
+        const nowISO = new Date();
+        nowISO.setMinutes(nowISO.getMinutes() - nowISO.getTimezoneOffset());
+        payloadData.startDateTime = nowISO.toISOString().slice(0, 16);
+      }
+      if (payloadData.dueDateTime) {
+        const dueISO = new Date();
+        dueISO.setMinutes(dueISO.getMinutes() + 10 - dueISO.getTimezoneOffset());
+        payloadData.dueDateTime = dueISO.toISOString().slice(0, 16);
+      }
+    }
+
     // Date safai
     if (!payloadData.startDateTime) delete payloadData.startDateTime;
     if (!payloadData.dueDateTime) delete payloadData.dueDateTime;
@@ -388,8 +402,14 @@ export default function TaskIntakeForm({ blueprint, isOpen, onClose, onSave, tas
                                           const nowISO = new Date();
                                           nowISO.setMinutes(nowISO.getMinutes() - nowISO.getTimezoneOffset());
                                           const currentDateTimeString = nowISO.toISOString().slice(0, 16);
+
+                                          const todayStartISO = new Date();
+                                          todayStartISO.setHours(0, 0, 0, 0);
+                                          todayStartISO.setMinutes(todayStartISO.getMinutes() - todayStartISO.getTimezoneOffset());
+                                          const todayStartString = todayStartISO.toISOString().slice(0, 16);
+
                                           if (!taskData) {
-                                            if (field.name === 'startDateTime') return currentDateTimeString;
+                                            if (field.name === 'startDateTime') return todayStartString;
                                             if (field.name === 'dueDateTime') return currentStartDate && currentStartDate > currentDateTimeString ? currentStartDate : currentDateTimeString;
                                           } else {
                                             if (field.name === 'dueDateTime' && currentStartDate) return currentStartDate;
@@ -398,7 +418,7 @@ export default function TaskIntakeForm({ blueprint, isOpen, onClose, onSave, tas
                                         })()
                                       }
                                       onChange={(name, value, record, mappings) => {
-                                        console.log("TaskIntakeForm date min constraint check for", field.name, currentStartDate);
+                                        if (field.name === 'startDateTime' || field.name === 'dueDateTime') setIsTimeEditedByUser(true);
                                         commonProps.onChange(value, record, mappings)
                                       }}
                                     />

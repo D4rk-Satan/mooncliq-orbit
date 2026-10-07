@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import DynamicField from './FieldRegistry';
 
 const standardFields = [
   // Lead Fields
@@ -16,7 +17,7 @@ const standardFields = [
 ];
 
 
-const EntityEditModal = ({ isOpen, onClose, entity, blueprint, onUpdate, currentUser, moduleName }) => {
+const EntityEditModal = ({ isOpen, onClose, entity, blueprint, onUpdate, currentUser, moduleName, isCustomModule }) => {
   const [editData, setEditData] = useState({});
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -47,13 +48,20 @@ const EntityEditModal = ({ isOpen, onClose, entity, blueprint, onUpdate, current
 
       const dynamicIdKey = moduleName.toLowerCase().slice(0, -1) + 'Id';
 
-      const res = await fetch(`/api/${moduleName.toLowerCase()}`, {
-        method: 'PATCH',
+      const url = isCustomModule ? `/api/custom-modules/records?id=${entity.id}` : `/api/${moduleName.toLowerCase()}`;
+      const method = isCustomModule ? 'PUT' : 'PATCH';
+      
+      const bodyPayload = isCustomModule 
+        ? { customData: formData.customData || formData } // As per handleUpdateRecord logic
+        : { [dynamicIdKey]: entity.id, ...formData };
+
+      const res = await fetch(url, {
+        method: method,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': token ? `Bearer ${token}` : ''
         },
-        body: JSON.stringify({ [dynamicIdKey]: entity.id, ...formData })
+        body: JSON.stringify(bodyPayload)
       });
 
       if (res.ok && onUpdate) {
@@ -136,10 +144,9 @@ const EntityEditModal = ({ isOpen, onClose, entity, blueprint, onUpdate, current
   }, [visibleFields, standardFields]);
 
   // 2. React Hook Form Setup
-  const { register, handleSubmit, formState: { errors, isDirty }, reset } = useForm({
+  const { register, control, handleSubmit, formState: { errors, isDirty }, reset } = useForm({
     resolver: zodResolver(dynamicSchema),
     defaultValues: { ...(entity || {}), customData: entity?.customData || {} } // Puraana data form me daal diya
-    // Puraana data form me daal diya
   });
 
   useEffect(() => {
@@ -262,31 +269,18 @@ const EntityEditModal = ({ isOpen, onClose, entity, blueprint, onUpdate, current
 
                     return (
                       <div key={field.name} style={{ gridColumn: field.fullWidth ? '1 / -1' : 'auto' }}>
-                        <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#0f172a', marginBottom: '6px' }}>
-                          {field.label} {field.isRequired && <span style={{ color: '#ef4444' }}>*</span>}
-                        </label>
-
-                        {field.type?.toLowerCase() === 'select' ? (
-                          <select
-                            {...register(isStandard ? field.name : `customData.${field.name}`)}
-                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', backgroundColor: '#f8fafc', color: '#0f172a', fontSize: '0.9rem', outline: 'none', cursor: 'pointer' }}
-                          >
-                            <option value="">Select...</option>
-                            {(field.options || []).map((opt, i) => (
-                              <option key={i} value={opt}>{opt}</option>
-                            ))}
-                          </select>
-                        ) : (
-                          <input
-                            type={field.type?.toLowerCase() === 'number' ? 'number' : field.type?.toLowerCase() === 'email' ? 'email' : 'text'}
-                            {...register(isStandard ? field.name : `customData.${field.name}`)}
-                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', backgroundColor: '#f8fafc', color: '#0f172a', fontSize: '0.9rem', outline: 'none' }}
-                          />
-                        )}
-
-                        {/* Zod Validation Error Message yahan dikhega 👇 */}
-                        {errors[field.name] && <span style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px', display: 'block' }}>{errors[field.name].message}</span>}
-                        {errors.customData?.[field.name] && <span style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px', display: 'block' }}>{errors.customData[field.name].message}</span>}
+                        <Controller
+                          name={isStandard ? field.name : `customData.${field.name}`}
+                          control={control}
+                          render={({ field: controllerField }) => (
+                            <DynamicField
+                              field={field}
+                              value={controllerField.value || ''}
+                              onChange={(name, val) => controllerField.onChange(val)}
+                              error={errors[field.name]?.message || errors.customData?.[field.name]?.message}
+                            />
+                          )}
+                        />
                       </div>
                     );
 

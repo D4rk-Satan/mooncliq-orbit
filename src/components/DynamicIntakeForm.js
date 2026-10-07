@@ -12,6 +12,7 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
   const [blueprint, setBlueprint] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [currentStep, setCurrentStep] = useState(0);
+  const [isTimeEditedByUser, setIsTimeEditedByUser] = useState(false);
 
   const [standardData, setStandardData] = useState({});
   const [customData, setCustomData] = useState({});
@@ -231,8 +232,22 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
           const canSave = await executeScript("onSave");
           if (!canSave) return;
 
+          let payloadData = { ...formData };
+          if (!isTimeEditedByUser) {
+            if (payloadData.startDateTime) {
+              const nowISO = new Date();
+              nowISO.setMinutes(nowISO.getMinutes() - nowISO.getTimezoneOffset());
+              payloadData.startDateTime = nowISO.toISOString().slice(0, 16);
+            }
+            if (payloadData.dueDateTime) {
+              const dueISO = new Date();
+              dueISO.setMinutes(dueISO.getMinutes() + 10 - dueISO.getTimezoneOffset());
+              payloadData.dueDateTime = dueISO.toISOString().slice(0, 16);
+            }
+          }
+
           onSave({
-            ...formData,
+            ...payloadData,
             blueprintId: blueprint?.id
           });
 
@@ -258,9 +273,12 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
     const now = new Date();
     now.setSeconds(0, 0);
 
+    const todayStart = new Date(now);
+    todayStart.setHours(0, 0, 0, 0);
+
     if (fieldName === 'startDateTime') {
       const selectedD = new Date(val);
-      if (selectedD < now) return formatLocal(now);
+      if (selectedD < todayStart) return formatLocal(todayStart);
     } else if (fieldName === 'dueDateTime') {
       const selectedD = new Date(val);
       const startVal = watch('startDateTime');
@@ -375,10 +393,13 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
                                       };
 
                                       const now = new Date();
+                                      const todayStart = new Date(now);
+                                      todayStart.setHours(0, 0, 0, 0);
+                                      
                                       const currentDateTimeString = formatLocal(now);
                                       const currentStartDate = watch('startDateTime');
 
-                                      if (field.name === 'startDateTime') return currentDateTimeString;
+                                      if (field.name === 'startDateTime') return formatLocal(todayStart);
                                       
                                       if (field.name === 'dueDateTime') {
                                         let baseDate;
@@ -395,6 +416,7 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
                                     })()
                                   }
                                   onChange={(name, val, record, mappings) => {
+                                    if (field.name === 'startDateTime' || field.name === 'dueDateTime') setIsTimeEditedByUser(true);
                                     const correctedVal = handleDateSelectionCorrection(field.name, val);
                                     controllerField.onChange(correctedVal);
                                     handleFieldChange(field, name, correctedVal, record, mappings);

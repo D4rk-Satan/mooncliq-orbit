@@ -7,6 +7,7 @@ export default function Button({
     size = 'md',
     onClick,
     style,
+    type = 'button',
     disabled = false
 }) {
     //base classes jo har ek button par apply hoga
@@ -18,6 +19,7 @@ export default function Button({
     else if (variant === 'ghost') baseClass += " btn-ghost";
     return (
         <button
+            type={type}
             className={baseClass}
             onClick={onClick}
             disabled={disabled}

@@ -130,6 +130,19 @@ export default function CustomModulePage() {
     }
   };
 
+  // Navigation Logic for SlideOverPanel Arrows
+  const selectedIndex = selectedRecord ? records.findIndex(r => r.id === selectedRecord.id) : -1;
+  const hasNext = selectedIndex !== -1 && selectedIndex < records.length - 1;
+  const hasPrev = selectedIndex > 0;
+
+  const handleNext = () => {
+    if (hasNext) setSelectedRecord(records[selectedIndex + 1]);
+  };
+
+  const handlePrev = () => {
+    if (hasPrev) setSelectedRecord(records[selectedIndex - 1]);
+  };
+
   if (loading) {
     return (
       <main className="dashboard-main" style={{ backgroundColor: 'var(--bg-primary)', padding: '1.5rem', overflowY: 'auto', position: 'relative', minHeight: '100vh' }}>
@@ -187,6 +200,10 @@ export default function CustomModulePage() {
           setSelectedRecord(null); // Close preview panel when editing
         }}
         onLeadUpdate={handleUpdateRecord}
+        hasNext={hasNext}
+        hasPrev={hasPrev}
+        onNext={handleNext}
+        onPrev={handlePrev}
       />
 
       {/* EDIT MODAL */}
@@ -197,6 +214,7 @@ export default function CustomModulePage() {
         blueprint={blueprint}
         onUpdate={handleUpdateRecord}
         moduleName={moduleDef.name}
+        isCustomModule={true}
       />
     </div>
   );
