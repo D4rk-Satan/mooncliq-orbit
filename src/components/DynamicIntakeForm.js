@@ -124,7 +124,7 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
     });
   }, [visibleFields, systemFieldNames, moduleType]);
 
-  const { control, handleSubmit, trigger, formState: { errors }, reset, watch } = useForm({
+  const { control, handleSubmit, trigger, formState: { errors }, reset, watch, setValue } = useForm({
     resolver: zodResolver(dynamicSchema),
     defaultValues: { ...standardData, customData: customData }
   });
@@ -416,8 +416,23 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
                                     })()
                                   }
                                   onChange={(name, val, record, mappings) => {
-                                    if (field.name === 'startDateTime' || field.name === 'dueDateTime') setIsTimeEditedByUser(true);
                                     const correctedVal = handleDateSelectionCorrection(field.name, val);
+                                    if (field.name === 'startDateTime') {
+                                      setIsTimeEditedByUser(true);
+                                      if (correctedVal) {
+                                        const start = new Date(correctedVal);
+                                        if (!isNaN(start.getTime())) {
+                                          const updatedDue = new Date(start.getTime() + 10 * 60000);
+                                          updatedDue.setMinutes(updatedDue.getMinutes() - updatedDue.getTimezoneOffset());
+                                          const dueString = updatedDue.toISOString().slice(0, 16);
+                                          setValue('dueDateTime', dueString, { shouldValidate: true, shouldDirty: true });
+                                          setStandardData(prev => ({ ...prev, dueDateTime: dueString }));
+                                        }
+                                      }
+                                    } else if (field.name === 'dueDateTime') {
+                                      setIsTimeEditedByUser(true);
+                                    }
+                                    
                                     controllerField.onChange(correctedVal);
                                     handleFieldChange(field, name, correctedVal, record, mappings);
                                   }}

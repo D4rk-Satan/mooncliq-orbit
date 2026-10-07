@@ -418,7 +418,23 @@ export default function TaskIntakeForm({ blueprint, isOpen, onClose, onSave, tas
                                         })()
                                       }
                                       onChange={(name, value, record, mappings) => {
-                                        if (field.name === 'startDateTime' || field.name === 'dueDateTime') setIsTimeEditedByUser(true);
+                                        if (field.name === 'startDateTime') {
+                                          setIsTimeEditedByUser(true);
+                                          if (value) {
+                                            const start = new Date(value);
+                                            if (!isNaN(start.getTime())) {
+                                              const updatedDue = new Date(start.getTime() + 10 * 60000);
+                                              // Convert back to local time string format for datetime-local input
+                                              updatedDue.setMinutes(updatedDue.getMinutes() - updatedDue.getTimezoneOffset());
+                                              const dueString = updatedDue.toISOString().slice(0, 16);
+                                              
+                                              setValue('dueDateTime', dueString, { shouldValidate: true, shouldDirty: true });
+                                              setStandardData(prev => ({ ...prev, dueDateTime: dueString }));
+                                            }
+                                          }
+                                        } else if (field.name === 'dueDateTime') {
+                                          setIsTimeEditedByUser(true);
+                                        }
                                         commonProps.onChange(value, record, mappings)
                                       }}
                                     />

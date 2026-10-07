@@ -221,6 +221,55 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
 
 
   const renderTabContent = () => {
+    if (activeTab === 'Activity') {
+      const createdDate = new Date(lead.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
+      const updatedDate = new Date(lead.lastActivityDate || lead.updatedAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
+      const modifiedBy = lead.lastModifiedByName || "System";
+
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+          {/* Top Summary Card */}
+          <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+            <div>
+              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Created On</div>
+              <div style={{ fontSize: '0.9rem', color: '#0f172a', marginTop: '0.35rem', fontWeight: 500 }}>{createdDate}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Last Modified By</div>
+              <div style={{ fontSize: '0.9rem', color: '#0f172a', marginTop: '0.35rem', fontWeight: 500 }}>{modifiedBy}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Last Activity</div>
+              <div style={{ fontSize: '0.9rem', color: '#0f172a', marginTop: '0.35rem', fontWeight: 500 }}>{updatedDate}</div>
+            </div>
+          </div>
+
+          {/* Basic Timeline */}
+          <div>
+            <h3 style={{ fontSize: '1rem', fontWeight: 600, color: '#0f172a', marginBottom: '1.5rem', marginTop: 0 }}>Timeline</h3>
+
+            <div style={{ position: 'relative', paddingLeft: '1.5rem', borderLeft: '2px solid #e2e8f0', marginLeft: '0.5rem', display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
+
+              {/* Event 1 (Latest) */}
+              <div style={{ position: 'relative' }}>
+                <div style={{ position: 'absolute', left: '-1.85rem', top: '0.25rem', width: '12px', height: '12px', borderRadius: '50%', background: '#3b82f6', border: '2px solid #fff' }}></div>
+                <div style={{ fontSize: '0.9rem', color: '#0f172a', fontWeight: 500 }}>Record Updated</div>
+                <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.3rem' }}>by <strong>{modifiedBy}</strong> on {updatedDate}</div>
+              </div>
+
+              {/* Event 2 (Creation) */}
+              <div style={{ position: 'relative' }}>
+                <div style={{ position: 'absolute', left: '-1.85rem', top: '0.25rem', width: '12px', height: '12px', borderRadius: '50%', background: '#10b981', border: '2px solid #fff' }}></div>
+                <div style={{ fontSize: '0.9rem', color: '#0f172a', fontWeight: 500 }}>Record Created</div>
+                <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.3rem' }}>on {createdDate}</div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     if (activeTab === 'Details') {
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', position: 'relative', paddingBottom: '0' }}>
