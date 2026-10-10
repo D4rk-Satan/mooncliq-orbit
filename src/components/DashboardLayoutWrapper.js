@@ -8,7 +8,7 @@ export default function DashboardLayoutWrapper({ children, initialOnboardingDone
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const authRoutes = ['/', '/sign-in', '/sign-up', '/forgot-password'];
-  const isAuthPage = authRoutes.includes(pathname);
+  const isAuthPage = authRoutes.includes(pathname) || pathname.startsWith('/invite');
 
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);

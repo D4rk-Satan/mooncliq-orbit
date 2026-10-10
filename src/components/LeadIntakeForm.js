@@ -229,7 +229,7 @@ export default function LeadIntakeForm({ isOpen, onClose, onSave }) {
 
   return (
     <>
-      <div className={`slide-backdrop ${isOpen ? 'open' : ''}`} onClick={onClose}></div>
+      <div className={`slide-backdrop ${isOpen ? 'open' : ''}`} ></div>
       <div className={`modal-card ${isOpen ? 'open' : ''}`} style={{ width: '750px', maxWidth: '95vw', maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', borderRadius: '16px' }}>
 
         {isLoading ? (

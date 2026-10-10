@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '../../../../lib/prisma';
 import { getAuthUser } from '../../../../lib/auth';
+import { canExport } from '../../../../lib/permissions';
 import Papa from 'papaparse';
 
 export async function GET(request) {
@@ -8,6 +9,11 @@ export async function GET(request) {
     const user = await getAuthUser(request);
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Export Permission Check
+    if (!canExport(user)) {
+      return NextResponse.json({ error: "Forbidden: You do not have permission to export data" }, { status: 403 });
     }
 
     // Apply basic permission logic

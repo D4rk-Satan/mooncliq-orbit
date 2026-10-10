@@ -50,8 +50,8 @@ const EntityEditModal = ({ isOpen, onClose, entity, blueprint, onUpdate, current
 
       const url = isCustomModule ? `/api/custom-modules/records?id=${entity.id}` : `/api/${moduleName.toLowerCase()}`;
       const method = isCustomModule ? 'PUT' : 'PATCH';
-      
-      const bodyPayload = isCustomModule 
+
+      const bodyPayload = isCustomModule
         ? { customData: formData.customData || formData } // As per handleUpdateRecord logic
         : { [dynamicIdKey]: entity.id, ...formData };
 
@@ -168,7 +168,6 @@ const EntityEditModal = ({ isOpen, onClose, entity, blueprint, onUpdate, current
   return (
     <>
       <div
-        onClick={handleBackdropClick}
         style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
           backgroundColor: 'rgba(15, 23, 42, 0.4)', zIndex: 100,

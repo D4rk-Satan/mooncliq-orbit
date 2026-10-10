@@ -16,7 +16,7 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, refresh
 
   const [customModules, setCustomModules] = useState([]);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
-  const [userInfo, setUserInfo] = useState({ orgName: "Loading...", email: "...", nickname: "User", role: "Member", avatarUrl: null });
+  const [userInfo, setUserInfo] = useState({ orgName: "Loading...", email: "...", nickname: "User", role: "Member", avatarUrl: null, activeModules: ["Lead", "Deal", "Account", "Task", "Products"] });
   const DynamicLucideIcon = ({ name }) => {
     // Agar database me icon name nahi hai ya galat hai, toh default 'Box' dikhao
     const IconComponent = LucideIcons[name] || LucideIcons.Box;
@@ -37,7 +37,8 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, refresh
         const res = await fetch('/api/me', {
           headers: {
             Authorization: `Bearer ${token}`
-          }
+          },
+          cache: 'no-store'
         });
 
         if (res.ok) {
@@ -47,13 +48,16 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, refresh
             email: user.email || "",
             nickname: user.profile?.nickname || "User",
             role: user.profile?.role || "Member",
-            avatarUrl: user.profile?.avatarUrl || null
+            avatarUrl: user.profile?.avatarUrl || null,
+            canAccessSettings: user.profile?.canAccessSettings || false,
+            activeModules: user.organization?.activeModules || []
           });
         }
 
         // 3. Fetch custom modules
         const modRes = await fetch('/api/custom-modules', {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
+          cache: 'no-store'
         });
         if (modRes.ok) {
           const mods = await modRes.json();
@@ -200,61 +204,73 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, refresh
               )}
               <div style={{ marginBottom: isCollapsed ? '0.5rem' : '1rem' }}>
 
-              {/* Category Header (Clickable for Accordion) */}
-              {!isCollapsed && (
-                <div
-                  style={{
-                    padding: '0.5rem 1.5rem',
-                    fontSize: '0.75rem',
-                    fontWeight: '600',
-                    color: '#9ca3af',
-                    letterSpacing: '0.05em',
-                    cursor: 'default',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                  }}
-                >
-                  {category.name}
-                </div>
-              )}
-
-              {/* Category Items (Sirf tabhi dikhenge jab ye open ho, ya phir sidebar collapsed ho) */}
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                {category.items.map((item, itemIdx) => (
-                  <Link
-                    key={itemIdx}
-                    href={item.href}
-                    className={`nav-item ${pathname === item.href ? "active" : ""}`}
+                {/* Category Header (Clickable for Accordion) */}
+                {!isCollapsed && (
+                  <div
                     style={{
+                      padding: '0.5rem 1.5rem',
+                      fontSize: '0.75rem',
+                      fontWeight: '600',
+                      color: '#9ca3af',
+                      letterSpacing: '0.05em',
+                      cursor: 'default',
                       display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.6rem',
-                      textDecoration: 'none',
-                      justifyContent: isCollapsed ? 'center' : 'flex-start',
-                      padding: isCollapsed ? '0.5rem 0' : '0.4rem 1.25rem',
-                      margin: isCollapsed ? '0.15rem' : '0.15rem 0.75rem',
-                      fontSize: '0.85rem',
-                      fontWeight: '500',
-                      color: '#334155'
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
                     }}
-
                   >
-                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} title={item.name}>{item.icon}</span>
-                    {!isCollapsed && <span style={{ whiteSpace: 'nowrap' }}>{item.name}</span>}
-                  </Link>
-                ))}
-              </div>
+                    {category.name}
+                  </div>
+                )}
+
+                {/* Category Items (Sirf tabhi dikhenge jab ye open ho, ya phir sidebar collapsed ho) */}
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  {category.items.map((item, itemIdx) => {
+                    const defaultModules = ["Lead", "Deal", "Account", "Task", "Products"];
+                    const activeMods = userInfo.activeModules && userInfo.activeModules.length > 0 
+                      ? userInfo.activeModules 
+                      : defaultModules;
+
+                    if ((category.name === "CRM" || category.name === "WORK") && !activeMods.includes(item.name)) {
+                      return null;
+                    }
+                    return (
+                    <Link
+                      key={itemIdx}
+                      href={item.href}
+                      className={`nav-item ${pathname === item.href ? "active" : ""}`}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.6rem',
+                        textDecoration: 'none',
+                        justifyContent: isCollapsed ? 'center' : 'flex-start',
+                        padding: isCollapsed ? '0.5rem 0' : '0.4rem 1.25rem',
+                        margin: isCollapsed ? '0.15rem' : '0.15rem 0.75rem',
+                        fontSize: '0.85rem',
+                        fontWeight: '500',
+                        color: '#334155'
+                      }}
+
+                    >
+                      <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} title={item.name}>{item.icon}</span>
+                      {!isCollapsed && <span style={{ whiteSpace: 'nowrap' }}>{item.name}</span>}
+                    </Link>
+                    );
+                  })}
+                </div>
 
               </div>
             </React.Fragment>
           ))}        </nav>
 
         <div style={{ marginTop: 'auto', padding: isCollapsed ? '1rem 0' : '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', borderTop: '1px solid #e5e7eb' }}>
-          <Link href="/settings" className={`nav-item ${pathname === "/settings" ? "active" : ""}`} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', textDecoration: 'none', justifyContent: isCollapsed ? 'center' : 'flex-start', padding: isCollapsed ? '0.5rem 0' : '0.4rem 1.25rem', margin: isCollapsed ? '0.15rem' : '0.15rem 0.75rem', fontSize: '0.85rem', fontWeight: '500', color: '#334155' }} title="Settings">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-            {!isCollapsed && <span style={{ whiteSpace: 'nowrap' }}>Settings</span>}
-          </Link>
+          {userInfo?.canAccessSettings && (
+            <Link href="/settings" className={`nav-item ${pathname === "/settings" ? "active" : ""}`} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', textDecoration: 'none', justifyContent: isCollapsed ? 'center' : 'flex-start', padding: isCollapsed ? '0.5rem 0' : '0.4rem 1.25rem', margin: isCollapsed ? '0.15rem' : '0.15rem 0.75rem', fontSize: '0.85rem', fontWeight: '500', color: '#334155' }} title="Settings">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+              {!isCollapsed && <span style={{ whiteSpace: 'nowrap' }}>Settings</span>}
+            </Link>
+          )}
 
 
           {/* ----- YAHAN SE NAYA PROFILE POPOVER START HOTA HAI ----- */}

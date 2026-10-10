@@ -3,8 +3,10 @@
 import React, { useEffect, useState } from "react";
 import DynamicField from "./FieldRegistry";
 import { evaluateExecutionCriteria } from "../utils/ruleEngine";
+import { useConfirm } from "../contexts/ConfirmContext";
 
-export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags = [], currentUser, onTransition, onLeadUpdate, pendingTransition, onEditClick, onNext, onPrev, hasNext, hasPrev }) {
+export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags = [], currentUser, onTransition, onLeadUpdate, pendingTransition, onEditClick, onDeleteClick, onNext, onPrev, hasNext, hasPrev }) {
+  const { showConfirm } = useConfirm();
   const [modalMode, setModalMode] = useState(null); // null | 'missing' | 'security' | 'confirm'
   const [activeTransition, setActiveTransition] = useState(null);
   const [formData, setFormData] = useState({});
@@ -483,13 +485,30 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
             <button style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '48px', height: '36px', borderRadius: '18px', border: '1px solid #e2e8f0', backgroundColor: '#ffffff', color: '#64748b', cursor: 'pointer' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
             </button>
-            <button
-              onClick={() => onEditClick(lead)}
-              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0 1.25rem', height: '36px', borderRadius: '18px', border: 'none', backgroundColor: '#0f172a', color: '#ffffff', fontWeight: 600, cursor: 'pointer', fontSize: '0.9rem' }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-              Edit
-            </button>
+            {onEditClick && (
+              <button
+                onClick={() => onEditClick(lead)}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0 1.25rem', height: '36px', borderRadius: '18px', border: 'none', backgroundColor: '#0f172a', color: '#ffffff', fontWeight: 600, cursor: 'pointer', fontSize: '0.9rem' }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                Edit
+              </button>
+            )}
+            {onDeleteClick && (
+              <button
+                onClick={() => {
+                  showConfirm({
+                    title: "Delete Record", 
+                    message: `Are you sure you want to permanently delete this ${blueprint?.moduleType || 'record'}?`, 
+                    onConfirm: () => onDeleteClick(lead)
+                  });
+                }}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0 1.25rem', height: '36px', borderRadius: '18px', border: '1px solid #f87171', backgroundColor: '#fef2f2', color: '#ef4444', fontWeight: 600, cursor: 'pointer', fontSize: '0.9rem' }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                Delete
+              </button>
+            )}
           </div>
 
           <div style={{ display: 'flex', gap: '1.5rem', borderBottom: '1px solid #e2e8f0', flexWrap: 'wrap' }}>

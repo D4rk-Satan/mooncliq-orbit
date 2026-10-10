@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Badge from "./ui/Badge";
 import Button from "./ui/Button";
 import EmptyState from "./ui/EmptyState";
+import { useConfirm } from "../contexts/ConfirmContext";
 
 const getColumnColor = (color) => color || "#e2e8f0";
 
@@ -55,12 +56,14 @@ export default function DynamicModuleView({
   currentUser,
   onRecordClick,
   onEditClick,
+  onDeleteClick,
   renderHeaderActions,
   onDropRecord,
   selectedRecordIds = [],
   setSelectedRecordIds,
   onBulkTagApply
 }) {
+  const { showConfirm } = useConfirm();
   const [viewMode, setViewMode] = useState(supportKanban ? "kanban" : "list");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -330,6 +333,22 @@ export default function DynamicModuleView({
                           {activeCardMenuId === record.id && (
                             <div style={{ position: 'absolute', right: 0, top: '100%', backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', zIndex: 50, padding: '0.25rem' }} onClick={(e) => e.stopPropagation()}>
                               <button onClick={(e) => { e.stopPropagation(); setActiveCardMenuId(null); onEditClick && onEditClick(record); }} style={{ width: '100%', padding: '0.5rem 0.75rem', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.85rem' }}>Edit</button>
+                              {onDeleteClick && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveCardMenuId(null);
+                                    showConfirm({
+                                      title: "Delete Record",
+                                      message: `Are you sure you want to permanently delete this record?`,
+                                      onConfirm: () => onDeleteClick(record)
+                                    });
+                                  }}
+                                  style={{ width: '100%', padding: '0.5rem 0.75rem', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.85rem', color: '#ef4444' }}
+                                >
+                                  Delete
+                                </button>
+                              )}
                             </div>
                           )}
                         </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import Sidebar from "../../components/Sidebar";
 import { ReactFlow, Controls, Background, applyNodeChanges, applyEdgeChanges, addEdge, Handle, Position } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
@@ -86,8 +87,40 @@ export default function SettingsPage() {
   const [orgUsers, setOrgUsers] = useState([]);
   const [pendingInvites, setPendingInvites] = useState([]);
   const [edges, setEdges] = useState([]);
+  const [activeModules, setActiveModules] = useState(["Lead", "Deal", "Account", "Task", "Products"]);
   const onNodesChange = useCallback((changes) => setNodes((nds) => applyNodeChanges(changes, nds)), []);
   const onEdgesChange = useCallback((changes) => setEdges((eds) => applyEdgeChanges(changes, eds)), []);
+  const router = useRouter();
+
+  useEffect(() => {
+    const checkSettingsAuth = async () => {
+      try {
+        const { fetchAuthSession } = await import('aws-amplify/auth');
+        const { tokens } = await fetchAuthSession();
+        if (!tokens) {
+          router.push('/sign-in');
+          return;
+        }
+        const res = await fetch('/api/me', { headers: { Authorization: `Bearer ${tokens.idToken.toString()}` } });
+        if (res.ok) {
+          const userData = await res.json();
+          if (!userData?.profile?.canAccessSettings) {
+            router.push('/'); // Redirect unauthorized user to dashboard
+          } else {
+            const defaultModules = ["Lead", "Deal", "Account", "Task", "Products"];
+            if (userData.organization?.activeModules && userData.organization.activeModules.length > 0) {
+              setActiveModules(userData.organization.activeModules);
+            } else {
+              setActiveModules(defaultModules);
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Auth check failed:", err);
+      }
+    };
+    checkSettingsAuth();
+  }, [router]);
 
   const fetchUsersAndInvites = async () => {
     try {
@@ -268,7 +301,7 @@ export default function SettingsPage() {
     async function fetchCustomModules() {
       try {
         const token = await getAuthToken();
-        const res = await fetch('/api/custom-modules', {
+        const res = await fetch('/api/custom-modules?all=true', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 
@@ -821,6 +854,61 @@ export default function SettingsPage() {
     return [...array, item];
   };
 
+  const handleToggleModule = async (moduleName) => {
+    const isCurrentlyActive = activeModules.includes(moduleName);
+    const newActiveModules = isCurrentlyActive 
+      ? activeModules.filter(m => m !== moduleName)
+      : [...activeModules, moduleName];
+      
+    // Optimistic UI Update
+    setActiveModules(newActiveModules);
+    
+    try {
+      const token = await getAuthToken();
+      const res = await fetch('/api/settings/modules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ activeModules: newActiveModules })
+      });
+      if (!res.ok) {
+        // Revert on failure
+        setActiveModules(activeModules);
+        alert("Failed to update module settings.");
+      } else {
+        // Force reload to update Sidebar globally
+        window.location.reload();
+      }
+    } catch (err) {
+      console.error(err);
+      setActiveModules(activeModules);
+    }
+  };
+
+  const handleToggleCustomModule = async (customModuleId, currentStatus) => {
+    // Optimistic Update
+    setCustomModules(prev => prev.map(m => m.id === customModuleId ? { ...m, isActive: !currentStatus } : m));
+    
+    try {
+      const token = await getAuthToken();
+      const res = await fetch('/api/custom-modules/toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ customModuleId, isActive: !currentStatus })
+      });
+      if (!res.ok) {
+        // Revert
+        setCustomModules(prev => prev.map(m => m.id === customModuleId ? { ...m, isActive: currentStatus } : m));
+        alert("Failed to update custom module status.");
+      } else {
+        window.location.reload();
+      }
+    } catch (err) {
+      console.error(err);
+      setCustomModules(prev => prev.map(m => m.id === customModuleId ? { ...m, isActive: currentStatus } : m));
+    }
+  };
+
+
 
   const renderModuleSelector = () => (
     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -929,6 +1017,21 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
+                {/* System & Modules Card */}
+                <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '1.5rem', boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.05)', border: '1px solid #e2e8f0' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                    <div style={{ background: '#f3f4f6', padding: '0.5rem', borderRadius: '8px', color: '#475569' }}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
+                    </div>
+                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: '#0f172a' }}>System Modules</h3>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <button onClick={() => setCurrentView('module-toggles')} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
+                      Modules & Features
+                    </button>
+                  </div>
+                </div>
+
                 {/* Users and Control Card */}
                 <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '1.5rem', boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.05)', border: '1px solid #e2e8f0' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
@@ -1025,6 +1128,83 @@ export default function SettingsPage() {
 
               <div style={{ padding: '1rem' }}>
 
+
+                {/* ================= MODULE TOGGLES VIEW ================= */}
+                {currentView === 'module-toggles' && (
+                  <div style={{ padding: '2rem', maxWidth: '800px', margin: '0 auto' }}>
+                    <div style={{ marginBottom: '2rem' }}>
+                      <h2 style={{ fontSize: '1.5rem', fontWeight: 600, color: '#0f172a', marginBottom: '0.5rem' }}>Modules & Features</h2>
+                      <p style={{ color: '#64748b' }}>Turn on/off specific CRM modules for your organization. Data is preserved even if disabled.</p>
+                    </div>
+
+                    <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', marginBottom: '2rem' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                        <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                          <tr>
+                            <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>System Module</th>
+                            <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600, width: '150px', textAlign: 'right' }}>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {['Lead', 'Deal', 'Account', 'Task', 'Products'].map((mod, idx, arr) => {
+                            const isActive = activeModules.includes(mod);
+                            return (
+                              <tr key={mod} style={{ borderBottom: idx === arr.length - 1 ? 'none' : '1px solid #e2e8f0', transition: 'background-color 0.2s' }} onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
+                                <td style={{ padding: '1rem', color: '#0f172a', fontWeight: 600 }}>{mod}</td>
+                                <td style={{ padding: '1rem', textAlign: 'right' }}>
+                                  <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', cursor: 'pointer' }}>
+                                    <input type="checkbox" style={{ display: 'none' }} checked={isActive} onChange={() => handleToggleModule(mod)} />
+                                    <span style={{ marginRight: '0.5rem', fontSize: '0.85rem', color: isActive ? '#10b981' : '#94a3b8', fontWeight: 500 }}>{isActive ? 'Active' : 'Disabled'}</span>
+                                    <div style={{ position: 'relative', width: '36px', height: '20px', backgroundColor: isActive ? '#10b981' : '#e2e8f0', borderRadius: '10px', transition: 'background-color 0.2s' }}>
+                                      <div style={{ position: 'absolute', top: '2px', left: isActive ? '18px' : '2px', width: '16px', height: '16px', backgroundColor: 'white', borderRadius: '50%', transition: 'all 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}></div>
+                                    </div>
+                                  </label>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {customModules.length > 0 && (
+                      <>
+                        <div style={{ marginBottom: '1rem' }}>
+                          <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#0f172a' }}>Custom Modules</h2>
+                        </div>
+                        <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                            <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                              <tr>
+                                <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Module Name</th>
+                                <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600, width: '150px', textAlign: 'right' }}>Status</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {customModules.map((mod, idx, arr) => {
+                                const isActive = mod.isActive;
+                                return (
+                                  <tr key={mod.id} style={{ borderBottom: idx === arr.length - 1 ? 'none' : '1px solid #e2e8f0', transition: 'background-color 0.2s' }} onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
+                                    <td style={{ padding: '1rem', color: '#0f172a', fontWeight: 600 }}>{mod.name}</td>
+                                    <td style={{ padding: '1rem', textAlign: 'right' }}>
+                                      <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', cursor: 'pointer' }}>
+                                        <input type="checkbox" style={{ display: 'none' }} checked={isActive} onChange={() => handleToggleCustomModule(mod.id, isActive)} />
+                                        <span style={{ marginRight: '0.5rem', fontSize: '0.85rem', color: isActive ? '#10b981' : '#94a3b8', fontWeight: 500 }}>{isActive ? 'Active' : 'Disabled'}</span>
+                                        <div style={{ position: 'relative', width: '36px', height: '20px', backgroundColor: isActive ? '#10b981' : '#e2e8f0', borderRadius: '10px', transition: 'background-color 0.2s' }}>
+                                          <div style={{ position: 'absolute', top: '2px', left: isActive ? '18px' : '2px', width: '16px', height: '16px', backgroundColor: 'white', borderRadius: '50%', transition: 'all 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}></div>
+                                        </div>
+                                      </label>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
 
                 {/* ================= CUSTOM MODULES VIEW ================= */}
                 {currentView === 'custom-modules' && (
@@ -1414,7 +1594,34 @@ export default function SettingsPage() {
                               <td style={{ padding: '1rem' }}><span style={{ backgroundColor: '#f1f5f9', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem', color: '#475569', fontWeight: 600 }}>{invite.profile?.name || 'Pending'}</span></td>
                               <td style={{ padding: '1rem' }}><span style={{ color: '#f59e0b', fontWeight: 600, fontSize: '0.85rem' }}>○ Pending</span></td>
                               <td style={{ padding: '1rem' }}>
-                                <button style={{ background: 'none', border: '1px solid #94a3b8', color: '#94a3b8', padding: '0.25rem 0.75rem', borderRadius: '4px', fontSize: '0.8rem', cursor: 'not-allowed', fontWeight: 600 }}>Revoke Access</button>
+                                <button 
+                                  onClick={async () => {
+                                    if (!window.confirm("Are you sure you want to revoke this pending invite?")) return;
+                                    try {
+                                      const token = await getAuthToken();
+                                      const res = await fetch('/api/invitations/revoke', {
+                                        method: 'POST',
+                                        headers: { 
+                                          'Content-Type': 'application/json',
+                                          'Authorization': `Bearer ${token}` 
+                                        },
+                                        body: JSON.stringify({ inviteId: invite.id })
+                                      });
+                                      if (res.ok) {
+                                        alert("Pending Invitation Revoked!");
+                                        setPendingInvites(prev => prev.filter(i => i.id !== invite.id));
+                                      } else {
+                                        const errorData = await res.json();
+                                        alert(errorData.error || "Failed to revoke invitation");
+                                      }
+                                    } catch (e) {
+                                      alert("Error revoking invite");
+                                    }
+                                  }}
+                                  style={{ background: 'none', border: '1px solid #ef4444', color: '#ef4444', padding: '0.25rem 0.75rem', borderRadius: '4px', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600 }}
+                                >
+                                  Revoke Invite
+                                </button>
                               </td>
                             </tr>
                           ))}

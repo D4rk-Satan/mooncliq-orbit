@@ -111,7 +111,7 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
             }
           }
           baseDate.setMinutes(baseDate.getMinutes() + 10);
-          
+
           if (dueD < baseDate) {
             ctx.addIssue({
               code: z.ZodIssueCode.custom,
@@ -295,7 +295,7 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
 
   return (
     <>
-      <div className={`slide-backdrop ${isOpen ? 'open' : ''}`} onClick={onClose}></div>
+      <div className={`slide-backdrop ${isOpen ? 'open' : ''}`} ></div>
       <div className={`modal-card ${isOpen ? 'open' : ''}`} style={{ width: '750px', maxWidth: '95vw', maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', borderRadius: '16px' }}>
 
         {isLoading ? (
@@ -382,7 +382,7 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
                                   min={
                                     (() => {
                                       if (moduleType !== 'Task') return undefined;
-                                      
+
                                       const formatLocal = (d) => {
                                         const yyyy = d.getFullYear();
                                         const mm = String(d.getMonth() + 1).padStart(2, '0');
@@ -395,12 +395,12 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
                                       const now = new Date();
                                       const todayStart = new Date(now);
                                       todayStart.setHours(0, 0, 0, 0);
-                                      
+
                                       const currentDateTimeString = formatLocal(now);
                                       const currentStartDate = watch('startDateTime');
 
                                       if (field.name === 'startDateTime') return formatLocal(todayStart);
-                                      
+
                                       if (field.name === 'dueDateTime') {
                                         let baseDate;
                                         if (currentStartDate && currentStartDate > currentDateTimeString) {
@@ -432,7 +432,7 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
                                     } else if (field.name === 'dueDateTime') {
                                       setIsTimeEditedByUser(true);
                                     }
-                                    
+
                                     controllerField.onChange(correctedVal);
                                     handleFieldChange(field, name, correctedVal, record, mappings);
                                   }}

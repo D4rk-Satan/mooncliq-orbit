@@ -4,6 +4,7 @@ import TaskRepeatDropdown from './TaskRepeatDropdown';
 import TaskAlertDropdown from './TaskAlertDropdown';
 import { Parser } from 'expr-eval';
 import Button from './ui/Button';
+import countries from '../utils/countries.json';
 // image upload field (Max 4 Images, Manual Upload)
 const ImageUploadInput = ({ field, value, onChange }) => {
   const [isUploading, setIsUploading] = useState(false);
@@ -657,54 +658,61 @@ const SubformInput = ({ field, value, onChange, formData }) => {
   };
 
   return (
-    <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-      <label className="form-label">
+    <div className="form-group" style={{ gridColumn: '1 / -1', marginBottom: '1.5rem' }}>
+      <style>{`
+        .subform-field-wrapper label.form-label { display: none !important; }
+        .subform-field-wrapper .form-group { margin-bottom: 0 !important; }
+        .subform-row-card { transition: all 0.2s ease; border: 1px solid #e2e8f0; }
+        .subform-row-card:hover { border-color: #cbd5e1; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
+      `}</style>
+      
+      <label className="form-label" style={{ fontSize: '1rem', fontWeight: 600, color: '#1e293b', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#64748b' }}><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
         {field.label} {field.isRequired && <span className="text-red-500">*</span>}
       </label>
-      <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: '#f8fafc' }}>
-          <thead>
-            <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+      
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        {rows.map((row, idx) => (
+          <div key={idx} className="subform-row-card" style={{ backgroundColor: '#f8fafc', borderRadius: '12px', padding: '1.5rem 1.5rem 1.25rem 1.5rem', position: 'relative' }}>
+            <div style={{ position: 'absolute', top: '12px', right: '12px' }}>
+              <button type="button" onClick={() => handleRemoveRow(idx)} style={{ color: '#ef4444', background: '#fee2e2', border: 'none', cursor: 'pointer', padding: '6px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Remove Row">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+              </button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', marginTop: '0.5rem' }}>
               {columns.map(col => (
-                <th key={col.name} style={{ padding: '0.75rem', textAlign: 'left', fontWeight: 600, fontSize: '0.875rem', color: '#475569' }}>
-                  {col.label} {col.isRequired && <span className="text-red-500">*</span>}
-                </th>
+                <div key={col.name} className="subform-field-wrapper" style={{ display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    {col.label} {col.isRequired && <span style={{ color: '#ef4444' }}>*</span>}
+                  </div>
+                  <DynamicField
+                    field={{ ...col, label: '' }} 
+                    value={row[col.name]}
+                    formData={{ ...formData, ...row }} 
+                    onChange={(name, val) => handleCellChange(idx, name, val)}
+                  />
+                </div>
               ))}
-              <th style={{ padding: '0.75rem', width: '50px' }}></th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, idx) => (
-              <tr key={idx} style={{ borderBottom: '1px solid #e2e8f0', backgroundColor: 'white' }}>
-                {columns.map(col => (
-                  <td key={col.name} style={{ padding: '0.5rem', verticalAlign: 'top' }}>
-                    <div style={{ margin: 0, padding: 0 }}>
-                      <DynamicField
-                        field={{ ...col, label: '' }} // Hide individual labels inside table
-                        value={row[col.name]}
-                        formData={{ ...formData, ...row }} // Pass row context to allow intra-row lookups if needed
-                        onChange={(name, val) => handleCellChange(idx, name, val)}
-                      />
-                    </div>
-                  </td>
-                ))}
-                <td style={{ padding: '0.5rem', verticalAlign: 'top', textAlign: 'center' }}>
-                  <button type="button" onClick={() => handleRemoveRow(idx)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', padding: '0.5rem' }}>✕</button>
-                </td>
-              </tr>
-            ))}
-            {rows.length === 0 && (
-              <tr>
-                <td colSpan={columns.length + 1} style={{ padding: '2rem', textAlign: 'center', color: '#64748b', fontSize: '0.875rem' }}>
-                  No items added yet. Click "Add Row" to start.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-        <div style={{ padding: '0.75rem', backgroundColor: 'white', borderTop: '1px solid #e2e8f0' }}>
-          <button type="button" onClick={handleAddRow} style={{ color: 'var(--primary)', fontWeight: 500, fontSize: '0.875rem', background: 'none', border: 'none', cursor: 'pointer' }}>
-            + Add Row
+            </div>
+          </div>
+        ))}
+
+        {rows.length === 0 && (
+          <div style={{ padding: '3rem 2rem', textAlign: 'center', backgroundColor: '#f8fafc', borderRadius: '12px', border: '2px dashed #cbd5e1', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+            <div style={{ padding: '1rem', backgroundColor: '#e2e8f0', borderRadius: '50%' }}>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line></svg>
+            </div>
+            <div>
+              <p style={{ color: '#334155', fontWeight: 600, margin: '0 0 0.35rem 0', fontSize: '1rem' }}>No items added yet</p>
+              <p style={{ color: '#64748b', fontSize: '0.875rem', margin: 0 }}>Click the button below to add your first row.</p>
+            </div>
+          </div>
+        )}
+
+        <div style={{ marginTop: '0.25rem' }}>
+          <button type="button" onClick={handleAddRow} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color: '#2563eb', backgroundColor: '#eff6ff', fontWeight: 600, fontSize: '0.875rem', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '0.75rem 1.25rem', cursor: 'pointer', transition: 'all 0.2s ease' }} onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#dbeafe'; e.currentTarget.style.borderColor = '#93c5fd'; }} onMouseOut={(e) => { e.currentTarget.style.backgroundColor = '#eff6ff'; e.currentTarget.style.borderColor = '#bfdbfe'; }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            Add New {field.label ? field.label.replace(/s$/, '') : 'Row'}
           </button>
         </div>
       </div>
@@ -714,6 +722,8 @@ const SubformInput = ({ field, value, onChange, formData }) => {
 
 // --- NAYA ADD KIYA: ADDRESS BLOCK COMPONENT ---
 const AddressInput = ({ field, value, onChange, formData }) => {
+  const [isAutoFilled, setIsAutoFilled] = useState(false);
+
   let address = { street: '', city: '', state: '', country: 'India', zip: '' };
   try {
     if (typeof value === 'string' && value.startsWith('{')) {
@@ -727,17 +737,31 @@ const AddressInput = ({ field, value, onChange, formData }) => {
     let newAddress = { ...address, [key]: val };
 
     // --- Pincode Auto-fill Logic ---
-    if (key === 'zip' && val.length === 6) {
-      fetch('/pincodes.json')
-        .then(res => res.json())
-        .then(pincodeData => {
-          if (pincodeData[val]) {
-            newAddress.city = pincodeData[val].c;
-            newAddress.state = pincodeData[val].s;
-            onChange(field.name, JSON.stringify(newAddress));
-          }
-        })
-        .catch(err => console.error("Pincode load error", err));
+    if (key === 'zip') {
+      if (val.length === 6) {
+        fetch('/pincodes.json')
+          .then(res => res.json())
+          .then(pincodeData => {
+            if (pincodeData[val]) {
+              newAddress.city = pincodeData[val].c;
+              newAddress.state = pincodeData[val].s;
+              newAddress.country = 'India';
+              setIsAutoFilled(true);
+              onChange(field.name, JSON.stringify(newAddress));
+            } else {
+              newAddress.city = '';
+              newAddress.state = '';
+              setIsAutoFilled(false);
+              onChange(field.name, JSON.stringify(newAddress));
+            }
+          })
+          .catch(err => console.error("Pincode load error", err));
+        return;
+      } else {
+        newAddress.city = '';
+        newAddress.state = '';
+        setIsAutoFilled(false);
+      }
     }
 
     onChange(field.name, JSON.stringify(newAddress));
@@ -763,8 +787,8 @@ const AddressInput = ({ field, value, onChange, formData }) => {
         {/* Row 1: Pincode, City, State */}
         <div style={{ display: 'flex', gap: '0.75rem' }}>
           <input type="text" placeholder="Pincode" maxLength={6} value={address.zip || ''} onChange={(e) => handleChange('zip', e.target.value)} className="form-input" style={{ flex: 1, minWidth: '80px' }} />
-          <input type="text" placeholder="City" value={address.city || ''} onChange={(e) => handleChange('city', e.target.value)} className="form-input" style={{ flex: 1.5 }} />
-          <input type="text" placeholder="State" value={address.state || ''} onChange={(e) => handleChange('state', e.target.value)} className="form-input" style={{ flex: 1.5 }} />
+          <input type="text" placeholder="City" value={address.city || ''} onChange={(e) => handleChange('city', e.target.value)} className="form-input" style={{ flex: 1.5, backgroundColor: isAutoFilled ? '#f1f5f9' : '#fff' }} readOnly={isAutoFilled} />
+          <input type="text" placeholder="State" value={address.state || ''} onChange={(e) => handleChange('state', e.target.value)} className="form-input" style={{ flex: 1.5, backgroundColor: isAutoFilled ? '#f1f5f9' : '#fff' }} readOnly={isAutoFilled} />
         </div>
 
         {/* Row 2: Street Address */}
@@ -772,10 +796,17 @@ const AddressInput = ({ field, value, onChange, formData }) => {
 
         {/* Row 3: Country & Checkbox */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <select value={address.country || 'India'} onChange={(e) => handleChange('country', e.target.value)} className="form-input" style={{ width: '150px' }}>
-            <option value="India">India</option>
-            <option value="USA">USA</option>
-            <option value="UK">UK</option>
+          <select 
+            value={address.country || 'India'} 
+            onChange={(e) => handleChange('country', e.target.value)} 
+            className="form-input" 
+            style={{ width: '150px', backgroundColor: isAutoFilled ? '#f1f5f9' : '#fff', pointerEvents: isAutoFilled ? 'none' : 'auto' }}
+          >
+            {countries.map(c => (
+              <option key={c.code} value={c.name}>
+                {c.emoji} {c.name}
+              </option>
+            ))}
           </select>
 
           {field.name === 'shippingAddress' && (

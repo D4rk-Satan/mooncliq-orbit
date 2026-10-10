@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 import DynamicModuleView from "@/components/DynamicModuleView";
 import EntityEditModal from "@/components/EntityEditModal";
 import GlobalLoader from "../../components/ui/GlobalLoader";
+import { hasPermission } from "../../lib/permissions";
 
 
 export default function TaskPage() {
@@ -140,6 +141,30 @@ export default function TaskPage() {
   };
 
 
+  const handleDeleteTask = async (taskToDelete) => {
+    try {
+      const token = await getAuthToken();
+      const res = await fetch(`/api/tasks/${taskToDelete.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Failed to delete task');
+        return;
+      }
+      setTasks(prev => prev.filter(t => t.id !== taskToDelete.id));
+      if (selectedTask && selectedTask.id === taskToDelete.id) {
+        setSelectedTask(null);
+      }
+    } catch (err) {
+      console.error("Failed to delete task", err);
+      alert('An error occurred while deleting the task.');
+    }
+  };
+
   return (
     <>
 
@@ -158,10 +183,13 @@ export default function TaskPage() {
               supportKanban={true}
               onRecordClick={(task) => setSelectedTask(task)}
               renderHeaderActions={() => (
-                <button className="btn-primary" onClick={() => setIsFormOpen(true)}>
-                  + Add Task
-                </button>
+                hasPermission(currentUser, 'Task', 'create') ? (
+                  <button className="btn-primary" onClick={() => setIsFormOpen(true)}>
+                    + Add Task
+                  </button>
+                ) : null
               )}
+              onDeleteClick={hasPermission(currentUser, 'Task', 'delete') ? handleDeleteTask : null}
             />
           )}
         </div>
@@ -195,7 +223,10 @@ export default function TaskPage() {
         onTransition={handleTransition}
         onLeadUpdate={handleTaskUpdate}
         pendingTransition={pendingTransition}
-        onEditClick={() => setIsEditModalOpen(true)}
+        onEditClick={
+          hasPermission(currentUser, 'Task', 'edit') ? () => setIsEditModalOpen(true) : null
+        }
+        onDeleteClick={hasPermission(currentUser, 'Task', 'delete') ? handleDeleteTask : null}
       />
 
       <EntityEditModal

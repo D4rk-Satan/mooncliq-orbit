@@ -108,7 +108,7 @@ export default function AccountIntakeForm({ isOpen, onClose, onSave }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setValidationErrors({});
-    
+
     // Standard validation
     const result = accountSchema.safeParse(standardData);
     if (!result.success) {
@@ -137,7 +137,7 @@ export default function AccountIntakeForm({ isOpen, onClose, onSave }) {
 
   return (
     <>
-      <div className={`slide-backdrop ${isOpen ? 'open' : ''}`} onClick={onClose}></div>
+      <div className={`slide-backdrop ${isOpen ? 'open' : ''}`} ></div>
       <div className={`modal-card ${isOpen ? 'open' : ''}`} style={{ width: '700px', maxWidth: '95vw', maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
         {isLoading ? (

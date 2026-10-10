@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import DynamicModuleView from "@/components/DynamicModuleView";
 import EntityEditModal from "@/components/EntityEditModal";
 import GlobalLoader from "../../components/ui/GlobalLoader";
+import { hasPermission } from "../../lib/permissions";
 
 export default function ProductsPage() {
   const [products, setProducts] = useState([]);
@@ -134,6 +135,30 @@ export default function ProductsPage() {
     }
   };
 
+  const handleDeleteProduct = async (productToDelete) => {
+    try {
+      const token = await getAuthToken();
+      const res = await fetch(`/api/products/${productToDelete.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Failed to delete product');
+        return;
+      }
+      setProducts(prev => prev.filter(p => p.id !== productToDelete.id));
+      if (selectedProduct && selectedProduct.id === productToDelete.id) {
+        setSelectedProduct(null);
+      }
+    } catch (err) {
+      console.error("Failed to delete product", err);
+      alert('An error occurred while deleting the product.');
+    }
+  };
+
   return (
     <>
 
@@ -152,10 +177,13 @@ export default function ProductsPage() {
               supportKanban={false}
               onRecordClick={(product) => setSelectedProduct(product)}
               renderHeaderActions={() => (
-                <button className="btn-primary" onClick={() => setIsFormOpen(true)} style={{ whiteSpace: 'nowrap' }}>
-                  + Add Product
-                </button>
+                hasPermission(currentUser, 'Product', 'create') ? (
+                  <button className="btn-primary" onClick={() => setIsFormOpen(true)} style={{ whiteSpace: 'nowrap' }}>
+                    + Add Product
+                  </button>
+                ) : null
               )}
+              onDeleteClick={hasPermission(currentUser, 'Product', 'delete') ? handleDeleteProduct : null}
             />
           )}
         </div>
@@ -181,7 +209,10 @@ export default function ProductsPage() {
         onTransition={handleTransition}
         onLeadUpdate={handleProductUpdate}
         pendingTransition={pendingTransition}
-        onEditClick={() => setIsEditModalOpen(true)}
+        onEditClick={
+          hasPermission(currentUser, 'Product', 'edit') ? () => setIsEditModalOpen(true) : null
+        }
+        onDeleteClick={hasPermission(currentUser, 'Product', 'delete') ? handleDeleteProduct : null}
       />
 
       <EntityEditModal

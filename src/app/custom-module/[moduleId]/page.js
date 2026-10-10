@@ -162,6 +162,56 @@ export default function CustomModulePage() {
     );
   }
 
+  const handleDropRecord = async (recordId, stageId) => {
+    try {
+      const token = await getAuthToken();
+      // Optimistic update
+      const updatedRecords = records.map(r => r.id === recordId ? { ...r, stageId } : r);
+      setRecords(updatedRecords);
+
+      const res = await fetch(`/api/custom-modules/records?id=${recordId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ stageId })
+      });
+      if (!res.ok) {
+        throw new Error('Failed to update stage');
+      }
+      const result = await res.json();
+      setRecords(prev => prev.map(r => r.id === result.id ? result : r));
+    } catch (err) {
+      console.error("Error dropping record:", err);
+      // Revert would go here if needed
+    }
+  };
+
+  const handleDeleteRecord = async (recordToDelete) => {
+    try {
+      const token = await getAuthToken();
+      const res = await fetch(`/api/custom-modules/records/${recordToDelete.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Failed to delete record');
+        return;
+      }
+      setRecords(prev => prev.filter(r => r.id !== recordToDelete.id));
+      if (selectedRecord && selectedRecord.id === recordToDelete.id) {
+        setSelectedRecord(null);
+      }
+    } catch (err) {
+      console.error("Failed to delete record", err);
+      alert('An error occurred while deleting the record.');
+    }
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       <DynamicModuleView
@@ -169,7 +219,8 @@ export default function CustomModulePage() {
         records={records}
         blueprint={blueprint}
         tags={[]}
-        supportKanban={false}
+        supportKanban={true}
+        onDropRecord={handleDropRecord}
         onRecordClick={(record) => setSelectedRecord(record)} // Open slide over panel on row click
         onEditClick={(record) => setRecordToEdit(record)} // Open edit modal on edit icon click
         renderHeaderActions={() => (
@@ -178,6 +229,7 @@ export default function CustomModulePage() {
             New Record
           </Button>
         )}
+        onDeleteClick={handleDeleteRecord}
       />
 
       {/* CREATE PANEL */}
@@ -204,6 +256,7 @@ export default function CustomModulePage() {
         hasPrev={hasPrev}
         onNext={handleNext}
         onPrev={handlePrev}
+        onDeleteClick={handleDeleteRecord}
       />
 
       {/* EDIT MODAL */}

@@ -17,6 +17,7 @@ model Organization {
   industry              String?
   logoUrl               String?
   teamSize              String?
+  activeModules         String[]            @default(["Lead", "Deal", "Account", "Task", "Products"])
   accounts              Account[]
   auditLogs             AuditLog[]
   blueprints            Blueprint[]

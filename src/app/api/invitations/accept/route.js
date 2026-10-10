@@ -60,9 +60,16 @@ export async function POST(request) {
       data: { status: 'ACCEPTED' }
     });
 
+    // 4. Fetch Organization Name for UI
+    const org = await prisma.organization.findUnique({
+      where: { id: invitation.organizationId },
+      select: { name: true }
+    });
+
     return NextResponse.json({ 
       message: "Invitation accepted successfully!",
-      user: { id: newUser.id, email: newUser.email }
+      user: { id: newUser.id, email: newUser.email },
+      orgName: org?.name || 'Workspace'
     }, { status: 200 });
 
   } catch (error) {

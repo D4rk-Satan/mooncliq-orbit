@@ -62,11 +62,16 @@ export const POST = withPermission('Settings', 'manageUsers', async (request, us
 
     const org = await prisma.organization.findUnique({ where: { id: user.organizationId } });
 
+    const inviterName = user.profile?.name || user.email;
+    const orgLogo = org?.logoUrl || null;
+
     const emailSent = await sendInvitationEmail(
       email,
       inviteLink,
       org?.name || 'Your Organization',
-      targetProfile?.name || 'User'
+      targetProfile?.name || 'User',
+      inviterName,
+      orgLogo
     );
 
     if (!emailSent) {

@@ -18,8 +18,10 @@ const sesClient = new SESClient({
  * @param {string} inviteLink - The unique link containing the generated token.
  * @param {string} organizationName - The name of the organization inviting the user.
  * @param {string} profileName - The RBAC profile they will be assigned.
+ * @param {string} inviterName - The name or email of the person who invited them.
+ * @param {string} orgLogo - The URL of the organization's logo (optional).
  */
-export async function sendInvitationEmail(toEmail, inviteLink, organizationName, profileName) {
+export async function sendInvitationEmail(toEmail, inviteLink, organizationName, profileName, inviterName, orgLogo) {
   const senderEmail = process.env.AWS_SES_FROM_EMAIL;
   
   if (!senderEmail) {
@@ -28,26 +30,60 @@ export async function sendInvitationEmail(toEmail, inviteLink, organizationName,
   }
 
   const subject = `You've been invited to join ${organizationName} on Mooncliq Orbit!`;
-  
+  const logoHtml = orgLogo ? `<img src="${orgLogo}" alt="${organizationName} Logo" style="max-height: 50px; display: block; margin: 0 auto 20px auto;" />` : '';
+
   const htmlBody = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
-      <h2 style="color: #0f172a;">Join ${organizationName}</h2>
-      <p style="color: #334155; font-size: 16px;">
-        You have been invited to join <strong>${organizationName}</strong> as a <strong>${profileName}</strong>.
-      </p>
-      <p style="color: #334155; font-size: 16px;">
-        Click the button below to accept your invitation and set up your account. This link will expire in 7 days.
-      </p>
-      <div style="text-align: center; margin-top: 30px; margin-bottom: 30px;">
-        <a href="${inviteLink}" style="background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">
-          Accept Invitation
-        </a>
-      </div>
-      <hr style="border: none; border-top: 1px solid #e2e8f0; margin-top: 20px; margin-bottom: 20px;" />
-      <p style="color: #94a3b8; font-size: 12px; text-align: center;">
-        If you did not expect this invitation, you can safely ignore this email.
-      </p>
-    </div>
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+    </head>
+    <body style="background-color: #f8fafc; padding: 40px 0; font-family: Arial, sans-serif; margin: 0;">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f8fafc;">
+        <tr>
+          <td align="center">
+            <table width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 40px;">
+              <tr>
+                <td align="center" style="padding-bottom: 20px;">
+                  ${logoHtml}
+                  <h2 style="color: #0f172a; margin: 0; font-size: 24px;">Join ${organizationName}</h2>
+                </td>
+              </tr>
+              <tr>
+                <td style="color: #334155; font-size: 16px; line-height: 1.5; padding-bottom: 20px;">
+                  Hi there,<br><br>
+                  <strong>${inviterName}</strong> has invited you to join <strong>${organizationName}</strong> as a <strong>${profileName}</strong> on Mooncliq Orbit.
+                </td>
+              </tr>
+              <tr>
+                <td style="color: #334155; font-size: 16px; line-height: 1.5; padding-bottom: 30px;">
+                  Click the button below to accept your invitation and set up your account. This link will expire in 7 days.
+                </td>
+              </tr>
+              <tr>
+                <td align="center" style="padding-bottom: 30px;">
+                  <a href="${inviteLink}" style="background-color: #3b82f6; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px; display: inline-block;">
+                    Accept Invitation
+                  </a>
+                </td>
+              </tr>
+              <tr>
+                <td style="color: #64748b; font-size: 14px; line-height: 1.5; padding-bottom: 30px; border-bottom: 1px solid #e2e8f0;">
+                  If the button doesn't work, copy and paste this link into your browser:<br>
+                  <a href="${inviteLink}" style="color: #3b82f6; word-break: break-all;">${inviteLink}</a>
+                </td>
+              </tr>
+              <tr>
+                <td align="center" style="color: #94a3b8; font-size: 12px; padding-top: 20px;">
+                  If you did not expect this invitation, you can safely ignore this email.
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
   `;
 
   const params = {

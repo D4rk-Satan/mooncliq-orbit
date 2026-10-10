@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { signUp, confirmSignUp } from 'aws-amplify/auth';
 import { useRouter } from "next/navigation";
 
@@ -34,6 +34,17 @@ export default function SignUp() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [invitedContext, setInvitedContext] = useState(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('invited') === 'true') {
+      const email = params.get('email') || '';
+      const company = params.get('orgName') || 'Workspace';
+      setInvitedContext({ email, company });
+      setFormData(prev => ({ ...prev, email, company }));
+    }
+  }, []);
 
   const handleSignUpSubmit = async (e) => {
     e.preventDefault();
@@ -79,10 +90,21 @@ export default function SignUp() {
     <div className="auth-container">
       <div className="auth-card">
         <div className="auth-header">
-          <h2 className="auth-title">{step === 'signup' ? 'Create Account' : 'Verify Email'}</h2>
-          <p className="auth-subtitle">
-            {step === 'signup' ? 'Get started with your free trial' : `We sent a code to ${formData.email}`}
-          </p>
+          {invitedContext ? (
+            <>
+              <h2 className="auth-title">Welcome to Mooncliq Orbit</h2>
+              <p className="auth-subtitle" style={{ color: '#0f172a', backgroundColor: '#d9f99d', padding: '6px', borderRadius: '4px', fontWeight: 500 }}>
+                🎉 You have been invited to join <strong>{invitedContext.company}</strong>. Set your password to complete your profile.
+              </p>
+            </>
+          ) : (
+            <>
+              <h2 className="auth-title">{step === 'signup' ? 'Create Account' : 'Verify Email'}</h2>
+              <p className="auth-subtitle">
+                {step === 'signup' ? 'Get started with your free trial' : `We sent a code to ${formData.email}`}
+              </p>
+            </>
+          )}
         </div>
 
         {error && <div style={{ color: '#ef4444', backgroundColor: '#fef2f2', padding: '0.75rem', borderRadius: '8px', marginBottom: '1rem', fontSize: '0.875rem' }}>{error}</div>}
@@ -109,9 +131,11 @@ export default function SignUp() {
                 id="company"
                 className="form-input"
                 placeholder="Your Co."
-                value={formData.company}
+                value={invitedContext ? `Joining: ${invitedContext.company}` : formData.company}
                 onChange={(e) => setFormData({...formData, company: e.target.value})}
                 required
+                disabled={!!invitedContext}
+                style={invitedContext ? { backgroundColor: '#f1f5f9', color: '#64748b', cursor: 'not-allowed' } : {}}
               />
             </div>
 
@@ -125,6 +149,8 @@ export default function SignUp() {
                 value={formData.email}
                 onChange={(e) => setFormData({...formData, email: e.target.value})}
                 required
+                disabled={!!invitedContext}
+                style={invitedContext ? { backgroundColor: '#f1f5f9', color: '#64748b', cursor: 'not-allowed' } : {}}
               />
             </div>
 

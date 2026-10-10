@@ -31,10 +31,13 @@ export async function GET(request) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
+        const url = new URL(request.url);
+        const fetchAll = url.searchParams.get('all') === 'true';
+
         const customModules = await prisma.customModule.findMany({
             where: {
                 organizationId: user.organizationId,
-                isActive: true
+                ...(fetchAll ? {} : { isActive: true }) // fetch all if ?all=true, else only active
             },
             orderBy: {
                 createdAt: 'desc'

@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import DynamicModuleView from "@/components/DynamicModuleView";
 import EntityEditModal from "@/components/EntityEditModal";
 import GlobalLoader from "../../components/ui/GlobalLoader";
+import { hasPermission } from "../../lib/permissions";
 
 
 export default function AccountPage() {
@@ -136,6 +137,30 @@ export default function AccountPage() {
     }
   };
 
+  const handleDeleteAccount = async (accountToDelete) => {
+    try {
+      const token = await getAuthToken();
+      const res = await fetch(`/api/accounts/${accountToDelete.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Failed to delete account');
+        return;
+      }
+      setAccounts(prev => prev.filter(a => a.id !== accountToDelete.id));
+      if (selectedAccount && selectedAccount.id === accountToDelete.id) {
+        setSelectedAccount(null);
+      }
+    } catch (err) {
+      console.error("Failed to delete account", err);
+      alert('An error occurred while deleting the account.');
+    }
+  };
+
   return (
     <>
 
@@ -153,10 +178,13 @@ export default function AccountPage() {
               supportKanban={false}
               onRecordClick={(account) => setSelectedAccount(account)}
               renderHeaderActions={() => (
-                <button className="btn-primary" onClick={() => setIsFormOpen(true)} style={{ whiteSpace: 'nowrap' }}>
-                  + Add Account
-                </button>
+                hasPermission(currentUser, 'Account', 'create') ? (
+                  <button className="btn-primary" onClick={() => setIsFormOpen(true)} style={{ whiteSpace: 'nowrap' }}>
+                    + Add Account
+                  </button>
+                ) : null
               )}
+              onDeleteClick={hasPermission(currentUser, 'Account', 'delete') ? handleDeleteAccount : null}
             />
           )}
 
@@ -184,7 +212,10 @@ export default function AccountPage() {
         onTransition={handleTransition}
         onLeadUpdate={handleAccountUpdate}
         pendingTransition={pendingTransition}
-        onEditClick={() => setIsEditModalOpen(true)}
+        onEditClick={
+          hasPermission(currentUser, 'Account', 'edit') ? () => setIsEditModalOpen(true) : null
+        }
+        onDeleteClick={hasPermission(currentUser, 'Account', 'delete') ? handleDeleteAccount : null}
       />
 
       <EntityEditModal

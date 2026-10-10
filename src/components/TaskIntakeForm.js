@@ -308,7 +308,7 @@ export default function TaskIntakeForm({ blueprint, isOpen, onClose, onSave, tas
 
   return (
     <>
-      <div className={`slide-backdrop ${isOpen ? 'open' : ''}`} onClick={onClose}></div>
+      <div className={`slide-backdrop ${isOpen ? 'open' : ''}`}></div>
       <div className={`modal-card ${isOpen ? 'open' : ''}`} style={{ width: '700px', maxWidth: '95vw', maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
         {isLoading ? (
@@ -427,7 +427,7 @@ export default function TaskIntakeForm({ blueprint, isOpen, onClose, onSave, tas
                                               // Convert back to local time string format for datetime-local input
                                               updatedDue.setMinutes(updatedDue.getMinutes() - updatedDue.getTimezoneOffset());
                                               const dueString = updatedDue.toISOString().slice(0, 16);
-                                              
+
                                               setValue('dueDateTime', dueString, { shouldValidate: true, shouldDirty: true });
                                               setStandardData(prev => ({ ...prev, dueDateTime: dueString }));
                                             }

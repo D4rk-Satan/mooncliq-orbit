@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import DynamicModuleView from "@/components/DynamicModuleView";
 import EntityEditModal from "@/components/EntityEditModal";
 import GlobalLoader from "../../components/ui/GlobalLoader";
+import { hasPermission } from "../../lib/permissions";
 
 
 const getColumnColor = (color) => color || "#e2e8f0";
@@ -178,6 +179,30 @@ export default function DealModule() {
     }
   };
 
+  const handleDeleteDeal = async (dealToDelete) => {
+    try {
+      const token = await getAuthToken();
+      const res = await fetch(`/api/deals/${dealToDelete.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Failed to delete deal');
+        return;
+      }
+      setDeals(prevDeals => prevDeals.filter(d => d.id !== dealToDelete.id));
+      if (selectedDeal && selectedDeal.id === dealToDelete.id) {
+        setSelectedDeal(null);
+      }
+    } catch (err) {
+      console.error("Failed to delete deal", err);
+      alert('An error occurred while deleting the deal.');
+    }
+  };
+
   const toggleDealSelection = (DealId, e) => {
     e.stopPropagation();
     setSelectedDealIds(prev => {
@@ -241,12 +266,13 @@ export default function DealModule() {
               supportKanban={true}
               onRecordClick={(deal) => setSelectedDeal(deal)}
               renderHeaderActions={() => (
-                (currentUser?.profile?.canAccessSettings || currentUser?.profile?.permissions?.Deal?.create) ? (
+                hasPermission(currentUser, 'Deal', 'create') ? (
                   <button className="btn-primary" onClick={() => setIsFormOpen(true)}>
                     + Add Deal
                   </button>
                 ) : null
               )}
+              onDeleteClick={hasPermission(currentUser, 'Deal', 'delete') ? handleDeleteDeal : null}
             />
           )}
         </div>
@@ -255,7 +281,7 @@ export default function DealModule() {
       <DealIntakeForm
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
-        onSave={handDealdDeal}
+        onSave={handleDealUpdate}
       />
 
       <SlideOverPanel
@@ -264,13 +290,14 @@ export default function DealModule() {
           setSelectedDeal(null);
           setPendingTransition(null);
         }}
-        Deal={selectedDeal}
+        lead={selectedDeal}
         blueprint={blueprint}
         tags={tags}
         currentUser={currentUser}
         onTransition={handleTransition}
         onDealUpdate={handleDealUpdate}
         pendingTransition={pendingTransition}
+        onDeleteClick={hasPermission(currentUser, 'Deal', 'delete') ? handleDeleteDeal : null}
       />
 
       {/* FLOATING BULK ACTION BAR */}
