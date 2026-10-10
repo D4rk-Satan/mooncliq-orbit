@@ -10,6 +10,7 @@ import EntityEditModal from "../../../components/EntityEditModal";
 import Button from "../../../components/ui/Button";
 import { fetchAuthSession } from "aws-amplify/auth";
 import GlobalLoader from "../../../components/ui/GlobalLoader";
+import { hasPermission } from "../../../lib/permissions";
 
 
 const getAuthToken = async () => {
@@ -30,6 +31,7 @@ export default function CustomModulePage() {
   const [isNewRecordPanelOpen, setIsNewRecordPanelOpen] = useState(false);
   const [recordToEdit, setRecordToEdit] = useState(null);
   const [selectedRecord, setSelectedRecord] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -61,6 +63,15 @@ export default function CustomModulePage() {
           setBlueprint(bpData);
         } else {
           setBlueprint({ moduleType: moduleId, fields: [] });
+        }
+
+        // 4. Fetch Current User (for RBAC)
+        const userRes = await fetch(`/api/users/me`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (userRes.ok) {
+          const userData = await userRes.json();
+          setCurrentUser(userData);
         }
 
       } catch (err) {
@@ -222,14 +233,16 @@ export default function CustomModulePage() {
         supportKanban={true}
         onDropRecord={handleDropRecord}
         onRecordClick={(record) => setSelectedRecord(record)} // Open slide over panel on row click
-        onEditClick={(record) => setRecordToEdit(record)} // Open edit modal on edit icon click
+        onEditClick={hasPermission(currentUser, moduleDef.name, 'edit') ? (record) => setRecordToEdit(record) : null}
         renderHeaderActions={() => (
-          <Button variant="primary" onClick={() => setIsNewRecordPanelOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-            New Record
-          </Button>
+          hasPermission(currentUser, moduleDef.name, 'create') ? (
+            <Button variant="primary" onClick={() => setIsNewRecordPanelOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              New Record
+            </Button>
+          ) : null
         )}
-        onDeleteClick={handleDeleteRecord}
+        onDeleteClick={hasPermission(currentUser, moduleDef.name, 'delete') ? handleDeleteRecord : null}
       />
 
       {/* CREATE PANEL */}
@@ -247,16 +260,16 @@ export default function CustomModulePage() {
         onClose={() => setSelectedRecord(null)}
         lead={selectedRecord}
         blueprint={blueprint}
-        onEditClick={() => {
+        onEditClick={hasPermission(currentUser, moduleDef.name, 'edit') ? () => {
           setRecordToEdit(selectedRecord);
           setSelectedRecord(null); // Close preview panel when editing
-        }}
+        } : null}
         onLeadUpdate={handleUpdateRecord}
         hasNext={hasNext}
         hasPrev={hasPrev}
         onNext={handleNext}
         onPrev={handlePrev}
-        onDeleteClick={handleDeleteRecord}
+        onDeleteClick={hasPermission(currentUser, moduleDef.name, 'delete') ? handleDeleteRecord : null}
       />
 
       {/* EDIT MODAL */}

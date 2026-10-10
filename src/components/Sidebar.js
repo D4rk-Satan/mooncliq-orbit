@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut, fetchAuthSession } from "aws-amplify/auth";
 import * as LucideIcons from 'lucide-react';
+import { hasPermission } from "../lib/permissions";
 
 
 export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, refreshKey }) {
@@ -50,7 +51,8 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, refresh
             role: user.profile?.role || "Member",
             avatarUrl: user.profile?.avatarUrl || null,
             canAccessSettings: user.profile?.canAccessSettings || false,
-            activeModules: user.organization?.activeModules || []
+            activeModules: user.organization?.activeModules || [],
+            profile: user.profile
           });
         }
 
@@ -176,7 +178,7 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, refresh
                       CUSTOM MODULES
                     </div>
                   )}
-                  {customModules.map((mod) => (
+                  {customModules.filter(mod => hasPermission(userInfo, mod.name, 'view')).map((mod) => (
                     <Link
                       key={mod.id}
                       href={`/custom-module/${mod.id}`}

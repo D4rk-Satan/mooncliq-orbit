@@ -2432,9 +2432,11 @@ export default function SettingsPage() {
                           canExportData: false,
                           permissions: {
                             Lead: { view: false, create: false, edit: false, delete: false },
+                            Deal: { view: false, create: false, edit: false, delete: false },
                             Account: { view: false, create: false, edit: false, delete: false },
                             Task: { view: false, create: false, edit: false, delete: false },
-                            Product: { view: false, create: false, edit: false, delete: false }
+                            Product: { view: false, create: false, edit: false, delete: false },
+                            ...customModules.reduce((acc, m) => ({ ...acc, [m.name]: { view: false, create: false, edit: false, delete: false } }), {})
                           }
                         });
                         setIsProfileModalOpen(true);
@@ -3193,7 +3195,7 @@ export default function SettingsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {['Lead', 'Deal', 'Account', 'Task', 'Product'].map(mod => (
+                    {['Lead', 'Deal', 'Account', 'Task', 'Product', ...customModules.map(m => m.name)].map(mod => (
                       <tr key={mod} style={{ borderBottom: '1px solid #f1f5f9' }}>
                         <td style={{ padding: '0.75rem', fontWeight: 500 }}>{mod}</td>
                         {['view', 'create', 'edit', 'delete'].map(action => (
