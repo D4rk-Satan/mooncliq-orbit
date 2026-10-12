@@ -177,10 +177,9 @@ export function getDefaultBlueprintData(mod) {
                     // ----------------- IDENTIFICATION -----------------
                     { name: 'taskName', label: 'Task Title', type: 'Text', isRequired: true, isSystemField: true, sectionName: 'Identification', orderIndex: 1 },
                     { name: 'priority', label: 'Priority', type: 'Select', options: ['Low', 'Medium', 'High'], isRequired: true, isSystemField: true, sectionName: 'Identification', orderIndex: 2 },
-                    { name: 'taskType', label: 'Task Type', type: 'Select', options: ['Call', 'Email', 'Meeting', 'To-Do', 'Follow-up'], isRequired: false, isSystemField: true, sectionName: 'Identification', orderIndex: 3 },
-                    { name: 'notes', label: 'Notes', type: 'Textarea', isRequired: false, isSystemField: true, sectionName: 'Identification', orderIndex: 4 },
-                    { name: 'owner', label: 'Assigned To', type: 'User', isRequired: true, isSystemField: true, sectionName: 'Identification', orderIndex: 5 },
-                    { name: 'assignedBy', label: 'Assigned By', type: 'User', isRequired: true, isSystemField: true, sectionName: 'Identification', orderIndex: 6 },
+                    { name: 'notes', label: 'Notes', type: 'Textarea', isRequired: false, isSystemField: true, sectionName: 'Identification', orderIndex: 3 },
+                    { name: 'owner', label: 'Assigned To', type: 'User', isRequired: true, isSystemField: true, sectionName: 'Identification', orderIndex: 4 },
+                    { name: 'assignedBy', label: 'Assigned By', type: 'User', isRequired: true, isSystemField: true, sectionName: 'Identification', orderIndex: 5 },
 
                     // ----------------- SCHEDULING -----------------
                     { name: 'startDateTime', label: 'Start Date & Time', type: 'Datetime', isRequired: true, isSystemField: true, sectionName: 'Scheduling', orderIndex: 7 },

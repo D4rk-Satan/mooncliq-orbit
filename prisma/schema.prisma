@@ -47,12 +47,13 @@ model Profile {
   canExportData       Boolean      @default(false)
   permissions         Json
   avatarUrl           String?
-  nickname            String?
+  nickname            String?      
   onboardingCompleted Boolean      @default(false)
   role                String?
   invitations         Invitation[]
   organization        Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   users               User[]
+  @@unique([organizationId, nickname])
 }
 
 model User {
@@ -310,7 +311,6 @@ model Task {
   relatedModule    String?
   relatedRecordId  String?
   taskAutomation   String?
-  taskType         String?
   blueprint        Blueprint    @relation(fields: [blueprintId], references: [id], onDelete: Cascade)
   organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   stage            Stage        @relation(fields: [stageId], references: [id], onDelete: Cascade)
