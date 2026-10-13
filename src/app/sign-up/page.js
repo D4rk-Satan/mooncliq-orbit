@@ -142,6 +142,7 @@ export default function SignUp() {
       // Organization details ko localStorage me save kar lete hain taaki login ke baad persist rahe
       if (!invitedContext) {
         localStorage.setItem('pending_org_setup', JSON.stringify({
+          companyName: formData.company.trim(),
           orgName: formData.company.trim(),
           gstNumber: formData.gstNumber ? formData.gstNumber.trim().toUpperCase() : null,
           industry: formData.industry || null,
@@ -350,13 +351,23 @@ export default function SignUp() {
 
               <div className="form-group">
                 <label className="form-label">Company Logo (Optional)</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="form-input"
-                  onChange={handleLogoUpload}
-                  disabled={isUploadingLogo}
-                />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="form-input"
+                    onChange={handleLogoUpload}
+                    disabled={isUploadingLogo}
+                    style={{ flex: 1 }}
+                  />
+                  {formData.logoUrl && (
+                    <img 
+                      src={formData.logoUrl} 
+                      alt="Logo Preview" 
+                      style={{ width: '40px', height: '40px', objectFit: 'contain', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: '#f8fafc' }} 
+                    />
+                  )}
+                </div>
                 {isUploadingLogo && <p style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.25rem' }}>Uploading logo...</p>}
                 {formData.logoUrl && !isUploadingLogo && <p style={{ fontSize: '0.8rem', color: '#16a34a', marginTop: '0.25rem' }}>✓ Logo uploaded successfully</p>}
               </div>

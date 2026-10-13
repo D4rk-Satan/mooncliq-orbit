@@ -17,11 +17,12 @@ export async function POST(request) {
             nickname,
             role,
             logoUrl,
-            companyName,
             gstNumber,
             industry,
             teamSize
         } = body;
+
+        const companyName = (body.companyName || body.orgName || '').trim();
 
         // 2.3 GST Number Validation and Uniqueness Check
         let normalizedGst = null;

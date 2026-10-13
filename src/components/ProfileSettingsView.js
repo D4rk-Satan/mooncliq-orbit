@@ -200,18 +200,22 @@ export default function ProfileSettingsView() {
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '0.4rem' }}>Industry</label>
                   <select value={profileData.industry} onChange={(e) => setProfileData({...profileData, industry: e.target.value})} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '0.95rem', backgroundColor: 'white' }}>
                     <option value="">Select Industry...</option>
-                    <option value="software">Software & IT</option>
+                    <option value="Real Estate">Real Estate</option>
+                    <option value="Software">Software & IT</option>
+                    <option value="Agency">Marketing Agency</option>
+                    <option value="Textile">Textile</option>
                     <option value="ecommerce">E-Commerce</option>
-                    <option value="marketing">Marketing & Agency</option>
+                    <option value="Other">Other</option>
                   </select>
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '0.4rem' }}>Team Size</label>
                   <select value={profileData.teamSize} onChange={(e) => setProfileData({...profileData, teamSize: e.target.value})} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '0.95rem', backgroundColor: 'white' }}>
                     <option value="">Select Size...</option>
-                    <option value="1-10">1-10 employees</option>
-                    <option value="11-50">11-50 employees</option>
-                    <option value="51-200">51-200 employees</option>
+                    <option value="1-10">1-10</option>
+                    <option value="11-50">11-50</option>
+                    <option value="51-200">51-200</option>
+                    <option value="201+">201+</option>
                   </select>
                 </div>
               </div>
