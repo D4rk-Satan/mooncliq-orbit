@@ -13,7 +13,11 @@ const standardFields = [
   // Deal Fields (Naye wale)
   'dealName', 'convertedFromLead', 'primaryContact',
   'dealValue', 'probability', 'weightedValue', 'expectedCloseDate', 'actualCloseDate',
-  'dealSource', 'nextStep', 'nextFollowUpDate', 'lossReason', 'stageId'
+  'dealSource', 'nextStep', 'nextFollowUpDate', 'lossReason', 'stageId',
+
+  // Task Fields:
+  'taskName', 'startDateTime', 'dueDateTime', 'repeat', 'alert',
+  'assignedBy', 'relatedModule', 'relatedRecordId', 'taskAutomation'
 ];
 
 
@@ -267,7 +271,7 @@ const EntityEditModal = ({ isOpen, onClose, entity, blueprint, onUpdate, current
                     const value = isStandard ? editData[field.name] : editData.customData?.[field.name];
 
                     return (
-                      <div key={field.name} style={{ gridColumn: field.fullWidth ? '1 / -1' : 'auto' }}>
+                      <div key={field.name} style={{ gridColumn: (field.fullWidth || field.type?.toLowerCase() === 'address' || field.type?.toLowerCase() === 'subform') ? '1 / -1' : 'auto' }}>
                         <Controller
                           name={isStandard ? field.name : `customData.${field.name}`}
                           control={control}

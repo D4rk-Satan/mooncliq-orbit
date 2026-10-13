@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import prisma from '../../../../lib/prisma';
 import { withPermission } from '../../../../lib/rbac';
 
-export const DELETE = withPermission('Lead', 'delete', async (request, user, context) => {
+export async function DELETE(request, context) {
+  return withPermission('Lead', 'delete', async (req, user) => {
   try {
     const { id } = await context.params;
 
@@ -34,4 +35,5 @@ export const DELETE = withPermission('Lead', 'delete', async (request, user, con
     console.error("Error deleting lead:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
-});
+  })(request, context);
+}

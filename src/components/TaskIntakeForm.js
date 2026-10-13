@@ -11,11 +11,13 @@ import TaskRepeatDropdown from "./TaskRepeatDropdown";
 import TaskAlertDropdown from "./TaskAlertDropdown";
 import TaskStageDropdown from "./TaskStageDropdown";
 import TaskUserDropdown from "./TaskUserDropdown";
+import { useBootstrap } from "@/contexts/AppBootstrapContext";
 
 export default function TaskIntakeForm({ blueprint, isOpen, onClose, onSave, taskData, standardFieldStates }) {
   const [localBlueprint, setBlueprint] = useState(blueprint || null);
   const [isLoading, setIsLoading] = useState(true);
   const [isTimeEditedByUser, setIsTimeEditedByUser] = useState(false);
+  const { userInfo, customModules } = useBootstrap();
 
   // Standard fields
   const [standardData, setStandardData] = useState({
@@ -367,22 +369,37 @@ export default function TaskIntakeForm({ blueprint, isOpen, onClose, onSave, tas
                           const stateOverride = standardFieldStates?.[field.name];
                           if (stateOverride?.isHidden) return null;
 
-                          // Hide stageId upon creation
-                          if (field.name === 'stageId' && !taskData) return null;
+
+                          // Hide stageId aur assignedBy upon creation (sirf Edit par hi dikhega)
+                          if ((field.name === 'stageId' || field.name === 'assignedBy') && !taskData) return null;
+
 
                           const alwaysRequired = ['taskName', 'owner', 'startDateTime', 'dueDateTime'];
                           const isRequiredByRule = stateOverride?.isRequired !== undefined ? stateOverride.isRequired : field.isRequired;
 
                           const isTaskAutomation = field.name === 'taskAutomation';
-                          const dynamicOptions = isTaskAutomation
-                            ? ['None', ...automationOptions.filter(opt => opt !== 'None')]
-                            : field.options;
+                          const isRelatedModule = field.name === 'relatedModule';
+
+                          let dynamicOptions = field.options;
+
+                          if (isTaskAutomation) {
+                            dynamicOptions = ['None', ...automationOptions.filter(opt => opt !== 'None')];
+                          } else if (isRelatedModule) {
+                            // 1. System ke active modules (Task ko hata kar taaki task khud se link na ho)
+                            const activeSystem = (userInfo?.activeModules || ['Lead', 'Deal', 'Account', 'Product'])
+                              .filter(m => m !== 'Task');
+                            // 2. Organization ke Custom Modules
+                            const customList = (customModules || []).map(m => m.name);
+                            // 3. Merged Options
+                            dynamicOptions = ['None', ...activeSystem, ...customList];
+                          }
 
                           const modifiedField = {
                             ...field,
                             isRequired: alwaysRequired.includes(field.name) || isRequiredByRule,
                             options: dynamicOptions
                           };
+
 
                           const fieldName = field.isSystemField ? field.name : `customData.${field.name}`;
 
@@ -407,7 +424,7 @@ export default function TaskIntakeForm({ blueprint, isOpen, onClose, onSave, tas
                                 let fieldComponent = null;
 
                                 if (fName === 'owner' || fName === 'assignedby') {
-                                  fieldComponent = <TaskUserDropdown {...commonProps} users={users} readOnly={field.name === 'assignedBy'} onChange={(val) => commonProps.onChange(val)} />;
+                                  fieldComponent = <TaskUserDropdown {...commonProps} users={users} readOnly={false} onChange={(val) => commonProps.onChange(val)} />;
                                 } else if (fName === 'repeat') {
                                   fieldComponent = <TaskRepeatDropdown {...commonProps} onChange={(val) => commonProps.onChange(val)} />;
                                 } else if (fName === 'alert') {

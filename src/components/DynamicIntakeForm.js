@@ -10,6 +10,7 @@ import { z } from 'zod';
 import { useBootstrap } from "@/contexts/AppBootstrapContext";
 
 export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onClose, onSave }) {
+  const { userInfo, customModules } = useBootstrap();
   const [blueprint, setBlueprint] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [currentStep, setCurrentStep] = useState(0);
@@ -31,7 +32,8 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
 
     // System fields array dynamically fetched from blueprint
     const sysFields = blueprint.fields.filter(f => f.isSystemField).map(f => f.name);
-    const vf = blueprint.fields.filter(f => !f.isHidden && !standardFieldStates?.[f.name]?.isHidden);
+    const vf = blueprint.fields.filter(f => !f.isHidden && !standardFieldStates?.[f.name]?.isHidden && !(moduleType === 'Task' && f.name === 'assignedBy'));
+
 
     let os = [];
     if (blueprint?.layoutConfig && Array.isArray(blueprint.layoutConfig) && blueprint.layoutConfig.length > 0) {
@@ -145,8 +147,6 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
       document.body.style.overflow = "auto";
     }
   }, [isOpen, moduleType]);
-
-  const { userInfo } = useBootstrap();
 
   const getAuthToken = async () => {
     const { fetchAuthSession } = await import('aws-amplify/auth');
@@ -394,9 +394,21 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
                         const stateOverride = standardFieldStates?.[field.name];
                         const isAssignedBy = field.name === 'assignedBy';
                         const isTaskAutomation = field.name === 'taskAutomation';
-                        const dynamicOptions = isTaskAutomation
-                          ? ['None', ...taskAutomationOptions.filter(opt => opt !== 'None')]
-                          : field.options;
+                        const isRelatedModule = field.name === 'relatedModule';
+
+                        let dynamicOptions = field.options;
+
+                        if (isTaskAutomation) {
+                          dynamicOptions = ['None', ...taskAutomationOptions.filter(opt => opt !== 'None')];
+                        } else if (isRelatedModule) {
+                          // 1. Active System Modules (Task ko exclude karke)
+                          const activeSystem = (userInfo?.activeModules || ['Lead', 'Deal', 'Account', 'Product'])
+                            .filter(m => m !== 'Task');
+                          // 2. Custom Modules
+                          const customList = (customModules || []).map(m => m.name);
+                          // 3. Merged Options
+                          dynamicOptions = ['None', ...activeSystem, ...customList];
+                        }
 
                         const modifiedField = {
                           ...field,
@@ -410,7 +422,8 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
                             control={control}
                             key={field.id || field.name}
                             render={({ field: controllerField, fieldState }) => (
-                              <div style={{ width: '100%', gridColumn: field.type?.toLowerCase() === 'address' ? '1 / -1' : 'auto' }}>
+                              <div style={{ width: '100%', gridColumn: (field.type?.toLowerCase() === 'address' || field.type?.toLowerCase() === 'subform') ? '1 / -1' : 'auto' }}>
+
                                 <DynamicField
                                   formData={{ ...standardData, ...customData }}
                                   key={field.id}

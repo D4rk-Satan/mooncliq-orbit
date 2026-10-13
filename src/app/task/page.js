@@ -150,7 +150,12 @@ export default function TaskPage() {
           'Authorization': `Bearer ${token}`
         }
       });
-      const data = await res.json();
+      let data = {};
+      try {
+        data = await res.json();
+      } catch (e) {
+        // Not a JSON response
+      }
       if (!res.ok) {
         alert(data.error || 'Failed to delete task');
         return;

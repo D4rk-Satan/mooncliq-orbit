@@ -666,12 +666,12 @@ const SubformInput = ({ field, value, onChange, formData }) => {
         .subform-row-card { transition: all 0.2s ease; border: 1px solid #e2e8f0; }
         .subform-row-card:hover { border-color: #cbd5e1; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
       `}</style>
-      
+
       <label className="form-label" style={{ fontSize: '1rem', fontWeight: 600, color: '#1e293b', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#64748b' }}><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
         {field.label} {field.isRequired && <span className="text-red-500">*</span>}
       </label>
-      
+
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         {rows.map((row, idx) => (
           <div key={idx} className="subform-row-card" style={{ backgroundColor: '#f8fafc', borderRadius: '12px', padding: '1.5rem 1.5rem 1.25rem 1.5rem', position: 'relative' }}>
@@ -680,16 +680,16 @@ const SubformInput = ({ field, value, onChange, formData }) => {
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
               </button>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', marginTop: '0.5rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'row', gap: '1rem', marginTop: '0.5rem', paddingRight: '2.5rem', alignItems: 'flex-start' }}>
               {columns.map(col => (
-                <div key={col.name} className="subform-field-wrapper" style={{ display: 'flex', flexDirection: 'column' }}>
+                <div key={col.name} className="subform-field-wrapper" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
                   <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                     {col.label} {col.isRequired && <span style={{ color: '#ef4444' }}>*</span>}
                   </div>
                   <DynamicField
-                    field={{ ...col, label: '' }} 
+                    field={{ ...col, label: '' }}
                     value={row[col.name]}
-                    formData={{ ...formData, ...row }} 
+                    formData={{ ...formData, ...row }}
                     onChange={(name, val) => handleCellChange(idx, name, val)}
                   />
                 </div>
@@ -797,10 +797,10 @@ const AddressInput = ({ field, value, onChange, formData }) => {
 
         {/* Row 3: Country & Checkbox */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <select 
-            value={address.country || 'India'} 
-            onChange={(e) => handleChange('country', e.target.value)} 
-            className="form-input" 
+          <select
+            value={address.country || 'India'}
+            onChange={(e) => handleChange('country', e.target.value)}
+            className="form-input"
             style={{ width: '150px', backgroundColor: isAutoFilled ? '#f1f5f9' : '#fff', pointerEvents: isAutoFilled ? 'none' : 'auto' }}
           >
             {countries.map(c => (
