@@ -9,7 +9,7 @@ export const POST = withPermission('Task', 'create', async (request, user) => {
   try {
 
     const body = await request.json();
-    const { taskName, startDateTime, dueDateTime, endDateTime, repeat, alert, notes, customData, blueprintId, owner, priority, relatedModule, relatedRecordId } = body;
+    const { taskName, startDateTime, dueDateTime, endDateTime, repeat, alert, notes, customData, blueprintId, owner, priority, relatedModule, relatedRecordId, taskAutomation } = body;
 
     if (!taskName || !blueprintId) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -62,6 +62,7 @@ export const POST = withPermission('Task', 'create', async (request, user) => {
         priority,
         relatedModule,
         relatedRecordId,
+        taskAutomation: taskAutomation || null,
         customData: customData || {}
       }
     });

@@ -29,12 +29,14 @@ export default function TaskIntakeForm({ blueprint, isOpen, onClose, onSave, tas
     stageId: "",
     assignedBy: "",
     priority: "",
-    relatedModule: ""
+    relatedModule: "",
+    taskAutomation: ""
   });
 
   // Dynamic fields
   const [customData, setCustomData] = useState({});
   const [users, setUsers] = useState([]);
+  const [automationOptions, setAutomationOptions] = useState([]);
   const [currentUserName, setCurrentUserName] = useState("");
 
   const { executeScript, standardFieldStates: scriptFieldStates } = useClientScripts({
@@ -59,7 +61,7 @@ export default function TaskIntakeForm({ blueprint, isOpen, onClose, onSave, tas
   }, [localBlueprint, scriptFieldStates]);
 
   const standardFields = [
-    "taskName", "startDateTime", "dueDateTime", "repeat", "alert", "notes", "owner", "stageId", "assignedBy", "priority", "relatedModule"
+    "taskName", "startDateTime", "dueDateTime", "repeat", "alert", "notes", "owner", "stageId", "assignedBy", "priority", "relatedModule", "taskAutomation"
   ];
 
   const dynamicSchema = useMemo(() => {
@@ -130,7 +132,7 @@ export default function TaskIntakeForm({ blueprint, isOpen, onClose, onSave, tas
         const initialCustom = {};
 
         Object.keys(taskData).forEach(key => {
-          if (["taskName", "startDateTime", "dueDateTime", "repeat", "alert", "notes", "owner", "stageId", "assignedBy", "priority", "relatedModule"].includes(key)) {
+          if (["taskName", "startDateTime", "dueDateTime", "repeat", "alert", "notes", "owner", "stageId", "assignedBy", "priority", "relatedModule", "taskAutomation"].includes(key)) {
             initialStd[key] = taskData[key];
           } else if (key === "customData" && typeof taskData.customData === 'object') {
             Object.assign(initialCustom, taskData.customData);
@@ -157,10 +159,11 @@ export default function TaskIntakeForm({ blueprint, isOpen, onClose, onSave, tas
           stageId: localBlueprint?.stages?.[0]?.id || "",
           assignedBy: currentUserName,
           priority: "",
-          relatedModule: ""
+          relatedModule: "",
+          taskAutomation: "None"
         });
         setCustomData({});
-        reset({ taskName: "", startDateTime: "", dueDateTime: "", repeat: "", alert: "", notes: "", owner: "", stageId: localBlueprint?.stages?.[0]?.id || "", assignedBy: currentUserName, priority: "", relatedModule: "", customData: {} });
+        reset({ taskName: "", startDateTime: "", dueDateTime: "", repeat: "", alert: "", notes: "", owner: "", stageId: localBlueprint?.stages?.[0]?.id || "", assignedBy: currentUserName, priority: "", relatedModule: "", taskAutomation: "None", customData: {} });
 
       }
     }
@@ -183,6 +186,18 @@ export default function TaskIntakeForm({ blueprint, isOpen, onClose, onSave, tas
           if (usersRes.ok) {
             const usersData = await usersRes.json();
             if (Array.isArray(usersData)) setUsers(usersData);
+          }
+
+          const workflowsRes = await fetch('/api/workflows', { headers: { Authorization: `Bearer ${token}` } });
+          if (workflowsRes.ok) {
+            const workflowsData = await workflowsRes.json();
+            if (Array.isArray(workflowsData)) {
+              const taskWorkflows = workflowsData
+                .filter(w => (w.moduleType === 'Task' || !w.moduleType) && w.isActive !== false)
+                .map(w => w.name)
+                .filter(Boolean);
+              setAutomationOptions(taskWorkflows);
+            }
           }
         } catch (err) {
           console.error("Error fetching users or me:", err);
@@ -358,9 +373,15 @@ export default function TaskIntakeForm({ blueprint, isOpen, onClose, onSave, tas
                           const alwaysRequired = ['taskName', 'owner', 'startDateTime', 'dueDateTime'];
                           const isRequiredByRule = stateOverride?.isRequired !== undefined ? stateOverride.isRequired : field.isRequired;
 
+                          const isTaskAutomation = field.name === 'taskAutomation';
+                          const dynamicOptions = isTaskAutomation
+                            ? ['None', ...automationOptions.filter(opt => opt !== 'None')]
+                            : field.options;
+
                           const modifiedField = {
                             ...field,
-                            isRequired: alwaysRequired.includes(field.name) || isRequiredByRule
+                            isRequired: alwaysRequired.includes(field.name) || isRequiredByRule,
+                            options: dynamicOptions
                           };
 
                           const fieldName = field.isSystemField ? field.name : `customData.${field.name}`;

@@ -14,6 +14,7 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
   const [isLoading, setIsLoading] = useState(true);
   const [currentStep, setCurrentStep] = useState(0);
   const [isTimeEditedByUser, setIsTimeEditedByUser] = useState(false);
+  const [taskAutomationOptions, setTaskAutomationOptions] = useState([]);
 
   const [standardData, setStandardData] = useState({});
   const [customData, setCustomData] = useState({});
@@ -162,6 +163,24 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
       });
       const data = await res.json();
       setBlueprint(data);
+
+      if (moduleType === 'Task') {
+        try {
+          const workflowsRes = await fetch('/api/workflows', { headers: { Authorization: `Bearer ${token}` } });
+          if (workflowsRes.ok) {
+            const workflowsData = await workflowsRes.json();
+            if (Array.isArray(workflowsData)) {
+              const taskWorkflows = workflowsData
+                .filter(w => (w.moduleType === 'Task' || !w.moduleType) && w.isActive !== false)
+                .map(w => w.name)
+                .filter(Boolean);
+              setTaskAutomationOptions(taskWorkflows);
+            }
+          }
+        } catch (e) {
+          console.error("Failed to fetch task workflows", e);
+        }
+      }
 
       // Setup Initial State based on system fields
       let initStandard = {};
@@ -374,10 +393,16 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
                       {sectionFields.map(field => {
                         const stateOverride = standardFieldStates?.[field.name];
                         const isAssignedBy = field.name === 'assignedBy';
+                        const isTaskAutomation = field.name === 'taskAutomation';
+                        const dynamicOptions = isTaskAutomation
+                          ? ['None', ...taskAutomationOptions.filter(opt => opt !== 'None')]
+                          : field.options;
+
                         const modifiedField = {
                           ...field,
                           isRequired: stateOverride?.isRequired !== undefined ? stateOverride.isRequired : field.isRequired,
-                          readOnly: isAssignedBy || field.readOnly || stateOverride?.isReadonly
+                          readOnly: isAssignedBy || field.readOnly || stateOverride?.isReadonly,
+                          options: dynamicOptions
                         };
                         return (
                           <Controller
