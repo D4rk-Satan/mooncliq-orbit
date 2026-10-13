@@ -32,8 +32,10 @@ export async function GET(request) {
     // Naya dynamic file path
     const uniqueFileName = `public/${folder}/${Date.now()}-${fileName.replace(/\s+/g, '-')}`;
 
+    const bucketName = process.env.S3_BUCKET_NAME || process.env.AWS_S3_BUCKET_NAME || "mooncliq-prod-images";
+
     const command = new PutObjectCommand({
-      Bucket: process.env.AWS_S3_BUCKET_NAME,
+      Bucket: bucketName,
       Key: uniqueFileName,
       ContentType: fileType,
     });
@@ -41,7 +43,7 @@ export async function GET(request) {
     // Generate URL valid for 5 minutes
     const uploadUrl = await getSignedUrl(s3Client, command, { expiresIn: 300 });
 
-    const fileUrl = `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION || "ap-south-1"}.amazonaws.com/${uniqueFileName}`;
+    const fileUrl = `https://${bucketName}.s3.${process.env.AWS_REGION || "ap-south-1"}.amazonaws.com/${uniqueFileName}`;
 
     return NextResponse.json({ uploadUrl, fileUrl });
   } catch (error) {
