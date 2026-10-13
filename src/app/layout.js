@@ -20,14 +20,37 @@ import { cookies } from 'next/headers';
 export default async function RootLayout({ children }) {
   const cookieStore = await cookies();
   const isOnboardingDone = cookieStore.get('mooncliq_onboarding_done')?.value === 'true';
+  
+  let initialBootstrap = null;
+  const cookieBootstrap = cookieStore.get('mooncliq_bootstrap_ssr')?.value;
+  if (cookieBootstrap) {
+    try {
+      initialBootstrap = JSON.parse(decodeURIComponent(cookieBootstrap));
+    } catch (e) {
+      initialBootstrap = null;
+    }
+  }
 
   return (
     <html lang="en">
       <body className={`${inter.variable} ${outfit.variable}`}>
-        <NextTopLoader color="#a356ebff" showSpinner={false} />
+        <NextTopLoader 
+          color="#a356ebff" 
+          initialPosition={0.15}
+          crawlSpeed={200}
+          height={3}
+          crawl={true}
+          showSpinner={false}
+          easing="ease"
+          speed={200}
+          shadow="0 0 10px #a356eb,0 0 5px #a356eb"
+        />
         <Toaster position="top-right" />
         <AmplifyProvider>
-          <DashboardLayoutWrapper initialOnboardingDone={isOnboardingDone}>
+          <DashboardLayoutWrapper 
+            initialOnboardingDone={isOnboardingDone}
+            initialBootstrap={initialBootstrap}
+          >
             <ConfirmProvider>
               {children}
             </ConfirmProvider>

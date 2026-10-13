@@ -35,7 +35,7 @@ export default function TaskIntakeForm({ blueprint, isOpen, onClose, onSave, tas
   // Dynamic fields
   const [customData, setCustomData] = useState({});
   const [users, setUsers] = useState([]);
-  const [currentUserEmail, setCurrentUserEmail] = useState("");
+  const [currentUserName, setCurrentUserName] = useState("");
 
   const { executeScript, standardFieldStates: scriptFieldStates } = useClientScripts({
     moduleType: "Task",
@@ -155,16 +155,16 @@ export default function TaskIntakeForm({ blueprint, isOpen, onClose, onSave, tas
           notes: "",
           owner: "",
           stageId: localBlueprint?.stages?.[0]?.id || "",
-          assignedBy: currentUserEmail,
+          assignedBy: currentUserName,
           priority: "",
           relatedModule: ""
         });
         setCustomData({});
-        reset({ taskName: "", startDateTime: "", dueDateTime: "", repeat: "", alert: "", notes: "", owner: "", stageId: localBlueprint?.stages?.[0]?.id || "", assignedBy: currentUserEmail, priority: "", relatedModule: "", customData: {} });
+        reset({ taskName: "", startDateTime: "", dueDateTime: "", repeat: "", alert: "", notes: "", owner: "", stageId: localBlueprint?.stages?.[0]?.id || "", assignedBy: currentUserName, priority: "", relatedModule: "", customData: {} });
 
       }
     }
-  }, [isOpen, taskData, localBlueprint, currentUserEmail]);
+  }, [isOpen, taskData, localBlueprint, currentUserName]);
 
   useEffect(() => {
     if (isOpen) {
@@ -175,7 +175,8 @@ export default function TaskIntakeForm({ blueprint, isOpen, onClose, onSave, tas
           const meRes = await fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } });
           if (meRes.ok) {
             const meData = await meRes.json();
-            if (meData.email) setCurrentUserEmail(meData.email);
+            const nicknameOrEmail = meData.profile?.nickname || meData.email || "";
+            if (nicknameOrEmail) setCurrentUserName(nicknameOrEmail);
           }
 
           const usersRes = await fetch('/api/users', { headers: { Authorization: `Bearer ${token}` } });

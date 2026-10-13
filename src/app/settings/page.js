@@ -900,6 +900,7 @@ export default function SettingsPage() {
         setCustomModules(prev => prev.map(m => m.id === customModuleId ? { ...m, isActive: currentStatus } : m));
         alert("Failed to update custom module status.");
       } else {
+        try { localStorage.removeItem('mooncliq_bootstrap_cache'); } catch(e){}
         window.location.reload();
       }
     } catch (err) {
@@ -1120,6 +1121,7 @@ export default function SettingsPage() {
                     {currentView === 'layout-builder' && "Form Layout Builder"}
                     {currentView === 'billing' && "Billing & Wallet"}
                     {currentView === 'custom-modules' && "Custom Modules"}
+                    {currentView === 'profile-settings' && "Profile & Organization"}
 
                   </h2>
 
@@ -1374,6 +1376,7 @@ export default function SettingsPage() {
                                   }
                                   setShowCustomModuleModal(false);
                                   setNewCustomModule({ id: null, name: '', icon: 'Box' });
+                                  try { localStorage.removeItem('mooncliq_bootstrap_cache'); } catch(e){}
                                 }
                               }}
                               style={{ padding: '0.5rem 1rem', backgroundColor: '#0f172a', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
@@ -3389,7 +3392,6 @@ export default function SettingsPage() {
                       <>
                         <option value="Task Status">Task Status</option>
                         <option value="priority">Priority</option>
-                        <option value="taskType">Task Type</option>
                         <option value="alert">Alert</option>
                         <option value="repeat">Repeat</option>
                         <option value="relatedModule">Related Module</option>

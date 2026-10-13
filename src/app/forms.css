@@ -10,6 +10,11 @@
   color: #334155;
 }
 
+.text-red-500 {
+  color: #ef4444 !important;
+  font-weight: bold;
+}
+
 .form-input {
   width: 100%;
   padding: 0.875rem 1rem;

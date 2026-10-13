@@ -7,6 +7,7 @@ import FormSkeleton from "./skeletons/FormSkeleton";
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useBootstrap } from "@/contexts/AppBootstrapContext";
 
 export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onClose, onSave }) {
   const [blueprint, setBlueprint] = useState(null);
@@ -144,6 +145,8 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
     }
   }, [isOpen, moduleType]);
 
+  const { userInfo } = useBootstrap();
+
   const getAuthToken = async () => {
     const { fetchAuthSession } = await import('aws-amplify/auth');
     const { tokens } = await fetchAuthSession();
@@ -162,8 +165,15 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
 
       // Setup Initial State based on system fields
       let initStandard = {};
+      const currentUserName = userInfo?.nickname || userInfo?.email || "";
       data.fields?.forEach(f => {
-        if (f.isSystemField) initStandard[f.name] = "";
+        if (f.isSystemField) {
+          if (f.name === 'assignedBy') {
+            initStandard[f.name] = currentUserName;
+          } else {
+            initStandard[f.name] = "";
+          }
+        }
       });
 
       // Default to first stage if module has stages
@@ -363,9 +373,11 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
                     <div className="form-group-grid" style={{ display: 'grid', gridTemplateColumns: `repeat(${section.columns || 2}, 1fr)`, gap: '1.5rem 2rem' }}>
                       {sectionFields.map(field => {
                         const stateOverride = standardFieldStates?.[field.name];
+                        const isAssignedBy = field.name === 'assignedBy';
                         const modifiedField = {
                           ...field,
-                          isRequired: stateOverride?.isRequired !== undefined ? stateOverride.isRequired : field.isRequired
+                          isRequired: stateOverride?.isRequired !== undefined ? stateOverride.isRequired : field.isRequired,
+                          readOnly: isAssignedBy || field.readOnly || stateOverride?.isReadonly
                         };
                         return (
                           <Controller

@@ -3,10 +3,10 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { signOut, fetchAuthSession } from "aws-amplify/auth";
+import { signOut } from "aws-amplify/auth";
 import * as LucideIcons from 'lucide-react';
 import { hasPermission } from "../lib/permissions";
-
+import { useBootstrap } from "../contexts/AppBootstrapContext";
 
 export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, refreshKey }) {
   const pathname = usePathname();
@@ -14,75 +14,22 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, refresh
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const [openCategory, setOpenCategory] = useState("CRM");
-
-  const [customModules, setCustomModules] = useState([]);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
-  const [userInfo, setUserInfo] = useState({ orgName: "Loading...", email: "...", nickname: "User", role: "Member", avatarUrl: null, activeModules: ["Lead", "Deal", "Account", "Task", "Products"] });
+
+  // Instant data from Bootstrap cache / provider
+  const { userInfo, customModules, refreshBootstrap } = useBootstrap();
+
   const DynamicLucideIcon = ({ name }) => {
     // Agar database me icon name nahi hai ya galat hai, toh default 'Box' dikhao
     const IconComponent = LucideIcons[name] || LucideIcons.Box;
     return <IconComponent size={16} strokeWidth={1.5} style={{ flexShrink: 0 }} />;
   };
 
-
-
-
   React.useEffect(() => {
-    async function fetchUserData() {
-      try {
-        // 1. AWS Amplify se current token nikaalo
-        const session = await fetchAuthSession();
-        const token = session.tokens?.idToken?.toString() || session.tokens?.accessToken?.toString();
-
-        // 2. Token ko API call me bhejo
-        const res = await fetch('/api/me', {
-          headers: {
-            Authorization: `Bearer ${token}`
-          },
-          cache: 'no-store'
-        });
-
-        if (res.ok) {
-          const user = await res.json();
-          setUserInfo({
-            orgName: user.organization?.name,
-            email: user.email || "",
-            nickname: user.profile?.nickname || "User",
-            role: user.profile?.role || "Member",
-            avatarUrl: user.profile?.avatarUrl || null,
-            canAccessSettings: user.profile?.canAccessSettings || false,
-            activeModules: user.organization?.activeModules || [],
-            profile: user.profile
-          });
-        }
-
-        // 3. Fetch custom modules
-        const modRes = await fetch('/api/custom-modules', {
-          headers: { Authorization: `Bearer ${token}` },
-          cache: 'no-store'
-        });
-        if (modRes.ok) {
-          const mods = await modRes.json();
-          setCustomModules(mods);
-        }
-      } catch (error) {
-        console.error("Error fetching user data:", error);
-      }
+    if (refreshKey) {
+      refreshBootstrap();
     }
-
-    fetchUserData();
-
-    const saved = localStorage.getItem('mooncliq_sidebar_collapsed');
-    if (saved !== null) {
-      setIsCollapsed(saved === 'true');
-    }
-    const timer = setTimeout(() => {
-      setIsMounted(true);
-    }, 50);
-    return () => clearTimeout(timer);
-  }, [refreshKey]);
-
-
+  }, [refreshKey, refreshBootstrap]);
 
   React.useEffect(() => {
     const saved = localStorage.getItem('mooncliq_sidebar_collapsed');
@@ -168,11 +115,11 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, refresh
             </svg>
           </button>
         </div>
-        <nav className="sidebar-nav" style={{ padding: '0.5rem 0', flex: 1, overflowY: 'auto' }}>
+        <nav suppressHydrationWarning className="sidebar-nav" style={{ padding: '0.5rem 0', flex: 1, overflowY: 'auto' }}>
           {categories.map((category, idx) => (
             <React.Fragment key={idx}>
               {category.name === "UPCOMING" && customModules.length > 0 && (
-                <div style={{ display: 'flex', flexDirection: 'column', marginBottom: isCollapsed ? '0.5rem' : '1rem' }}>
+                <div suppressHydrationWarning style={{ display: 'flex', flexDirection: 'column', marginBottom: isCollapsed ? '0.5rem' : '1rem' }}>
                   {!isCollapsed && (
                     <div style={{ padding: '0.5rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#9ca3af', letterSpacing: '0.05em', cursor: 'default', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       CUSTOM MODULES

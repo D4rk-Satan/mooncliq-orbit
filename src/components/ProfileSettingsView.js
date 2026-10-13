@@ -14,7 +14,8 @@ export default function ProfileSettingsView() {
     logoUrl: '',
     companyName: '',
     industry: '',
-    teamSize: ''
+    teamSize: '',
+    gstNumber: ''
   });
 
   const [isAdmin, setIsAdmin] = useState(false);
@@ -40,7 +41,8 @@ export default function ProfileSettingsView() {
             logoUrl: data.organization?.logoUrl || '',
             companyName: data.organization?.name || '',
             industry: data.organization?.industry || '',
-            teamSize: data.organization?.teamSize || ''
+            teamSize: data.organization?.teamSize || '',
+            gstNumber: data.organization?.gstNumber || ''
           });
           setIsAdmin(data.profile?.canManageUsers === true);
         }
@@ -101,7 +103,8 @@ export default function ProfileSettingsView() {
       if (res.ok) {
         alert("Profile updated successfully! (Refresh page to see changes in sidebar)");
       } else {
-        alert("Failed to save changes.");
+        const errData = await res.json().catch(() => ({}));
+        alert(errData.error || "Failed to save changes.");
       }
     } catch (error) {
       console.error('Save error:', error);
@@ -180,6 +183,17 @@ export default function ProfileSettingsView() {
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '0.4rem' }}>Company Name (Cannot change)</label>
                 <input type="text" value={profileData.companyName} readOnly style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid #e2e8f0', backgroundColor: '#f8fafc', outline: 'none', fontSize: '0.95rem', color: '#94a3b8' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '0.4rem' }}>GST Number</label>
+                <input 
+                  type="text" 
+                  placeholder="24AAACC1206D1ZH (Optional)"
+                  maxLength={15}
+                  value={profileData.gstNumber || ''} 
+                  onChange={(e) => setProfileData({...profileData, gstNumber: e.target.value.toUpperCase().replace(/[^0-9A-Z]/g, '')})} 
+                  style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '0.95rem' }} 
+                />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>

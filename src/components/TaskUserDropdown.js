@@ -6,8 +6,12 @@ export default function TaskUserDropdown({ field, value, onChange, users, readOn
   const [buttonRect, setButtonRect] = useState(null);
   const buttonRef = React.useRef(null);
 
-  const options = users.map(u => ({ label: u.email, value: u.email }));
-  
+  const options = users.map(u => ({
+    label: u.profile?.nickname || u.email,
+    value: u.profile?.nickname || u.email
+  }));
+
+
   const selectedOption = options.find(o => o.value === value);
   const displayValue = selectedOption ? selectedOption.label : `Select ${field.label}`;
 
@@ -30,7 +34,7 @@ export default function TaskUserDropdown({ field, value, onChange, users, readOn
         setIsOpen(false);
       }
     };
-    
+
     const handleScroll = () => {
       if (isOpen) setIsOpen(false);
     };
@@ -64,16 +68,16 @@ export default function TaskUserDropdown({ field, value, onChange, users, readOn
       <label className="form-label">
         {field.label} {field.isRequired && <span className="text-red-500">*</span>}
       </label>
-      
+
       <button
         type="button"
         ref={buttonRef}
         onClick={toggleDropdown}
         className="form-input"
-        style={{ 
-          display: "flex", 
-          justifyContent: "space-between", 
-          alignItems: "center", 
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
           backgroundColor: readOnly ? "#f8fafc" : "white",
           opacity: readOnly ? 0.7 : 1,
           cursor: readOnly ? "not-allowed" : "pointer"

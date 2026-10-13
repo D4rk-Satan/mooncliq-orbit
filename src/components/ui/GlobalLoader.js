@@ -1,7 +1,24 @@
 "use client";
-import React from "react";
+import React, { useEffect } from "react";
+import NProgress from "nprogress";
 
 const GlobalLoader = ({ fullScreen = false, overlay = false }) => {
+  // Sync with top progress bar whenever GlobalLoader mounts & unmounts
+  useEffect(() => {
+    try {
+      if (!NProgress.isStarted()) {
+        NProgress.start();
+      }
+      NProgress.set(0.6); // Lock it in active visible state while spinner is spinning
+    } catch (e) {}
+
+    return () => {
+      try {
+        NProgress.done(true); // Smooth 100% completion when spinner unmounts
+      } catch (e) {}
+    };
+  }, []);
+
   return (
     <div style={{
       display: 'flex',
@@ -58,7 +75,7 @@ const GlobalLoader = ({ fullScreen = false, overlay = false }) => {
 
       </div>
 
-      {/* Ek baar styles yahan define kar diye, taaki kisi aur CSS file par depend na hona pade */}
+      {/* Styles */}
       <style dangerouslySetInnerHTML={{
         __html: `
         @keyframes spin {

@@ -205,14 +205,15 @@ const UserInput = ({ field, value, onChange }) => {
         value={value || ''}
         onChange={(e) => onChange(field.name, e.target.value)}
         className="form-input bg-white"
-        disabled={loading}
+        disabled={loading || field.readOnly || field.disabled}
+        style={(field.readOnly || field.disabled) ? { backgroundColor: '#f1f5f9', cursor: 'not-allowed', color: '#64748b' } : {}}
       >
         <option value="" disabled>
           {loading ? "Loading users..." : `Select ${field.label}`}
         </option>
         {users.map((u) => (
-          <option key={u.email} value={u.email}>
-            {u.email}
+          <option key={u.id || u.email} value={u.profile?.nickname || u.email}>
+            {u.profile?.nickname || u.email}
           </option>
         ))}
       </select>

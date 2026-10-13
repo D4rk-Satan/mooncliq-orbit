@@ -17,9 +17,56 @@ export async function POST(request) {
             nickname,
             role,
             logoUrl,
+            companyName,
+            gstNumber,
             industry,
             teamSize
         } = body;
+
+        // 2.3 GST Number Validation and Uniqueness Check
+        let normalizedGst = null;
+        if (gstNumber && typeof gstNumber === 'string' && gstNumber.trim()) {
+            normalizedGst = gstNumber.trim().toUpperCase();
+            const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+            if (!gstRegex.test(normalizedGst)) {
+                return NextResponse.json(
+                    { error: "Invalid GST Number format. It should be 15 characters (e.g., 24AAACC1206D1ZH)." },
+                    { status: 400 }
+                );
+            }
+
+            const existingOrgWithGst = await prisma.organization.findFirst({
+                where: {
+                    gstNumber: normalizedGst,
+                    id: { not: session.organizationId }
+                }
+            });
+
+            if (existingOrgWithGst) {
+                return NextResponse.json(
+                    { error: `GST Number "${normalizedGst}" is already registered with another organization.` },
+                    { status: 400 }
+                );
+            }
+        }
+
+        // 2.5 Unique Nickname Validation (Org Level Check)
+        if (nickname) {
+            const existingNickname = await prisma.profile.findFirst({
+                where: {
+                    organizationId: session.organizationId,
+                    nickname: { equals: nickname.trim(), mode: 'insensitive' },
+                    id: { not: session.profileId } // Khud ka purana profile exclude
+                }
+            });
+
+            if (existingNickname) {
+                return NextResponse.json(
+                    { error: `Nickname "${nickname}" is already taken in your organization. Please choose another.` },
+                    { status: 400 }
+                );
+            }
+        }
 
         // 3. User ki Personal Profile (Avatar, Nickname) update karna
         await prisma.profile.update({
@@ -32,15 +79,20 @@ export async function POST(request) {
             }
         });
 
-        // 4. Agar user Super Admin hai aur usne Logo/Industry dala hai, toh Company bhi update kardo
-        if (logoUrl || industry || teamSize) {
+        // 4. Update Organization Details (Company Name from signup onboarding, GST, Logo, Industry, Team Size)
+        const orgUpdate = {};
+        if (logoUrl !== undefined) orgUpdate.logoUrl = logoUrl;
+        if (industry !== undefined) orgUpdate.industry = industry;
+        if (teamSize !== undefined) orgUpdate.teamSize = teamSize;
+        if (gstNumber !== undefined) orgUpdate.gstNumber = normalizedGst;
+        if (companyName && typeof companyName === 'string' && companyName.trim()) {
+            orgUpdate.name = companyName.trim();
+        }
+
+        if (Object.keys(orgUpdate).length > 0) {
             await prisma.organization.update({
                 where: { id: session.organizationId },
-                data: {
-                    logoUrl,
-                    industry,
-                    teamSize
-                }
+                data: orgUpdate
             });
         }
 
