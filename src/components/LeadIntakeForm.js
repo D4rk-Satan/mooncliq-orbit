@@ -80,21 +80,22 @@ export default function LeadIntakeForm({ isOpen, onClose, onSave }) {
 
       if (field.isRequired) {
         fieldValidation = z.any().refine(val => val !== undefined && val !== null && String(val).trim() !== '', {
-          message: `${field.label} zaroori hai`
+          message: `${field.label} is required`
         });
       }
 
+      const isPhoneField = type === 'phone' || ['phone', 'primarycontact', 'alternatephone'].includes(field.name?.toLowerCase());
       if (type === 'email') {
-        fieldValidation = z.string().email("Sahi email daaliye").or(field.isRequired ? z.never() : z.literal('').or(z.undefined()));
-      } else if (type === 'phone') {
-        fieldValidation = z.string().regex(/^(\+\d{1,3}[- ]?)?\d{10}$/, "Phone number exactly 10 digits ka hona chahiye").or(field.isRequired ? z.never() : z.literal('').or(z.undefined()));
+        fieldValidation = z.string().email("Invalid email format (e.g. name@domain.com)").or(field.isRequired ? z.never() : z.literal('').or(z.undefined()));
+      } else if (isPhoneField) {
+        fieldValidation = z.string().regex(/^(\+\d{1,3}[- ]?)?\d{10}$/, "Phone number must be exactly 10 digits").or(field.isRequired ? z.never() : z.literal('').or(z.undefined()));
       } else if (type === 'url' || type === 'website') {
-        fieldValidation = z.string().url("Sahi URL daaliye").or(field.isRequired ? z.never() : z.literal('').or(z.undefined()));
+        fieldValidation = z.string().url("Invalid URL format").or(field.isRequired ? z.never() : z.literal('').or(z.undefined()));
       } else if (type === 'number' || type === 'currency') {
         fieldValidation = z.any().refine(val => {
           if (val === undefined || val === null || val === '') return !field.isRequired;
           return !isNaN(Number(val));
-        }, { message: "Number hona zaroori hai" });
+        }, { message: "Must be a valid number" });
       }
 
       if (standardFields.includes(field.name)) {
@@ -112,6 +113,8 @@ export default function LeadIntakeForm({ isOpen, onClose, onSave }) {
 
   const { control, handleSubmit, setValue, trigger, formState: { errors } } = useForm({
     resolver: zodResolver(dynamicSchema),
+    mode: 'onTouched',
+    reValidateMode: 'onChange',
     defaultValues: { ...standardData, customData: customData }
   });
 
@@ -315,6 +318,7 @@ export default function LeadIntakeForm({ isOpen, onClose, onSave }) {
                                     controllerField.onChange(val); // React Hook Form ko update karo
                                     handleFieldChange(field, name, val, record, mappings); // Purana system update karo
                                   }}
+                                  onBlur={controllerField.onBlur}
                                   error={fieldErrors?.[field.name] || fieldState.error?.message}
                                   readOnly={fieldReadonlyStates?.[field.name]}
                                 />

@@ -76,9 +76,10 @@ export default function DealIntakeForm({ isOpen, onClose, onSave }) {
         });
       }
 
+      const isPhoneField = type === 'phone' || ['phone', 'primarycontact', 'alternatephone'].includes(field.name?.toLowerCase());
       if (type === 'email') {
-        fieldValidation = z.string().email("Invalid email format").or(field.isRequired ? z.never() : z.literal('').or(z.undefined()));
-      } else if (type === 'phone') {
+        fieldValidation = z.string().email("Invalid email format (e.g. name@domain.com)").or(field.isRequired ? z.never() : z.literal('').or(z.undefined()));
+      } else if (isPhoneField) {
         fieldValidation = z.string().regex(/^(\+\d{1,3}[- ]?)?\d{10}$/, "Phone number must be exactly 10 digits").or(field.isRequired ? z.never() : z.literal('').or(z.undefined()));
       } else if (type === 'url' || type === 'website') {
         fieldValidation = z.string().url("Invalid URL format").or(field.isRequired ? z.never() : z.literal('').or(z.undefined()));
@@ -104,6 +105,8 @@ export default function DealIntakeForm({ isOpen, onClose, onSave }) {
 
   const { control, handleSubmit, setValue, trigger, formState: { errors } } = useForm({
     resolver: zodResolver(dynamicSchema),
+    mode: 'onTouched',
+    reValidateMode: 'onChange',
     defaultValues: { ...standardData, customData: customData }
   });
 
@@ -310,6 +313,7 @@ export default function DealIntakeForm({ isOpen, onClose, onSave }) {
                                     controllerField.onChange(val);
                                     handleFieldChange(field, name, val, record, mappings);
                                   }}
+                                  onBlur={controllerField.onBlur}
                                   error={errors?.[field.name]?.message || fieldState.error?.message}
                                   readOnly={fieldReadonlyStates?.[field.name]}
                                 />

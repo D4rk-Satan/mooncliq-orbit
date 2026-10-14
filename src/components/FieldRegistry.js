@@ -5,6 +5,9 @@ import TaskAlertDropdown from './TaskAlertDropdown';
 import { Parser } from 'expr-eval';
 import Button from './ui/Button';
 import countries from '../utils/countries.json';
+import countriesData from '../utils/countries.json';
+
+
 // image upload field (Max 4 Images, Manual Upload)
 const ImageUploadInput = ({ field, value, onChange }) => {
   const [isUploading, setIsUploading] = useState(false);
@@ -136,16 +139,132 @@ const ImageUploadInput = ({ field, value, onChange }) => {
   );
 };
 
+// Dedicated Phone Input with Country Code Selector
+const PhoneInput = ({ field, value, onChange, onBlur }) => {
+  // Parsing initial value (e.g. "+91 9876543210" or "9876543210")
+  const parsePhoneValue = (val) => {
+    if (!val) return { dialCode: '+91', number: '' };
+    const str = String(val).trim();
+    if (str.startsWith('+')) {
+      const parts = str.split(' ');
+      if (parts.length > 1) {
+        return { dialCode: parts[0], number: parts.slice(1).join('').replace(/\D/g, '').slice(0, 10) };
+      }
+      // If no space, match dial_code from countriesData
+      const matched = countriesData.find(c => str.startsWith(c.dial_code));
+      if (matched) {
+        return { dialCode: matched.dial_code, number: str.slice(matched.dial_code.length).replace(/\D/g, '').slice(0, 10) };
+      }
+    }
+    return { dialCode: '+91', number: str.replace(/\D/g, '').slice(0, 10) };
+  };
+
+  const [selectedDialCode, setSelectedDialCode] = React.useState(() => parsePhoneValue(value).dialCode);
+  const [phoneNumber, setPhoneNumber] = React.useState(() => parsePhoneValue(value).number);
+
+  // Sync if external value changes (e.g., autofill or reset)
+  React.useEffect(() => {
+    const parsed = parsePhoneValue(value);
+    setSelectedDialCode(parsed.dialCode);
+    setPhoneNumber(parsed.number);
+  }, [value]);
+
+  const handleDialCodeChange = (e) => {
+    const newCode = e.target.value;
+    setSelectedDialCode(newCode);
+    const combined = phoneNumber ? `${newCode} ${phoneNumber}` : '';
+    onChange(field.name, combined);
+  };
+
+  const handleNumberChange = (e) => {
+    const cleanNum = e.target.value.replace(/\D/g, '').slice(0, 10);
+    setPhoneNumber(cleanNum);
+    const combined = cleanNum ? `${selectedDialCode} ${cleanNum}` : '';
+    onChange(field.name, combined);
+  };
+
+  return (
+    <div className="form-group">
+      <label className="form-label" htmlFor={field.name}>
+        {field.label} {field.isRequired && <span className="text-red-500">*</span>}
+      </label>
+      {/* Seamless Single-Box Phone Input Group */}
+      <div
+        className="phone-input-group form-input"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          padding: 0,
+          overflow: 'hidden',
+          backgroundColor: '#ffffff'
+        }}
+      >
+        {/* Country Code Dropdown (Borderless inside capsule) */}
+        <select
+          value={selectedDialCode}
+          onChange={handleDialCodeChange}
+          style={{
+            border: 'none',
+            background: '#f8fafc',
+            borderRight: '1px solid #e2e8f0',
+            height: '100%',
+            padding: '0.5rem 0.5rem',
+            fontSize: '0.85rem',
+            color: '#334155',
+            cursor: 'pointer',
+            outline: 'none',
+            flexShrink: 0
+          }}
+        >
+          {countriesData.map((c) => (
+            <option key={`${c.code}-${c.dial_code}`} value={c.dial_code}>
+              {c.emoji} {c.dial_code}
+            </option>
+          ))}
+        </select>
+
+        {/* Phone Number Input (Borderless inside capsule) */}
+        <input
+          type="tel"
+          id={field.name}
+          name={field.name}
+          inputMode="numeric"
+          maxLength={10}
+          required={field.isRequired}
+          value={phoneNumber}
+          onBlur={onBlur}
+          onChange={handleNumberChange}
+          style={{
+            flex: 1,
+            border: 'none',
+            outline: 'none',
+            padding: '0.5rem 0.75rem',
+            fontSize: '0.9rem',
+            backgroundColor: 'transparent',
+            color: '#1e293b'
+          }}
+          placeholder="Phone number"
+        />
+      </div>
+    </div>
+  );
+};
+
+
+
 // Renders a simple text input
-// Renders a smart text input (supports Email, Phone, URL validations)
-const TextInput = ({ field, value, onChange }) => {
+const TextInput = ({ field, value, onChange, onBlur }) => {
   // Field type ke hisaab se HTML input type decide karo
   let inputType = 'text';
   const fType = (field.type || '').toLowerCase();
+  const isPhone = fType === 'phone' || ['phone', 'primaryContact', 'alternatePhone'].includes(field.name);
 
   if (fType === 'email') inputType = 'email';
   if (fType === 'image') return <ImageUploadInput field={field} value={value} onChange={onChange} />;
-  if (fType === 'phone') inputType = 'tel';
+  if (isPhone) {
+    return <PhoneInput field={field} value={value} onChange={onChange} onBlur={onBlur} />;
+  }
+
   if (fType === 'url') inputType = 'url';
 
   return (
@@ -159,9 +278,17 @@ const TextInput = ({ field, value, onChange }) => {
         name={field.name}
         required={field.isRequired}
         value={value || ''}
-        onChange={(e) => onChange(field.name, e.target.value)}
+        onBlur={onBlur}
+        onChange={(e) => {
+          let val = e.target.value;
+          if (isPhone) {
+            val = val.replace(/\D/g, '').slice(0, 10);
+          }
+          onChange(field.name, val);
+        }}
+        maxLength={isPhone ? 10 : undefined}
         className="form-input"
-        placeholder={`Enter ${field.label.toLowerCase()}`}
+        placeholder={isPhone ? "10-digit number" : `Enter ${field.label.toLowerCase()}`}
       />
     </div>
   );
@@ -236,7 +363,11 @@ const NumberInput = ({ field, value, onChange }) => (
       name={field.name}
       required={field.isRequired}
       value={value || ''}
-      onChange={(e) => onChange(field.name, Number(e.target.value))}
+      onKeyDown={(e) => {
+        if (['e', 'E', '+', '-'].includes(e.key)) e.preventDefault();
+      }}
+      onChange={(e) => onChange(field.name, e.target.value === '' ? '' : Number(e.target.value))}
+
       className="form-input"
       placeholder={`0`}
     />
@@ -621,7 +752,10 @@ const CurrencyInput = ({ field, value, onChange }) => (
         name={field.name}
         required={field.isRequired}
         value={value || ''}
-        onChange={(e) => onChange(field.name, Number(e.target.value))}
+        onKeyDown={(e) => {
+          if (['e', 'E', '+', '-'].includes(e.key)) e.preventDefault();
+        }}
+        onChange={(e) => onChange(field.name, e.target.value === '' ? '' : Number(e.target.value))}
         className="form-input"
         style={{ paddingLeft: '1.75rem' }}
         placeholder={`0.00`}
@@ -633,7 +767,7 @@ const CurrencyInput = ({ field, value, onChange }) => (
 
 import LookupInput from './LookupInput';
 
-// Renders a Subform (One-to-Many grid)
+// Renders a Subform (One-to-Many grid - Zoho CRM / ERP Style Table)
 const SubformInput = ({ field, value, onChange, formData }) => {
   const rows = Array.isArray(value) ? value : [];
   const columns = field.subformFields || [];
@@ -659,63 +793,189 @@ const SubformInput = ({ field, value, onChange, formData }) => {
   };
 
   return (
-    <div className="form-group" style={{ gridColumn: '1 / -1', marginBottom: '1.5rem' }}>
+    <div className="form-group subform-root" style={{ gridColumn: '1 / -1', marginBottom: '1.5rem' }}>
       <style>{`
-        .subform-field-wrapper label.form-label { display: none !important; }
-        .subform-field-wrapper .form-group { margin-bottom: 0 !important; }
-        .subform-row-card { transition: all 0.2s ease; border: 1px solid #e2e8f0; }
-        .subform-row-card:hover { border-color: #cbd5e1; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
+        .subform-root .subform-field-wrapper label.form-label { display: none !important; }
+        .subform-root .subform-field-wrapper .form-group { margin-bottom: 0 !important; }
+        .subform-row-line { transition: background-color 0.15s ease; border-bottom: 1px solid #f1f5f9; }
+        .subform-row-line:last-child { border-bottom: none; }
+        .subform-row-line:hover { background-color: #fafbfc; }
+        
+        /* Crisp white inputs inside subform */
+        .subform-root input.form-input,
+        .subform-root .phone-input-group {
+          background-color: #ffffff !important;
+          border: 1px solid #cbd5e1 !important;
+          border-radius: 8px !important;
+        }
+        .subform-root input.form-input:focus,
+        .subform-root .phone-input-group:focus-within {
+          border-color: #3b82f6 !important;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+        }
+
+        /* Error States (Zoho style red border) */
+        .subform-cell-has-error input.form-input,
+        .subform-cell-has-error .phone-input-group {
+          border-color: #ef4444 !important;
+          background-color: #fffbfa !important;
+        }
+        .subform-cell-has-error input.form-input:focus,
+        .subform-cell-has-error .phone-input-group:focus-within {
+          border-color: #ef4444 !important;
+          box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15) !important;
+        }
       `}</style>
 
-      <label className="form-label" style={{ fontSize: '1rem', fontWeight: 600, color: '#1e293b', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#64748b' }}><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
-        {field.label} {field.isRequired && <span className="text-red-500">*</span>}
-      </label>
+      {/* Subform Title */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+        <label className="form-label" style={{ fontSize: '1rem', fontWeight: 600, color: '#1e293b', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#64748b' }}>
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="3" y1="9" x2="21" y2="9"></line>
+            <line x1="9" y1="21" x2="9" y2="21"></line>
+          </svg>
+          {field.label} {field.isRequired && <span style={{ color: '#ef4444' }}>*</span>}
+        </label>
+      </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      {/* Subform Grid Container */}
+      <div style={{ border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden', backgroundColor: '#ffffff', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+        
+        {/* Table Header Bar */}
+        <div style={{ display: 'flex', alignItems: 'center', backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', padding: '0.65rem 1rem', gap: '0.75rem' }}>
+          {columns.map(col => {
+            const cType = (col.type || '').toLowerCase();
+            const isCellPhone = cType === 'phone' || ['phone', 'primarycontact', 'alternatephone'].includes(col.name.toLowerCase());
+            return (
+              <div
+                key={col.name}
+                style={{
+                  flex: isCellPhone ? '1.5' : '1.2',
+                  minWidth: isCellPhone ? '200px' : '130px',
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                  color: '#475569'
+                }}
+              >
+                {col.label} {col.isRequired && <span style={{ color: '#ef4444' }}>*</span>}
+              </div>
+            );
+          })}
+          {/* Action Header Placeholder (Right end) */}
+          <div style={{ width: '32px', flexShrink: 0 }}></div>
+        </div>
+
+        {/* Table Rows */}
         {rows.map((row, idx) => (
-          <div key={idx} className="subform-row-card" style={{ backgroundColor: '#f8fafc', borderRadius: '12px', padding: '1.5rem 1.5rem 1.25rem 1.5rem', position: 'relative' }}>
-            <div style={{ position: 'absolute', top: '12px', right: '12px' }}>
-              <button type="button" onClick={() => handleRemoveRow(idx)} style={{ color: '#ef4444', background: '#fee2e2', border: 'none', cursor: 'pointer', padding: '6px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Remove Row">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
-              </button>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'row', gap: '1rem', marginTop: '0.5rem', paddingRight: '2.5rem', alignItems: 'flex-start' }}>
-              {columns.map(col => (
-                <div key={col.name} className="subform-field-wrapper" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    {col.label} {col.isRequired && <span style={{ color: '#ef4444' }}>*</span>}
-                  </div>
+          <div key={idx} className="subform-row-line" style={{ display: 'flex', alignItems: 'flex-start', padding: '0.75rem 1rem', gap: '0.75rem' }}>
+            {/* Cells */}
+            {columns.map(col => {
+              const cellVal = row[col.name];
+              const cType = (col.type || '').toLowerCase();
+              const isCellPhone = cType === 'phone' || ['phone', 'primarycontact', 'alternatephone'].includes(col.name.toLowerCase());
+              const isCellEmail = cType === 'email';
+              let cellError = null;
+
+              if (cellVal && isCellPhone) {
+                const parts = String(cellVal).trim().split(' ');
+                const pureNumber = parts.length > 1 ? parts.slice(1).join('').replace(/\D/g, '') : String(cellVal).replace(/\D/g, '');
+                if (pureNumber.length !== 10) {
+                  cellError = 'Must be 10 digits';
+                }
+              } else if (cellVal && isCellEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(cellVal))) {
+                cellError = 'Invalid email';
+              }
+
+              return (
+                <div
+                  key={col.name}
+                  className={`subform-field-wrapper ${cellError ? 'subform-cell-has-error' : ''}`}
+                  style={{
+                    flex: isCellPhone ? '1.5' : '1.2',
+                    minWidth: isCellPhone ? '200px' : '130px',
+                    display: 'flex',
+                    flexDirection: 'column'
+                  }}
+                >
                   <DynamicField
                     field={{ ...col, label: '' }}
-                    value={row[col.name]}
+                    value={cellVal}
                     formData={{ ...formData, ...row }}
+                    error={cellError}
                     onChange={(name, val) => handleCellChange(idx, name, val)}
                   />
                 </div>
-              ))}
+              );
+            })}
+
+            {/* Inline Delete Button (Right side) */}
+            <div style={{ width: '32px', flexShrink: 0, paddingTop: '8px', display: 'flex', justifyContent: 'center' }}>
+              <button
+                type="button"
+                onClick={() => handleRemoveRow(idx)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#94a3b8',
+                  cursor: 'pointer',
+                  padding: '5px',
+                  borderRadius: '6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.15s ease'
+                }}
+                onMouseOver={(e) => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.backgroundColor = '#fee2e2'; }}
+                onMouseOut={(e) => { e.currentTarget.style.color = '#94a3b8'; e.currentTarget.style.backgroundColor = 'transparent'; }}
+                title="Remove Row"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 6h18"></path>
+                  <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                  <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                </svg>
+              </button>
             </div>
           </div>
         ))}
 
+        {/* Empty State */}
         {rows.length === 0 && (
-          <div style={{ padding: '3rem 2rem', textAlign: 'center', backgroundColor: '#f8fafc', borderRadius: '12px', border: '2px dashed #cbd5e1', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
-            <div style={{ padding: '1rem', backgroundColor: '#e2e8f0', borderRadius: '50%' }}>
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line></svg>
-            </div>
-            <div>
-              <p style={{ color: '#334155', fontWeight: 600, margin: '0 0 0.35rem 0', fontSize: '1rem' }}>No items added yet</p>
-              <p style={{ color: '#64748b', fontSize: '0.875rem', margin: 0 }}>Click the button below to add your first row.</p>
-            </div>
+          <div style={{ padding: '2.5rem 1rem', textAlign: 'center', backgroundColor: '#fafafa' }}>
+            <p style={{ color: '#64748b', fontSize: '0.875rem', margin: '0 0 0.5rem 0' }}>No {field.label ? field.label.toLowerCase() : 'items'} added yet</p>
           </div>
         )}
+      </div>
 
-        <div style={{ marginTop: '0.25rem' }}>
-          <button type="button" onClick={handleAddRow} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color: '#2563eb', backgroundColor: '#eff6ff', fontWeight: 600, fontSize: '0.875rem', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '0.75rem 1.25rem', cursor: 'pointer', transition: 'all 0.2s ease' }} onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#dbeafe'; e.currentTarget.style.borderColor = '#93c5fd'; }} onMouseOut={(e) => { e.currentTarget.style.backgroundColor = '#eff6ff'; e.currentTarget.style.borderColor = '#bfdbfe'; }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-            Add New {field.label ? field.label.replace(/s$/, '') : 'Row'}
-          </button>
-        </div>
+      {/* Add New Row Button */}
+      <div style={{ marginTop: '0.75rem' }}>
+        <button
+          type="button"
+          onClick={handleAddRow}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.35rem',
+            color: '#2563eb',
+            background: 'none',
+            fontWeight: 600,
+            fontSize: '0.875rem',
+            border: 'none',
+            padding: '0.4rem 0.6rem',
+            cursor: 'pointer',
+            borderRadius: '6px',
+            transition: 'all 0.15s ease'
+          }}
+          onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#eff6ff'; }}
+          onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          Add New {field.label ? field.label.replace(/s$/, '') : 'Row'}
+        </button>
       </div>
     </div>
   );
@@ -787,7 +1047,17 @@ const AddressInput = ({ field, value, onChange, formData }) => {
 
         {/* Row 1: Pincode, City, State */}
         <div style={{ display: 'flex', gap: '0.75rem' }}>
-          <input type="text" placeholder="Pincode" maxLength={6} value={address.zip || ''} onChange={(e) => handleChange('zip', e.target.value)} className="form-input" style={{ flex: 1, minWidth: '80px' }} />
+          <input
+            type="text"
+            inputMode="numeric"
+            placeholder="Pincode (6 digits)"
+            maxLength={6}
+            value={address.zip || ''}
+            onChange={(e) => handleChange('zip', e.target.value.replace(/\D/g, ''))}
+            className="form-input"
+            style={{ flex: 1, minWidth: '80px' }}
+          />
+
           <input type="text" placeholder="City" value={address.city || ''} onChange={(e) => handleChange('city', e.target.value)} className="form-input" style={{ flex: 1.5, backgroundColor: isAutoFilled ? '#f1f5f9' : '#fff' }} readOnly={isAutoFilled} />
           <input type="text" placeholder="State" value={address.state || ''} onChange={(e) => handleChange('state', e.target.value)} className="form-input" style={{ flex: 1.5, backgroundColor: isAutoFilled ? '#f1f5f9' : '#fff' }} readOnly={isAutoFilled} />
         </div>
@@ -1082,7 +1352,7 @@ function FormulaInput({ field, value, onChange, formData }) {
 
 
 
-export default function DynamicField({ field, value, onChange, formData, error, readOnly, min }) {
+export default function DynamicField({ field, value, onChange, onBlur, formData, error, readOnly, min }) {
 
   // --- CUSTOM INTERCEPTS FOR TASK MODULE ---
   const fName = (field?.name || '').toLowerCase();
@@ -1123,11 +1393,17 @@ export default function DynamicField({ field, value, onChange, formData, error, 
         value={value}
         formData={formData}
         min={min}
+        onBlur={onBlur}
         onChange={(name, val, record, mappings) => onChange(name, val, record, mappings)}
       />
       {error && (
-        <div style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '-0.5rem', marginBottom: '0.5rem' }}>
-          {error}
+        <div style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '5px', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ flexShrink: 0 }}>
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          <span>{error}</span>
         </div>
       )}
     </div>

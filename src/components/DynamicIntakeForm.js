@@ -8,6 +8,8 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useBootstrap } from "@/contexts/AppBootstrapContext";
+import { isFieldVisible, getDynamicFieldOptions, isFieldFullWidth } from '../utils/fieldRules';
+
 
 export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onClose, onSave }) {
   const { userInfo, customModules } = useBootstrap();
@@ -32,7 +34,8 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
 
     // System fields array dynamically fetched from blueprint
     const sysFields = blueprint.fields.filter(f => f.isSystemField).map(f => f.name);
-    const vf = blueprint.fields.filter(f => !f.isHidden && !standardFieldStates?.[f.name]?.isHidden && !(moduleType === 'Task' && f.name === 'assignedBy'));
+    {/*const vf = blueprint.fields.filter(f => !f.isHidden && !standardFieldStates?.[f.name]?.isHidden && !(moduleType === 'Task' && f.name === 'assignedBy'));*/ }
+    const vf = blueprint.fields.filter(f => !f.isHidden && !standardFieldStates?.[f.name]?.isHidden && isFieldVisible(f, moduleType, 'create'));
 
 
     let os = [];
@@ -63,12 +66,58 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
         });
       }
 
+      const isPhoneField = type === 'phone' || ['phone', 'primaryContact', 'alternatePhone'].includes(field.name);
+
       if (type === 'email') {
-        fieldValidation = z.string().email("Invalid email format").or(field.isRequired ? z.never() : z.literal('').or(z.undefined()));
-      } else if (type === 'phone') {
+        fieldValidation = z.string().email("Invalid email format (e.g. name@domain.com)").or(field.isRequired ? z.never() : z.literal('').or(z.undefined()));
+      } else if (isPhoneField) {
         fieldValidation = z.string().regex(/^(\+\d{1,3}[- ]?)?\d{10}$/, "Phone number must be exactly 10 digits").or(field.isRequired ? z.never() : z.literal('').or(z.undefined()));
       } else if (type === 'url' || type === 'website') {
         fieldValidation = z.string().url("Invalid URL format").or(field.isRequired ? z.never() : z.literal('').or(z.undefined()));
+      } else if (type === 'subform') {
+        fieldValidation = z.array(z.record(z.any())).optional().superRefine((rows, ctx) => {
+          if (!Array.isArray(rows)) return;
+          const subFields = field.subformFields || [];
+          rows.forEach((row, rowIdx) => {
+            subFields.forEach(sf => {
+              const val = row[sf.name];
+              const sType = sf.type?.toLowerCase();
+              const isSubPhone = sType === 'phone' || ['phone', 'primarycontact', 'alternatephone'].includes(sf.name.toLowerCase());
+              const isSubEmail = sType === 'email';
+
+              if (sf.isRequired && (!val || String(val).trim() === '')) {
+                ctx.addIssue({
+                  code: z.ZodIssueCode.custom,
+                  message: `${sf.label || sf.name} is required in row ${rowIdx + 1}`,
+                  path: [rowIdx, sf.name]
+                });
+              }
+
+              if (val && isSubPhone) {
+                const parts = String(val).trim().split(' ');
+                const pureNumber = parts.length > 1 ? parts.slice(1).join('').replace(/\D/g, '') : String(val).replace(/\D/g, '');
+                if (pureNumber.length !== 10) {
+                  ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: `Row ${rowIdx + 1}: Phone number must be exactly 10 digits`,
+                    path: [rowIdx, sf.name]
+                  });
+                }
+              }
+
+              if (val && isSubEmail) {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(String(val))) {
+                  ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: `Row ${rowIdx + 1}: Invalid email format`,
+                    path: [rowIdx, sf.name]
+                  });
+                }
+              }
+            });
+          });
+        });
       } else if (type === 'number' || type === 'currency') {
         fieldValidation = z.any().refine(val => {
           if (val === undefined || val === null || val === '') return !field.isRequired;
@@ -129,6 +178,8 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
   }, [visibleFields, systemFieldNames, moduleType]);
 
   const { control, handleSubmit, trigger, formState: { errors }, reset, watch, setValue } = useForm({
+    mode: 'onTouched',
+    reValidateMode: 'onChange',
     resolver: zodResolver(dynamicSchema),
     defaultValues: { ...standardData, customData: customData }
   });
@@ -390,7 +441,7 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
                 return (
                   <div className="data-section" key={section.name || section.id} style={{ border: 'none', padding: 0, margin: 0, boxShadow: 'none' }}>
                     <div className="form-group-grid" style={{ display: 'grid', gridTemplateColumns: `repeat(${section.columns || 2}, 1fr)`, gap: '1.5rem 2rem' }}>
-                      {sectionFields.map(field => {
+                      {/*     {sectionFields.map(field => {
                         const stateOverride = standardFieldStates?.[field.name];
                         const isAssignedBy = field.name === 'assignedBy';
                         const isTaskAutomation = field.name === 'taskAutomation';
@@ -422,7 +473,27 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
                             control={control}
                             key={field.id || field.name}
                             render={({ field: controllerField, fieldState }) => (
-                              <div style={{ width: '100%', gridColumn: (field.type?.toLowerCase() === 'address' || field.type?.toLowerCase() === 'subform') ? '1 / -1' : 'auto' }}>
+                              <div style={{ width: '100%', gridColumn: (field.type?.toLowerCase() === 'address' || field.type?.toLowerCase() === 'subform') ? '1 / -1' : 'auto' }}> */}
+
+                      {sectionFields.map(field => {
+                        const stateOverride = standardFieldStates?.[field.name];
+                        const dynamicOptions = getDynamicFieldOptions(field, { userInfo, customModules, taskAutomationOptions });
+
+                        const modifiedField = {
+                          ...field,
+                          isRequired: stateOverride?.isRequired !== undefined ? stateOverride.isRequired : field.isRequired,
+                          readOnly: (moduleType === 'Task' && field.name === 'assignedBy') || field.readOnly || stateOverride?.isReadonly,
+                          options: dynamicOptions
+                        };
+                        return (
+                          <Controller
+                            name={field.isSystemField ? field.name : `customData.${field.name}`}
+                            control={control}
+                            key={field.id || field.name}
+                            render={({ field: controllerField, fieldState }) => (
+                              <div style={{ width: '100%', gridColumn: isFieldFullWidth(field) ? '1 / -1' : 'auto' }}>
+
+
 
                                 <DynamicField
                                   formData={{ ...standardData, ...customData }}
@@ -486,6 +557,7 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
                                     controllerField.onChange(correctedVal);
                                     handleFieldChange(field, name, correctedVal, record, mappings);
                                   }}
+                                  onBlur={controllerField.onBlur}
                                   error={fieldErrors?.[field.name] || fieldState.error?.message}
                                   readOnly={fieldReadonlyStates?.[field.name]}
                                 />

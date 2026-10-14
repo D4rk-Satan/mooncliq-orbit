@@ -82,7 +82,7 @@ export function getDefaultBlueprintData(mod) {
 
                     // --- 2. Contact ---
                     { name: 'email', label: 'Email', type: 'Email', isRequired: false, isSystemField: true, sectionName: 'Contact', orderIndex: 5 },
-                    { name: 'primaryContact', label: 'Primary Contact', type: 'Text', isRequired: false, isSystemField: true, sectionName: 'Contact', orderIndex: 6 },
+                    { name: 'primaryContact', label: 'Primary Contact', type: 'Phone', isRequired: false, isSystemField: true, sectionName: 'Contact', orderIndex: 6 },
                     { name: 'alternatePhone', label: 'Alternate Phone', type: 'Phone', isRequired: false, isSystemField: true, sectionName: 'Contact', orderIndex: 7 },
 
                     // --- 3. Financials ---
@@ -123,7 +123,7 @@ export function getDefaultBlueprintData(mod) {
                     { name: 'industry', label: 'Industry', type: 'Select', options: ['IT Sector', 'Real Estate', 'Healthcare & Medical', 'Manufacturing', 'Distribution', 'Services', 'Insurance'], isRequired: false, isSystemField: true, sectionName: 'Identification', orderIndex: 2 },
                     { name: 'website', label: 'Website', type: 'URL', isRequired: false, isSystemField: true, sectionName: 'Identification', orderIndex: 3 },
                     { name: 'email', label: 'Email', type: 'Email', isRequired: false, isSystemField: true, sectionName: 'Contact', orderIndex: 4, isHidden: false },
-                    { name: 'primaryContact', label: 'Primary Contact', type: 'Text', isRequired: false, isSystemField: true, sectionName: 'Contact', orderIndex: 5 },
+                    { name: 'primaryContact', label: 'Primary Contact', type: 'Phone', isRequired: false, isSystemField: true, sectionName: 'Contact', orderIndex: 5 },
                     { name: 'billingAddress', label: 'Billing Address', type: 'Address', isRequired: false, isSystemField: true, sectionName: 'Contact', orderIndex: 6 },
                     { name: 'shippingAddress', label: 'Shipping Address', type: 'Address', isRequired: false, isSystemField: true, sectionName: 'Contact', orderIndex: 7 },
                     {

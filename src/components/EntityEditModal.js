@@ -3,6 +3,8 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import DynamicField from './FieldRegistry';
+import { getDynamicFieldOptions, isFieldFullWidth } from '../utils/fieldRules';
+
 
 const standardFields = [
   // Lead Fields
@@ -121,12 +123,58 @@ const EntityEditModal = ({ isOpen, onClose, entity, blueprint, onUpdate, current
         });
       }
 
+      const isPhoneField = type === 'phone' || ['phone', 'primaryContact', 'alternatePhone'].includes(field.name);
+
       if (type === 'email') {
-        fieldValidation = z.string().email("Sahi email daaliye").or(field.isRequired ? z.never() : z.literal('').or(z.undefined()));
-      } else if (type === 'phone') {
+        fieldValidation = z.string().email("Sahi email daaliye (e.g. name@domain.com)").or(field.isRequired ? z.never() : z.literal('').or(z.undefined()));
+      } else if (isPhoneField) {
         fieldValidation = z.string().regex(/^(\+\d{1,3}[- ]?)?\d{10}$/, "Phone number exactly 10 digits ka hona chahiye").or(field.isRequired ? z.never() : z.literal('').or(z.undefined()));
       } else if (type === 'url' || type === 'website') {
         fieldValidation = z.string().url("Sahi URL daaliye").or(field.isRequired ? z.never() : z.literal('').or(z.undefined()));
+      } else if (type === 'subform') {
+        fieldValidation = z.array(z.record(z.any())).optional().superRefine((rows, ctx) => {
+          if (!Array.isArray(rows)) return;
+          const subFields = field.subformFields || [];
+          rows.forEach((row, rowIdx) => {
+            subFields.forEach(sf => {
+              const val = row[sf.name];
+              const sType = sf.type?.toLowerCase();
+              const isSubPhone = sType === 'phone' || ['phone', 'primarycontact', 'alternatephone'].includes(sf.name.toLowerCase());
+              const isSubEmail = sType === 'email';
+
+              if (sf.isRequired && (!val || String(val).trim() === '')) {
+                ctx.addIssue({
+                  code: z.ZodIssueCode.custom,
+                  message: `${sf.label || sf.name} is required in row ${rowIdx + 1}`,
+                  path: [rowIdx, sf.name]
+                });
+              }
+
+              if (val && isSubPhone) {
+                const parts = String(val).trim().split(' ');
+                const pureNumber = parts.length > 1 ? parts.slice(1).join('').replace(/\D/g, '') : String(val).replace(/\D/g, '');
+                if (pureNumber.length !== 10) {
+                  ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: `Row ${rowIdx + 1}: Phone number must be exactly 10 digits`,
+                    path: [rowIdx, sf.name]
+                  });
+                }
+              }
+
+              if (val && isSubEmail) {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(String(val))) {
+                  ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: `Row ${rowIdx + 1}: Sahi email format daaliye`,
+                    path: [rowIdx, sf.name]
+                  });
+                }
+              }
+            });
+          });
+        });
       } else if (type === 'number' || type === 'currency') {
         fieldValidation = z.any().refine(val => {
           if (val === undefined || val === null || val === '') return !field.isRequired;
@@ -149,6 +197,8 @@ const EntityEditModal = ({ isOpen, onClose, entity, blueprint, onUpdate, current
 
   // 2. React Hook Form Setup
   const { register, control, handleSubmit, formState: { errors, isDirty }, reset } = useForm({
+    mode: 'onTouched',
+    reValidateMode: 'onChange',
     resolver: zodResolver(dynamicSchema),
     defaultValues: { ...(entity || {}), customData: entity?.customData || {} } // Puraana data form me daal diya
   });
@@ -266,7 +316,7 @@ const EntityEditModal = ({ isOpen, onClose, entity, blueprint, onUpdate, current
                 </h3>
                 <div style={{ display: 'grid', gridTemplateColumns: typeof window !== 'undefined' && window.innerWidth < 768 ? '1fr' : `repeat(${section.columns || 2}, 1fr)`, gap: '20px' }}>
 
-                  {sectionFields.map(field => {
+                  {/*  {sectionFields.map(field => {
                     const isStandard = standardFields.includes(field.name);
                     const value = isStandard ? editData[field.name] : editData.customData?.[field.name];
 
@@ -279,6 +329,30 @@ const EntityEditModal = ({ isOpen, onClose, entity, blueprint, onUpdate, current
                             <DynamicField
                               field={field}
                               value={controllerField.value || ''}
+                              onChange={(name, val) => controllerField.onChange(val)}
+                              error={errors[field.name]?.message || errors.customData?.[field.name]?.message} */}
+
+
+                  {sectionFields.map(field => {
+                    const isStandard = standardFields.includes(field.name);
+                    const value = isStandard ? editData[field.name] : editData.customData?.[field.name];
+                    const dynamicOptions = getDynamicFieldOptions(field, { userInfo, customModules });
+
+                    const fieldWithOptions = {
+                      ...field,
+                      options: dynamicOptions
+                    };
+
+                    return (
+                      <div key={field.name} style={{ gridColumn: isFieldFullWidth(field) ? '1 / -1' : 'auto' }}>
+                        <Controller
+                          name={isStandard ? field.name : `customData.${field.name}`}
+                          control={control}
+                          render={({ field: controllerField }) => (
+                            <DynamicField
+                              field={fieldWithOptions}
+                              value={controllerField.value || ''}
+                              onBlur={controllerField.onBlur}
                               onChange={(name, val) => controllerField.onChange(val)}
                               error={errors[field.name]?.message || errors.customData?.[field.name]?.message}
                             />

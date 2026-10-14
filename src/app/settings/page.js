@@ -856,13 +856,13 @@ export default function SettingsPage() {
 
   const handleToggleModule = async (moduleName) => {
     const isCurrentlyActive = activeModules.includes(moduleName);
-    const newActiveModules = isCurrentlyActive 
+    const newActiveModules = isCurrentlyActive
       ? activeModules.filter(m => m !== moduleName)
       : [...activeModules, moduleName];
-      
+
     // Optimistic UI Update
     setActiveModules(newActiveModules);
-    
+
     try {
       const token = await getAuthToken();
       const res = await fetch('/api/settings/modules', {
@@ -887,7 +887,7 @@ export default function SettingsPage() {
   const handleToggleCustomModule = async (customModuleId, currentStatus) => {
     // Optimistic Update
     setCustomModules(prev => prev.map(m => m.id === customModuleId ? { ...m, isActive: !currentStatus } : m));
-    
+
     try {
       const token = await getAuthToken();
       const res = await fetch('/api/custom-modules/toggle', {
@@ -900,7 +900,7 @@ export default function SettingsPage() {
         setCustomModules(prev => prev.map(m => m.id === customModuleId ? { ...m, isActive: currentStatus } : m));
         alert("Failed to update custom module status.");
       } else {
-        try { localStorage.removeItem('mooncliq_bootstrap_cache'); } catch(e){}
+        try { localStorage.removeItem('mooncliq_bootstrap_cache'); } catch (e) { }
         window.location.reload();
       }
     } catch (err) {
@@ -1376,7 +1376,7 @@ export default function SettingsPage() {
                                   }
                                   setShowCustomModuleModal(false);
                                   setNewCustomModule({ id: null, name: '', icon: 'Box' });
-                                  try { localStorage.removeItem('mooncliq_bootstrap_cache'); } catch(e){}
+                                  try { localStorage.removeItem('mooncliq_bootstrap_cache'); } catch (e) { }
                                 }
                               }}
                               style={{ padding: '0.5rem 1rem', backgroundColor: '#0f172a', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
@@ -1579,16 +1579,19 @@ export default function SettingsPage() {
                         </thead>
                         <tbody>
                           {/* 1. Asli Active Users Dikhayenge */}
-                          {orgUsers.map(user => (
-                            <tr key={user.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                              <td style={{ padding: '1rem', color: '#0f172a', fontWeight: 500 }}>{user.email}</td>
-                              <td style={{ padding: '1rem' }}><span style={{ backgroundColor: '#f1f5f9', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem', color: '#475569', fontWeight: 600 }}>{user.profile?.name || 'No Role'}</span></td>
-                              <td style={{ padding: '1rem' }}><span style={{ color: '#10b981', fontWeight: 600, fontSize: '0.85rem' }}>● Active</span></td>
-                              <td style={{ padding: '1rem' }}>
-                                <button onClick={() => handleRevokeAccess(user.id)} style={{ background: 'none', border: '1px solid #ef4444', color: '#ef4444', padding: '0.25rem 0.75rem', borderRadius: '4px', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600 }}>Revoke Access</button>
-                              </td>
-                            </tr>
-                          ))}
+                          {orgUsers
+                            .filter(user => !['administrator', 'admin'].includes(user.profile?.name?.toLowerCase()))
+                            .map(user => (
+
+                              <tr key={user.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                                <td style={{ padding: '1rem', color: '#0f172a', fontWeight: 500 }}>{user.email}</td>
+                                <td style={{ padding: '1rem' }}><span style={{ backgroundColor: '#f1f5f9', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem', color: '#475569', fontWeight: 600 }}>{user.profile?.name || 'No Role'}</span></td>
+                                <td style={{ padding: '1rem' }}><span style={{ color: '#10b981', fontWeight: 600, fontSize: '0.85rem' }}>● Active</span></td>
+                                <td style={{ padding: '1rem' }}>
+                                  <button onClick={() => handleRevokeAccess(user.id)} style={{ background: 'none', border: '1px solid #ef4444', color: '#ef4444', padding: '0.25rem 0.75rem', borderRadius: '4px', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600 }}>Revoke Access</button>
+                                </td>
+                              </tr>
+                            ))}
 
                           {/* 2. Pending Invites Dikhayenge */}
                           {pendingInvites.map(invite => (
@@ -1597,16 +1600,16 @@ export default function SettingsPage() {
                               <td style={{ padding: '1rem' }}><span style={{ backgroundColor: '#f1f5f9', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem', color: '#475569', fontWeight: 600 }}>{invite.profile?.name || 'Pending'}</span></td>
                               <td style={{ padding: '1rem' }}><span style={{ color: '#f59e0b', fontWeight: 600, fontSize: '0.85rem' }}>○ Pending</span></td>
                               <td style={{ padding: '1rem' }}>
-                                <button 
+                                <button
                                   onClick={async () => {
                                     if (!window.confirm("Are you sure you want to revoke this pending invite?")) return;
                                     try {
                                       const token = await getAuthToken();
                                       const res = await fetch('/api/invitations/revoke', {
                                         method: 'POST',
-                                        headers: { 
+                                        headers: {
                                           'Content-Type': 'application/json',
-                                          'Authorization': `Bearer ${token}` 
+                                          'Authorization': `Bearer ${token}`
                                         },
                                         body: JSON.stringify({ inviteId: invite.id })
                                       });
@@ -2447,22 +2450,26 @@ export default function SettingsPage() {
                     </div>
 
                     <div style={{ display: 'grid', gap: '1rem' }}>
-                      {profiles.map(profile => (
-                        <div key={profile.id} style={{ padding: '1.5rem', background: 'white', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div>
-                            <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem', color: '#0f172a' }}>{profile.name}</h3>
-                            <div style={{ display: 'flex', gap: '1rem', fontSize: '0.85rem', color: '#64748b' }}>
-                              <span>Admin: {profile.canAccessSettings ? 'Yes' : 'No'}</span>
-                              <span>Export: {profile.canExportData ? 'Yes' : 'No'}</span>
+                      {profiles
+                        .filter(profile => !['administrator', 'admin'].includes(profile.name?.toLowerCase()))
+                        .map(profile => (
+                          <div key={profile.id} style={{ padding: '1.5rem', background: 'white', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                              <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem', color: '#0f172a' }}>{profile.name}</h3>
+                              <div style={{ display: 'flex', gap: '1rem', fontSize: '0.85rem', color: '#64748b' }}>
+                                <span>Admin: {profile.canAccessSettings ? 'Yes' : 'No'}</span>
+                                <span>Export: {profile.canExportData ? 'Yes' : 'No'}</span>
+                              </div>
                             </div>
+                            <button className="btn-outline" onClick={() => {
+                              setSelectedProfile(profile);
+                              setIsProfileModalOpen(true);
+                            }}>Edit Permissions</button>
                           </div>
-                          <button className="btn-outline" onClick={() => {
-                            setSelectedProfile(profile);
-                            setIsProfileModalOpen(true);
-                          }}>Edit Permissions</button>
-                        </div>
-                      ))}
-                      {profiles.length === 0 && <p>No profiles found.</p>}
+                        ))}
+                      {profiles.filter(p => !['administrator', 'admin'].includes(p.name?.toLowerCase())).length === 0 && (
+                        <p>No profiles found.</p>
+                      )}
                     </div>
                   </div>
                 )}

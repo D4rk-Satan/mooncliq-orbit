@@ -71,20 +71,41 @@ export default function SignUp() {
     }
   };
 
-  // 2. Logo Upload to S3
+  // 2. Logo Upload to S3 (5MB Limit + Auto Compression)
   const handleLogoUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
+    // Max 5MB Limit check
+    const MAX_SIZE_MB = 5;
+    if (file.size > MAX_SIZE_MB * 1024 * 1024) {
+      alert(`File size must be less than ${MAX_SIZE_MB}MB`);
+      e.target.value = '';
+      return;
+    }
+
     setIsUploadingLogo(true);
     try {
-      const res = await fetch(`/api/upload-url?file=${encodeURIComponent(file.name)}&fileType=${encodeURIComponent(file.type)}&folder=logos`);
+      let fileToUpload = file;
+      try {
+        const imageCompression = (await import('browser-image-compression')).default;
+        const options = {
+          maxSizeMB: 0.5,
+          maxWidthOrHeight: 1024,
+          useWebWorker: true
+        };
+        fileToUpload = await imageCompression(file, options);
+      } catch (compErr) {
+        console.warn('Compression skipped:', compErr);
+      }
+
+      const res = await fetch(`/api/upload-url?file=${encodeURIComponent(fileToUpload.name || file.name)}&fileType=${encodeURIComponent(fileToUpload.type || file.type)}&folder=logos`);
       const data = await res.json();
       if (data.uploadUrl) {
         await fetch(data.uploadUrl, {
           method: 'PUT',
-          headers: { 'Content-Type': file.type },
-          body: file
+          headers: { 'Content-Type': fileToUpload.type || file.type },
+          body: fileToUpload
         });
         setFormData(prev => ({ ...prev, logoUrl: data.fileUrl }));
       }
@@ -92,6 +113,7 @@ export default function SignUp() {
       console.error('Logo upload error:', err);
     } finally {
       setIsUploadingLogo(false);
+      e.target.value = '';
     }
   };
 
