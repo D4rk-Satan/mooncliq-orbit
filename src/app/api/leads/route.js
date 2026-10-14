@@ -55,11 +55,25 @@ export const POST = withPermission('Lead', 'create', async (request, user) => {
 
 
     const data = await request.json();
-    const {
+    let {
       fullName, email, phone, alternatePhone, owner, stageId,
-      companyName, street, city, state, country, zipCode,
+      companyName, address, street, city, state, country, zipCode,
       leadSource, priority, notes, customData, blueprintId, ...rest
     } = data;
+
+    // Unpack address if provided as object or JSON string
+    if (address) {
+      try {
+        const addrObj = typeof address === 'string' ? JSON.parse(address) : address;
+        if (addrObj && typeof addrObj === 'object') {
+          if (addrObj.street) street = addrObj.street;
+          if (addrObj.city) city = addrObj.city;
+          if (addrObj.state) state = addrObj.state;
+          if (addrObj.country) country = addrObj.country;
+          if (addrObj.zip) zipCode = addrObj.zip;
+        }
+      } catch (e) { }
+    }
 
     // Default Stage Logic: Agar UI se stageId nahi mila, toh first stage uthao
     let finalStageId = stageId;
@@ -129,12 +143,26 @@ export const PATCH = withPermission('Lead', 'edit', async (request, user) => {
 
 
     const data = await request.json();
-    const {
+    let {
       leadId, stageId, customData, tags, transitionId,
       fullName, email, phone, alternatePhone, owner,
-      companyName, street, city, state, country, zipCode,
+      companyName, address, street, city, state, country, zipCode,
       leadSource, priority, notes, ...rest
     } = data;
+
+    // Unpack address if provided as object or JSON string
+    if (address) {
+      try {
+        const addrObj = typeof address === 'string' ? JSON.parse(address) : address;
+        if (addrObj && typeof addrObj === 'object') {
+          if (addrObj.street !== undefined) street = addrObj.street;
+          if (addrObj.city !== undefined) city = addrObj.city;
+          if (addrObj.state !== undefined) state = addrObj.state;
+          if (addrObj.country !== undefined) country = addrObj.country;
+          if (addrObj.zip !== undefined) zipCode = addrObj.zip;
+        }
+      } catch (e) { }
+    }
 
     if (!leadId) {
       return NextResponse.json({ error: "Missing leadId" }, { status: 400 });

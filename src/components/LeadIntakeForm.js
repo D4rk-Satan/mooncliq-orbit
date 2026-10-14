@@ -7,6 +7,7 @@ import FormSkeleton from "./skeletons/FormSkeleton";
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { isFieldFullWidth } from "@/utils/fieldRules";
 
 
 export default function LeadIntakeForm({ isOpen, onClose, onSave }) {
@@ -20,6 +21,7 @@ export default function LeadIntakeForm({ isOpen, onClose, onSave }) {
     firstName: "",
     lastName: "",
     companyName: "",
+    address: "",
     street: "",
     city: "",
     state: "",
@@ -47,8 +49,33 @@ export default function LeadIntakeForm({ isOpen, onClose, onSave }) {
 
   const { visibleFields, orderedSections } = useMemo(() => {
     if (!blueprint?.fields) return { visibleFields: [], orderedSections: [] };
-    const vf = blueprint.fields.filter(f => !f.isHidden && !standardFieldStates?.[f.name]?.isHidden);
+    let vf = blueprint.fields.filter(f => !f.isHidden && !standardFieldStates?.[f.name]?.isHidden);
 
+    // If blueprint contains the 5 individual address fields, consolidate them into a single Address Block
+    const addressFieldNames = ['street', 'city', 'state', 'country', 'zipCode'];
+    const hasIndividualAddress = vf.some(f => addressFieldNames.includes(f.name));
+    const alreadyHasAddress = vf.some(f => f.name === 'address');
+
+    if (hasIndividualAddress && !alreadyHasAddress) {
+      const firstAddrIdx = vf.findIndex(f => addressFieldNames.includes(f.name));
+      const sectionName = vf[firstAddrIdx]?.sectionName || 'Identification';
+      const orderIndex = vf[firstAddrIdx]?.orderIndex || 3;
+
+      // Filter out individual fields
+      vf = vf.filter(f => !addressFieldNames.includes(f.name));
+
+      // Insert composite Address field
+      const compositeAddressField = {
+        name: 'address',
+        label: 'Address',
+        type: 'Address',
+        isRequired: false,
+        isSystemField: true,
+        sectionName,
+        orderIndex
+      };
+      vf.splice(firstAddrIdx, 0, compositeAddressField);
+    }
 
     let os = [];
     if (blueprint?.layoutConfig && Array.isArray(blueprint.layoutConfig) && blueprint.layoutConfig.length > 0) {
@@ -65,7 +92,7 @@ export default function LeadIntakeForm({ isOpen, onClose, onSave }) {
   }, [blueprint, standardFieldStates]);
   const standardFields = [
     'fullName', 'firstName', 'lastName', 'companyName',
-    'street', 'city', 'state', 'country', 'zipCode',
+    'address', 'street', 'city', 'state', 'country', 'zipCode',
     'email', 'phone', 'alternatePhone',
     'owner', 'leadSource', 'priority', 'notes', 'stageId'
   ];
@@ -207,16 +234,30 @@ export default function LeadIntakeForm({ isOpen, onClose, onSave }) {
           const canSave = await executeScript("onSave");
           if (!canSave) return;
 
+          // If address block is filled, unpack it for backward compatibility
+          let payload = { ...formData };
+          if (payload.address) {
+            try {
+              const addr = typeof payload.address === 'string' ? JSON.parse(payload.address) : payload.address;
+              if (addr && typeof addr === 'object') {
+                if (addr.street !== undefined) payload.street = addr.street;
+                if (addr.city !== undefined) payload.city = addr.city;
+                if (addr.state !== undefined) payload.state = addr.state;
+                if (addr.country !== undefined) payload.country = addr.country;
+                if (addr.zip !== undefined) payload.zipCode = addr.zip;
+              }
+            } catch (e) { }
+          }
+
           onSave({
-            ...formData,
+            ...payload,
             blueprintId: blueprint?.id
           });
 
           // Reset
-          // Reset
           setStandardData({
             fullName: "", firstName: "", lastName: "", companyName: "",
-            street: "", city: "", state: "", country: "", zipCode: "",
+            address: "", street: "", city: "", state: "", country: "", zipCode: "",
             email: "", phone: "", alternatePhone: "",
             owner: "", leadSource: "", priority: "", notes: "",
             stageId: blueprint?.stages?.[0]?.id || ""
@@ -308,7 +349,7 @@ export default function LeadIntakeForm({ isOpen, onClose, onSave }) {
                             name={field.isSystemField ? field.name : `customData.${field.name}`}
                             control={control}
                             render={({ field: controllerField, fieldState }) => (
-                              <div style={{ width: '100%' }}>
+                              <div style={{ width: '100%', gridColumn: isFieldFullWidth(field) ? '1 / -1' : 'auto' }}>
                                 <DynamicField
                                   formData={{ ...standardData, ...customData }}
                                   key={field.id}
@@ -325,7 +366,6 @@ export default function LeadIntakeForm({ isOpen, onClose, onSave }) {
                               </div>
                             )}
                           />
-
                         );
                       })}
                     </div>

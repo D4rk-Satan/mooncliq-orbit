@@ -303,6 +303,22 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
               }
             }
 
+            // Clean format for Address Block
+            if (field.type?.toLowerCase() === 'address') {
+              let addrObj = null;
+              if (value && value !== '-') {
+                try {
+                  addrObj = typeof value === 'string' ? JSON.parse(value) : value;
+                } catch (e) { }
+              } else if (lead.street || lead.city || lead.state || lead.zipCode) {
+                addrObj = { street: lead.street, city: lead.city, state: lead.state, zip: lead.zipCode, country: lead.country };
+              }
+              if (addrObj && typeof addrObj === 'object') {
+                const parts = [addrObj.street, addrObj.city, addrObj.state, addrObj.zip ? `PIN: ${addrObj.zip}` : '', addrObj.country].filter(Boolean);
+                value = parts.length > 0 ? parts.join(', ') : '-';
+              }
+            }
+
 
 
 

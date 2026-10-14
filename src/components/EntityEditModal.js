@@ -9,7 +9,7 @@ import { getDynamicFieldOptions, isFieldFullWidth } from '../utils/fieldRules';
 const standardFields = [
   // Lead Fields
   'fullName', 'companyName', 'email', 'phone', 'alternatePhone',
-  'street', 'city', 'state', 'country', 'zipCode',
+  'address', 'street', 'city', 'state', 'country', 'zipCode',
   'owner', 'leadSource', 'priority', 'notes',
 
   // Deal Fields (Naye wale)
@@ -31,7 +31,18 @@ const EntityEditModal = ({ isOpen, onClose, entity, blueprint, onUpdate, current
 
   useEffect(() => {
     if (isOpen && entity) {
-      setEditData({ ...entity, customData: { ...(entity.customData || {}) } });
+      let initialData = { ...entity, customData: { ...(entity.customData || {}) } };
+      // If entity has individual address fields but no address JSON, construct it
+      if (!initialData.address && (initialData.street || initialData.city || initialData.state || initialData.zipCode)) {
+        initialData.address = JSON.stringify({
+          street: initialData.street || '',
+          city: initialData.city || '',
+          state: initialData.state || '',
+          zip: initialData.zipCode || '',
+          country: initialData.country || 'India'
+        });
+      }
+      setEditData(initialData);
       setHasUnsavedChanges(false);
     }
   }, [isOpen, entity]);

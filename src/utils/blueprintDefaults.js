@@ -18,11 +18,7 @@ export function getDefaultBlueprintData(mod) {
                     // Identification Section
                     { name: 'fullName', label: 'Full Name', type: 'Text', isRequired: true, isSystemField: true, sectionName: 'Identification', orderIndex: 1 },
                     { name: 'companyName', label: 'Company Name', type: 'Text', isRequired: false, isSystemField: true, sectionName: 'Identification', orderIndex: 2 },
-                    { name: 'street', label: 'Street', type: 'Text', isRequired: false, isSystemField: true, sectionName: 'Identification', orderIndex: 3 },
-                    { name: 'city', label: 'City', type: 'Text', isRequired: false, isSystemField: true, sectionName: 'Identification', orderIndex: 4 },
-                    { name: 'state', label: 'State', type: 'Text', isRequired: false, isSystemField: true, sectionName: 'Identification', orderIndex: 5 },
-                    { name: 'country', label: 'Country', type: 'Text', isRequired: false, isSystemField: true, sectionName: 'Identification', orderIndex: 6 },
-                    { name: 'zipCode', label: 'Zip Code', type: 'Text', isRequired: false, isSystemField: true, sectionName: 'Identification', orderIndex: 7 },
+                    { name: 'address', label: 'Address', type: 'Address', isRequired: false, isSystemField: true, sectionName: 'Identification', orderIndex: 3 },
 
                     // Contact Section
                     { name: 'email', label: 'Email', type: 'Email', isRequired: false, isSystemField: true, sectionName: 'Contact', orderIndex: 8 },
