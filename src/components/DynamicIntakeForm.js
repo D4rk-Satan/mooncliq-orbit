@@ -332,6 +332,16 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
             }
           }
 
+          // Convert local datetime strings to real UTC ISO strings for server
+          if (payloadData.startDateTime && typeof payloadData.startDateTime === 'string') {
+            const d = new Date(payloadData.startDateTime);
+            if (!isNaN(d.getTime())) payloadData.startDateTime = d.toISOString();
+          }
+          if (payloadData.dueDateTime && typeof payloadData.dueDateTime === 'string') {
+            const d = new Date(payloadData.dueDateTime);
+            if (!isNaN(d.getTime())) payloadData.dueDateTime = d.toISOString();
+          }
+
           onSave({
             ...payloadData,
             blueprintId: blueprint?.id

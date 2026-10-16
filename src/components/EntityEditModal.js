@@ -72,9 +72,19 @@ const EntityEditModal = ({ isOpen, onClose, entity, blueprint, onUpdate, current
       const url = isCustomModule ? `/api/custom-modules/records?id=${entity.id}` : `/api/${moduleName.toLowerCase()}`;
       const method = isCustomModule ? 'PUT' : 'PATCH';
 
+      let formattedFormData = { ...formData };
+      if (formattedFormData.startDateTime && typeof formattedFormData.startDateTime === 'string') {
+        const d = new Date(formattedFormData.startDateTime);
+        if (!isNaN(d.getTime())) formattedFormData.startDateTime = d.toISOString();
+      }
+      if (formattedFormData.dueDateTime && typeof formattedFormData.dueDateTime === 'string') {
+        const d = new Date(formattedFormData.dueDateTime);
+        if (!isNaN(d.getTime())) formattedFormData.dueDateTime = d.toISOString();
+      }
+
       const bodyPayload = isCustomModule
-        ? { customData: formData.customData || formData } // As per handleUpdateRecord logic
-        : { [dynamicIdKey]: entity.id, ...formData };
+        ? { customData: formattedFormData.customData || formattedFormData } // As per handleUpdateRecord logic
+        : { [dynamicIdKey]: entity.id, ...formattedFormData };
 
       const res = await fetch(url, {
         method: method,
