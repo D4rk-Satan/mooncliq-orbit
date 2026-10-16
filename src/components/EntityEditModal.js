@@ -6,6 +6,9 @@ import DynamicField from './FieldRegistry';
 import { getDynamicFieldOptions, isFieldFullWidth } from '../utils/fieldRules';
 
 
+import { useBootstrap } from '@/contexts/AppBootstrapContext';
+
+
 const standardFields = [
   // Lead Fields
   'fullName', 'companyName', 'email', 'phone', 'alternatePhone',
@@ -24,6 +27,7 @@ const standardFields = [
 
 
 const EntityEditModal = ({ isOpen, onClose, entity, blueprint, onUpdate, currentUser, moduleName, isCustomModule }) => {
+  const { userInfo, customModules } = useBootstrap();
   const [editData, setEditData] = useState({});
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
