@@ -292,6 +292,8 @@ export default function TaskIntakeForm({ blueprint, isOpen, onClose, onSave, tas
         due.setMinutes(due.getMinutes() + 10);
         payloadData.dueDateTime = formatLocal(due);
       }
+    }
+
     // Convert local datetime strings to real UTC ISO strings for server
     if (payloadData.startDateTime && typeof payloadData.startDateTime === 'string') {
       const d = new Date(payloadData.startDateTime);
