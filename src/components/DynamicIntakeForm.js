@@ -314,15 +314,21 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
 
           let payloadData = { ...formData };
           if (!isTimeEditedByUser) {
+            const formatLocal = (d) => {
+              const yyyy = d.getFullYear();
+              const mm = String(d.getMonth() + 1).padStart(2, '0');
+              const dd = String(d.getDate()).padStart(2, '0');
+              const hh = String(d.getHours()).padStart(2, '0');
+              const mins = String(d.getMinutes()).padStart(2, '0');
+              return `${yyyy}-${mm}-${dd}T${hh}:${mins}`;
+            };
             if (payloadData.startDateTime) {
-              const nowISO = new Date();
-              nowISO.setMinutes(nowISO.getMinutes() - nowISO.getTimezoneOffset());
-              payloadData.startDateTime = nowISO.toISOString().slice(0, 16);
+              payloadData.startDateTime = formatLocal(new Date());
             }
             if (payloadData.dueDateTime) {
-              const dueISO = new Date();
-              dueISO.setMinutes(dueISO.getMinutes() + 10 - dueISO.getTimezoneOffset());
-              payloadData.dueDateTime = dueISO.toISOString().slice(0, 16);
+              const due = new Date();
+              due.setMinutes(due.getMinutes() + 10);
+              payloadData.dueDateTime = formatLocal(due);
             }
           }
 
@@ -544,8 +550,12 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
                                         const start = new Date(correctedVal);
                                         if (!isNaN(start.getTime())) {
                                           const updatedDue = new Date(start.getTime() + 10 * 60000);
-                                          updatedDue.setMinutes(updatedDue.getMinutes() - updatedDue.getTimezoneOffset());
-                                          const dueString = updatedDue.toISOString().slice(0, 16);
+                                          const yyyy = updatedDue.getFullYear();
+                                          const mm = String(updatedDue.getMonth() + 1).padStart(2, '0');
+                                          const dd = String(updatedDue.getDate()).padStart(2, '0');
+                                          const hh = String(updatedDue.getHours()).padStart(2, '0');
+                                          const mins = String(updatedDue.getMinutes()).padStart(2, '0');
+                                          const dueString = `${yyyy}-${mm}-${dd}T${hh}:${mins}`;
                                           setValue('dueDateTime', dueString, { shouldValidate: true, shouldDirty: true });
                                           setStandardData(prev => ({ ...prev, dueDateTime: dueString }));
                                         }
