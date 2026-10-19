@@ -83,6 +83,7 @@ export default function LeadModule() {
   const filterBuilderRef = useRef(null);
 
   const [activeCardMenuId, setActiveCardMenuId] = useState(null);
+  const [openMobileStageId, setOpenMobileStageId] = useState(null);
 
   useEffect(() => {
     const handleGlobalClick = () => setActiveCardMenuId(null);
@@ -566,18 +567,41 @@ export default function LeadModule() {
           }
 
           // Agar collapsed nahi hai, toh normal bada column dikhao
+          const isMobileOpen = openMobileStageId === col.stage.id;
+
           return (
             <div
-
               key={col.stage.id}
-              className="kanban-column"
+              className={`kanban-column ${isMobileOpen ? 'mobile-expanded' : ''}`}
               onDrop={(e) => handleDrop(e, col.stage.id)}
               onDragOver={(e) => e.preventDefault()}
-              style={{ padding: '0 0.5rem', border: 'none', display: 'flex', flexDirection: 'column', minWidth: '320px' }}
+              style={{ padding: '0 0.5rem', border: 'none', display: 'flex', flexDirection: 'column' }}
             >
-              <div className="kanban-column-header" style={{ backgroundColor: getColumnColor(col.stage.color), borderRadius: '24px', color: '#ffffff', border: 'none', padding: '0.75rem 1.25rem', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
-                <h3 style={{ margin: 0, color: '#ffffff', fontSize: '1rem', fontWeight: 600 }}>{col.stage.name}</h3>
-                <span className="kanban-count" style={{ backgroundColor: 'rgba(255, 255, 255, 0.25)', color: '#ffffff', border: 'none', borderRadius: '50%', width: '26px', height: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 600 }}>{col.leads.length}</span>
+              <div
+                className="kanban-column-header"
+                onClick={() => setOpenMobileStageId(isMobileOpen ? null : col.stage.id)}
+                style={{
+                  backgroundColor: getColumnColor(col.stage.color),
+                  borderRadius: '24px',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '0.75rem 1.25rem',
+                  marginBottom: '1rem',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                  cursor: 'pointer'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <h3 style={{ margin: 0, color: '#ffffff', fontSize: '1rem', fontWeight: 600 }}>{col.stage.name}</h3>
+                  <span className="kanban-count" style={{ backgroundColor: 'rgba(255, 255, 255, 0.25)', color: '#ffffff', border: 'none', borderRadius: '50%', width: '26px', height: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 600 }}>{col.leads.length}</span>
+                </div>
+                {/* Mobile Dropdown Arrow */}
+                <div className="mobile-kanban-arrow" style={{ display: 'flex', alignItems: 'center', transition: 'transform 0.2s', transform: isMobileOpen ? 'rotate(180deg)' : 'none' }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </div>
               </div>
               <div className="kanban-cards" style={{ backgroundColor: col.stage.color ? `${col.stage.color.substring(0, 7)}15` : '#f8fafc', borderRadius: '16px', padding: '0.75rem', minHeight: '300px', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 {col.leads.map(lead => {

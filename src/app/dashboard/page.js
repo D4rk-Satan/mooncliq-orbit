@@ -468,13 +468,13 @@ export default function Dashboard() {
         </header>
 
         {/* Dashboard Grid Layout */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '1.5rem' }}>
+        <div className="dashboard-grid-layout" style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '1.5rem' }}>
 
           {/* Left Column (Span 8) */}
-          <div style={{ gridColumn: 'span 8', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div className="dashboard-main-col" style={{ gridColumn: 'span 8', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
             {/* Top 3 KPI Cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem' }}>
+            <div className="dashboard-kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem' }}>
               <KPICard title="Total Leads" value={dashboardData.totalLeads} percentage="0%" isUp={true} sparklineColor="#10b981" />
 
               <KPICard title="Total Opportunity" value={dashboardData.totalOpportunity} percentage="0%" isUp={true} sparklineColor="#10b981" />
@@ -485,7 +485,7 @@ export default function Dashboard() {
             <OpportunitySummary data={dashboardData.timeSeriesData} />
 
             {/* Bottom 2 Charts */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1.5rem' }}>
+            <div className="dashboard-charts-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1.5rem' }}>
               <LeadByStatus data={dashboardData.leadByStatus} />
               <SalesSummary data={dashboardData.timeSeriesData} />
             </div>
@@ -493,7 +493,7 @@ export default function Dashboard() {
           </div>
 
           {/* Right Column (Span 4) */}
-          <div style={{ gridColumn: 'span 4', display: 'flex', flexDirection: 'column' }}>
+          <div className="dashboard-side-col" style={{ gridColumn: 'span 4', display: 'flex', flexDirection: 'column' }}>
             <RecentLeads
               data={dashboardData.recentLeads}
               onRowClick={(lead) => {

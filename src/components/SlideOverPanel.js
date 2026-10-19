@@ -427,7 +427,7 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
 
       <div className={`modal-card ${isOpen ? 'open' : ''}`} style={{
         display: 'flex', flexDirection: 'column', backgroundColor: '#ffffff',
-        width: '600px', maxWidth: '100vw', right: isOpen ? '0' : '-600px',
+        width: '100%', maxWidth: '600px', right: isOpen ? '0' : '-100%',
         top: 0, bottom: 0, height: '100vh', maxHeight: '100vh', borderRadius: '0',
         left: 'auto', transform: 'none', /* Override modal-card centering */
         boxShadow: '-4px 0 24px rgba(0,0,0,0.1)', zIndex: 995, position: 'fixed',
@@ -514,8 +514,8 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
               <button
                 onClick={() => {
                   showConfirm({
-                    title: "Delete Record", 
-                    message: `Are you sure you want to permanently delete this ${blueprint?.moduleType || 'record'}?`, 
+                    title: "Delete Record",
+                    message: `Are you sure you want to permanently delete this ${blueprint?.moduleType || 'record'}?`,
                     onConfirm: () => onDeleteClick(lead)
                   });
                 }}

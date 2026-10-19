@@ -644,6 +644,10 @@ body {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
+.mobile-kanban-arrow {
+  display: none !important;
+}
+
 .kanban-column-header h3 {
   font-size: 1.05rem;
   font-weight: 600;
@@ -1239,6 +1243,19 @@ body {
     box-shadow: 4px 0 24px rgba(0, 0, 0, 0.1);
   }
 
+  html,
+  body {
+    overflow-x: hidden !important;
+    width: 100% !important;
+    position: relative;
+  }
+
+  .dashboard-main,
+  .module-content {
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+  }
+
   /* jab mobile me menu open hoga*/
   .dashboard-sidebar.mobile-open {
     left: 0;
@@ -1259,6 +1276,103 @@ body {
     flex-wrap: wrap !important;
   }
 
+  /* Mobile Stepper Header: No Text Cutting, Clean Native Look */
+  .stepper-header-container {
+    padding: 0 0.25rem !important;
+    gap: 0.25rem !important;
+  }
+
+  /* Mobile par sirf CURRENT step ka text dikhega, baki ke sirf clean circles rahenge */
+  .stepper-label {
+    display: none !important;
+  }
+
+  .stepper-label.active-step {
+    display: inline-block !important;
+    max-width: 120px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    font-size: 0.85rem !important;
+  }
+
+  .stepper-divider {
+    min-width: 10px !important;
+    margin: 0 0.35rem !important;
+  }
+
+
+  /* Hide Settings on Mobile Screens */
+  .dashboard-sidebar a[href="/settings"],
+  .dashboard-sidebar .nav-item[href="/settings"] {
+    display: none !important;
+  }
+
+
+  /* Mobile Form Fields 1-Column */
+  .form-group-grid,
+  .modal-card form div[style*="display: grid"],
+  .data-section div[style*="display: grid"] {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+
+  /* Hide Settings on Mobile Screens */
+  .sidebar-settings-link {
+    display: none !important;
+  }
+
+
+  /* Mobile Vertical Kanban Accordion */
+  .kanban-board {
+    flex-direction: column !important;
+    width: 100% !important;
+    padding: 0 1rem 1.5rem 1rem !important;
+    gap: 0.75rem !important;
+    height: auto !important;
+    overflow-x: hidden !important;
+  }
+
+  .kanban-column {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    flex: none !important;
+    margin-bottom: 0.5rem !important;
+  }
+
+  /* Default me Mobile par cards hide rahenge (Closed Accordion) */
+  .kanban-column .kanban-cards {
+    display: none !important;
+  }
+
+  /* Tap karne par cards open honge (Open Accordion) */
+  .kanban-column.mobile-expanded .kanban-cards {
+    display: flex !important;
+  }
+
+  /* Mobile Header Logo & Avatar Fix */
+  .mobile-header {
+    padding: 0.75rem 1rem !important;
+    gap: 0.75rem !important;
+  }
+
+
+  /* Mobile Tables: Horizontal touch scroll without breaking screen */
+  .data-table-container,
+  .table-wrapper {
+    width: 100% !important;
+    max-width: 100vw !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .data-table {
+    min-width: 650px;
+  }
+
+
+
   /* ---- List View Scroll Fix ---- */
   .module-content {
     overflow-x: auto !important;
@@ -1271,4 +1385,87 @@ body {
     display: none !important;
   }
 
+}
+
+/* iPad & Tablets (769px to 1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .dashboard-sidebar {
+    width: 72px !important;
+  }
+
+  .dashboard-header {
+    padding: 0.75rem 1rem !important;
+  }
+
+  .kanban-board {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .modal-card {
+    max-width: 90vw !important;
+  }
+}
+
+
+/* ---- Dashboard Default (Desktop: 12-Column Layout) ---- */
+.dashboard-grid-layout {
+  grid-template-columns: repeat(12, 1fr);
+}
+
+.dashboard-main-col {
+  grid-column: span 8;
+}
+
+.dashboard-side-col {
+  grid-column: span 4;
+}
+
+.dashboard-kpi-grid {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.dashboard-charts-grid {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+/* ---- Dashboard on Mobile (< 768px) ---- */
+@media (max-width: 768px) {
+  .dashboard-grid-layout {
+    grid-template-columns: 1fr !important;
+  }
+
+  .dashboard-main-col,
+  .dashboard-side-col {
+    grid-column: span 1 !important;
+    width: 100% !important;
+  }
+
+  .dashboard-kpi-grid {
+    grid-template-columns: 1fr !important;
+    /* Mobile par har card poori width lega */
+    gap: 1rem !important;
+  }
+
+  .dashboard-charts-grid {
+    grid-template-columns: 1fr !important;
+    /* Charts vertical stack ho jayenge */
+    gap: 1rem !important;
+  }
+}
+
+/* ---- Dashboard on iPad / Tablet (769px to 1024px) ---- */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .dashboard-grid-layout {
+    grid-template-columns: 1fr !important;
+  }
+
+  .dashboard-main-col,
+  .dashboard-side-col {
+    grid-column: span 1 !important;
+  }
+
+  .dashboard-kpi-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
 }

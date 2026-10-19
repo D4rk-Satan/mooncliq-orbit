@@ -229,7 +229,10 @@ export default function TaskPage() {
         onLeadUpdate={handleTaskUpdate}
         pendingTransition={pendingTransition}
         onEditClick={
-          hasPermission(currentUser, 'Task', 'edit') ? () => setIsEditModalOpen(true) : null
+          hasPermission(currentUser, 'Task', 'edit') ? () => {
+            setSelectedTask(null);
+            setIsEditModalOpen(true);
+          } : null
         }
         onDeleteClick={hasPermission(currentUser, 'Task', 'delete') ? handleDeleteTask : null}
       />

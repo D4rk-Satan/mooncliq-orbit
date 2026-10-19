@@ -176,35 +176,35 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, refresh
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   {category.items.map((item, itemIdx) => {
                     const defaultModules = ["Lead", "Deal", "Account", "Task", "Products"];
-                    const activeMods = userInfo.activeModules && userInfo.activeModules.length > 0 
-                      ? userInfo.activeModules 
+                    const activeMods = userInfo.activeModules && userInfo.activeModules.length > 0
+                      ? userInfo.activeModules
                       : defaultModules;
 
                     if ((category.name === "CRM" || category.name === "WORK") && !activeMods.includes(item.name)) {
                       return null;
                     }
                     return (
-                    <Link
-                      key={itemIdx}
-                      href={item.href}
-                      className={`nav-item ${pathname === item.href ? "active" : ""}`}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.6rem',
-                        textDecoration: 'none',
-                        justifyContent: isCollapsed ? 'center' : 'flex-start',
-                        padding: isCollapsed ? '0.5rem 0' : '0.4rem 1.25rem',
-                        margin: isCollapsed ? '0.15rem' : '0.15rem 0.75rem',
-                        fontSize: '0.85rem',
-                        fontWeight: '500',
-                        color: '#334155'
-                      }}
+                      <Link
+                        key={itemIdx}
+                        href={item.href}
+                        className={`nav-item ${pathname === item.href ? "active" : ""}`}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.6rem',
+                          textDecoration: 'none',
+                          justifyContent: isCollapsed ? 'center' : 'flex-start',
+                          padding: isCollapsed ? '0.5rem 0' : '0.4rem 1.25rem',
+                          margin: isCollapsed ? '0.15rem' : '0.15rem 0.75rem',
+                          fontSize: '0.85rem',
+                          fontWeight: '500',
+                          color: '#334155'
+                        }}
 
-                    >
-                      <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} title={item.name}>{item.icon}</span>
-                      {!isCollapsed && <span style={{ whiteSpace: 'nowrap' }}>{item.name}</span>}
-                    </Link>
+                      >
+                        <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} title={item.name}>{item.icon}</span>
+                        {!isCollapsed && <span style={{ whiteSpace: 'nowrap' }}>{item.name}</span>}
+                      </Link>
                     );
                   })}
                 </div>
@@ -215,7 +215,7 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, refresh
 
         <div style={{ marginTop: 'auto', padding: isCollapsed ? '1rem 0' : '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', borderTop: '1px solid #e5e7eb' }}>
           {userInfo?.canAccessSettings && (
-            <Link href="/settings" className={`nav-item ${pathname === "/settings" ? "active" : ""}`} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', textDecoration: 'none', justifyContent: isCollapsed ? 'center' : 'flex-start', padding: isCollapsed ? '0.5rem 0' : '0.4rem 1.25rem', margin: isCollapsed ? '0.15rem' : '0.15rem 0.75rem', fontSize: '0.85rem', fontWeight: '500', color: '#334155' }} title="Settings">
+            <Link href="/settings" className={`nav-item sidebar-settings-link ${pathname === "/settings" ? "active" : ""}`} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', textDecoration: 'none', justifyContent: isCollapsed ? 'center' : 'flex-start', padding: isCollapsed ? '0.5rem 0' : '0.4rem 1.25rem', margin: isCollapsed ? '0.15rem' : '0.15rem 0.75rem', fontSize: '0.85rem', fontWeight: '500', color: '#334155' }} title="Settings">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
               {!isCollapsed && <span style={{ whiteSpace: 'nowrap' }}>Settings</span>}
             </Link>

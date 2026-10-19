@@ -413,7 +413,7 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
 
               {/* Stepper Header */}
               {orderedSections.length > 1 && (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', padding: '0 1rem' }}>
+                <div className="stepper-header-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', padding: '0 0.5rem' }}>
                   {orderedSections.map((sec, idx) => (
                     <React.Fragment key={idx}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -423,7 +423,8 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
                           backgroundColor: idx < currentStep ? '#D4F870' : idx === currentStep ? '#111827' : '#ffffff',
                           color: idx < currentStep ? '#111827' : idx === currentStep ? '#ffffff' : '#94a3b8',
                           border: idx > currentStep ? '2px solid #e2e8f0' : 'none',
-                          boxShadow: idx === currentStep ? '0 4px 10px rgba(0,0,0,0.1)' : 'none'
+                          boxShadow: idx === currentStep ? '0 4px 10px rgba(0,0,0,0.1)' : 'none',
+                          flexShrink: 0
                         }}>
                           {idx < currentStep ? (
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
@@ -431,12 +432,12 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
                             idx + 1
                           )}
                         </div>
-                        <span style={{ fontSize: '0.9rem', fontWeight: idx === currentStep ? 600 : 500, color: idx <= currentStep ? '#111827' : '#94a3b8' }}>
+                        <span className={`stepper-label ${idx === currentStep ? 'active-step' : ''}`} style={{ fontSize: '0.9rem', fontWeight: idx === currentStep ? 600 : 500, color: idx <= currentStep ? '#111827' : '#94a3b8' }}>
                           {sec.name}
                         </span>
                       </div>
                       {idx < orderedSections.length - 1 && (
-                        <div style={{ flex: 1, height: '2px', backgroundColor: idx < currentStep ? '#D4F870' : '#e2e8f0', minWidth: '30px', margin: '0 1rem' }} />
+                        <div className="stepper-divider" style={{ flex: 1, height: '2px', backgroundColor: idx < currentStep ? '#D4F870' : '#e2e8f0', minWidth: '12px', margin: '0 0.5rem' }} />
                       )}
                     </React.Fragment>
                   ))}
