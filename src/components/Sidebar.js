@@ -129,6 +129,7 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, refresh
                     <Link
                       key={mod.id}
                       href={`/custom-module/${mod.id}`}
+                      onClick={() => setIsMobileMenuOpen && setIsMobileMenuOpen(false)}
                       className={`nav-item ${pathname === `/custom-module/${mod.id}` ? "active" : ""}`}
                       style={{
                         display: 'flex',
@@ -142,7 +143,6 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, refresh
                         fontWeight: '500',
                         color: '#334155'
                       }}
-
                       title={mod.name}
                     >
                       <DynamicLucideIcon name={mod.icon} />
@@ -187,6 +187,7 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, refresh
                       <Link
                         key={itemIdx}
                         href={item.href}
+                        onClick={() => setIsMobileMenuOpen && setIsMobileMenuOpen(false)}
                         className={`nav-item ${pathname === item.href ? "active" : ""}`}
                         style={{
                           display: 'flex',
@@ -200,7 +201,6 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, refresh
                           fontWeight: '500',
                           color: '#334155'
                         }}
-
                       >
                         <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} title={item.name}>{item.icon}</span>
                         {!isCollapsed && <span style={{ whiteSpace: 'nowrap' }}>{item.name}</span>}

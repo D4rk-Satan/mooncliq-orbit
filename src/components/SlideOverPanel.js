@@ -428,7 +428,7 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
       <div className={`modal-card ${isOpen ? 'open' : ''}`} style={{
         display: 'flex', flexDirection: 'column', backgroundColor: '#ffffff',
         width: '100%', maxWidth: '600px', right: isOpen ? '0' : '-100%',
-        top: 0, bottom: 0, height: '100vh', maxHeight: '100vh', borderRadius: '0',
+        top: 0, bottom: 0, height: '100dvh', maxHeight: '100dvh', borderRadius: '0',
         left: 'auto', transform: 'none', /* Override modal-card centering */
         boxShadow: '-4px 0 24px rgba(0,0,0,0.1)', zIndex: 995, position: 'fixed',
         transition: 'right 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
@@ -563,7 +563,7 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
           )}
         </div>
 
-        <div className="slide-footer" style={{ borderTop: '1px solid #e2e8f0', padding: '1.25rem 2rem', background: '#ffffff' }}>
+        <div className="slide-footer" style={{ borderTop: '1px solid #e2e8f0', padding: '1.25rem 2rem', background: '#ffffff', flexShrink: 0 }}>
           {availableTransitions.length === 0 ? (
             <p className="text-muted text-sm" style={{ width: '100%', textAlign: 'center', margin: 0 }}>No transitions available for this stage.</p>
           ) : (

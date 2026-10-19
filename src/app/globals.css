@@ -1322,6 +1322,12 @@ body {
     display: none !important;
   }
 
+  /* SlideOver Footer: always visible on Android/iOS above browser bottom bars */
+  .slide-footer {
+    padding: 0.75rem 1rem !important;
+    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
   .dashboard-sidebar {
     position: fixed !important;
     left: -100%;
