@@ -1322,6 +1322,31 @@ body {
     display: none !important;
   }
 
+  .dashboard-sidebar {
+    position: fixed !important;
+    left: -100%;
+    top: 0;
+    bottom: 0;
+    height: 100dvh !important;
+    /* Mobile dynamic viewport height */
+    z-index: 9999;
+    width: 260px !important;
+    transition: left 0.3s ease-in-out !important;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.1);
+    display: flex !important;
+    flex-direction: column !important;
+    overflow-y: auto !important;
+    /* Enable full vertical scroll on mobile */
+    -webkit-overflow-scrolling: touch;
+  }
+
+
+  /* Mobile: Hide View Mode Toggler (Enforce Pure Kanban UX) */
+  .view-mode-section,
+  div[title="View Mode"] {
+    display: none !important;
+  }
+
 
   /* Mobile Vertical Kanban Accordion */
   .kanban-board {

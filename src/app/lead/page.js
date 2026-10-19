@@ -91,10 +91,10 @@ export default function LeadModule() {
     return () => document.removeEventListener('click', handleGlobalClick);
   }, [activeCardMenuId]);
 
-  // Mobile par humesha List View dikhane ke liye
+  // Mobile par humesha clean Kanban Accordion view dikhane ke liye
   useEffect(() => {
     if (typeof window !== 'undefined' && window.innerWidth < 768) {
-      setViewMode('list');
+      setViewMode('kanban');
     }
   }, []);
 
@@ -1090,7 +1090,7 @@ export default function LeadModule() {
                 >
                   {/* Section 1: View Mode */}
                   {leads.length > 0 && (
-                    <div style={{ marginBottom: '4px' }}>
+                    <div className="view-mode-section" style={{ marginBottom: '4px' }}>
                       <div
                         onClick={(e) => { e.stopPropagation(); setOpenAccordion(openAccordion === 'view' ? null : 'view'); }}
                         style={{ padding: '0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#0f172a', textTransform: 'uppercase', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', backgroundColor: openAccordion === 'view' ? '#d9f99d' : 'transparent', borderRadius: '4px' }}

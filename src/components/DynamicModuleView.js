@@ -597,7 +597,7 @@ return (
 
               {/* Section 1: View Mode */}
               {supportKanban && (
-                <div style={{ marginBottom: '4px' }}>
+                <div className="view-mode-section" style={{ marginBottom: '4px' }}>
                   <div
                     onClick={(e) => { e.stopPropagation(); setOpenAccordion(openAccordion === 'view' ? null : 'view'); setIsManageColsMenuOpen(false); setIsSortMenuOpen(false); }}
                     style={{ padding: '0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#0f172a', textTransform: 'uppercase', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', backgroundColor: openAccordion === 'view' ? '#d9f99d' : 'transparent', borderRadius: '4px' }}
