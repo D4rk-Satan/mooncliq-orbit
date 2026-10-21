@@ -841,7 +841,7 @@ const SubformInput = ({ field, value, onChange, formData }) => {
 
       {/* Subform Grid Container */}
       <div style={{ border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden', backgroundColor: '#ffffff', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-        
+
         {/* Table Header Bar */}
         <div style={{ display: 'flex', alignItems: 'center', backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', padding: '0.65rem 1rem', gap: '0.75rem' }}>
           {columns.map(col => {
@@ -1095,6 +1095,154 @@ const AddressInput = ({ field, value, onChange, formData }) => {
 // -----------------------------------------------
 
 
+// --- GEOLOCATION / GPS CHECK-IN FIELD (Zero-Cost, Tamper-Proof) ---
+const GeolocationInput = ({ field, value, onChange }) => {
+  const [isCapturing, setIsCapturing] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+
+  let geoData = null;
+  try {
+    if (typeof value === 'string' && value.startsWith('{')) {
+      geoData = JSON.parse(value);
+    } else if (value && typeof value === 'object') {
+      geoData = value;
+    }
+  } catch (e) { }
+
+  const handleCapture = () => {
+    if (!navigator.geolocation) {
+      setErrorMsg("Aapke device/browser me GPS support nahi hai.");
+      return;
+    }
+
+    setIsCapturing(true);
+    setErrorMsg('');
+
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = Number(pos.coords.latitude.toFixed(6));
+        const lng = Number(pos.coords.longitude.toFixed(6));
+        const accuracy = Math.round(pos.coords.accuracy);
+        const timestamp = new Date().toISOString();
+
+        let address = `Coordinates: ${lat}, ${lng}`;
+
+        // Free OpenStreetMap Reverse Geocode (Fail-Safe)
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 3500); // 3.5s timeout
+
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`, {
+            signal: controller.signal,
+            headers: { 'Accept-Language': 'en' }
+          });
+          clearTimeout(timeoutId);
+          if (res.ok) {
+            const data = await res.json();
+            if (data?.display_name) address = data.display_name;
+          }
+        } catch (err) {
+          console.warn("Geocoding fallback to coordinates", err);
+        }
+
+        const resultObj = { lat, lng, accuracy, address, timestamp };
+        onChange(field.name, JSON.stringify(resultObj));
+        setIsCapturing(false);
+      },
+      (err) => {
+        setIsCapturing(false);
+        if (err.code === 1) {
+          setErrorMsg("Location permission denied. Please allow location access in your browser.");
+        } else if (err.code === 2) {
+          setErrorMsg("GPS signal weak ya unavailable hai.");
+        } else {
+          setErrorMsg("Location capture timeout ho gaya. Dubara koshish karein.");
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  };
+
+  return (
+    <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+      <label className="form-label" style={{ fontWeight: 600, fontSize: '0.875rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <span>📍 {field.label}</span>
+        {field.isRequired && <span style={{ color: '#ef4444' }}>*</span>}
+      </label>
+
+      {geoData ? (
+        <div style={{ backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', padding: '1rem', marginTop: '0.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ backgroundColor: '#22c55e', color: '#fff', borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 'bold' }}>✓</span>
+              <span style={{ fontWeight: 600, color: '#15803d', fontSize: '0.85rem' }}>Location Verified (±{geoData.accuracy}m)</span>
+            </div>
+            <a
+              href={`https://www.google.com/maps?q=${geoData.lat},${geoData.lng}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ fontSize: '0.8rem', color: '#2563eb', fontWeight: 600, textDecoration: 'underline' }}
+            >
+              View on Google Maps ↗
+            </a>
+          </div>
+
+          <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.85rem', color: '#334155', lineHeight: '1.4' }}>
+            {geoData.address}
+          </p>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.75rem', paddingTop: '0.5rem', borderTop: '1px solid #dcfce7', fontSize: '0.75rem', color: '#64748b' }}>
+            <span>Captured: {new Date(geoData.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+            <button
+              type="button"
+              onClick={handleCapture}
+              disabled={isCapturing}
+              style={{ background: 'none', border: 'none', color: '#0284c7', cursor: 'pointer', fontWeight: 600, padding: 0 }}
+            >
+              {isCapturing ? 'Updating...' : '🔄 Re-Capture GPS'}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div style={{ marginTop: '0.5rem' }}>
+          <button
+            type="button"
+            onClick={handleCapture}
+            disabled={isCapturing}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '0.5rem',
+              padding: '0.65rem 1.25rem', backgroundColor: '#0f172a',
+              color: '#ffffff', border: 'none', borderRadius: '8px',
+              fontSize: '0.85rem', fontWeight: 600, cursor: isCapturing ? 'wait' : 'pointer'
+            }}
+          >
+            {isCapturing ? (
+              <>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="animate-spin"><circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="16"></circle></svg>
+                Capturing Satellite GPS...
+              </>
+            ) : (
+              <>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                Check-in / Capture Location
+              </>
+            )}
+          </button>
+          {errorMsg && (
+            <div style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.5rem', fontWeight: 500 }}>
+              ⚠️ {errorMsg}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+
+
+
+
 // The Main Registry Mapping
 const registry = {
   text: TextInput,
@@ -1121,7 +1269,8 @@ const registry = {
   subform: SubformInput,
   decision: DecisionBoxInput,
   audio: AudioInput,
-  formula: FormulaInput
+  formula: FormulaInput,
+  geolocation: GeolocationInput
 
 };
 

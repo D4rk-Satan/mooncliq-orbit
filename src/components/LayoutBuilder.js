@@ -654,6 +654,7 @@ export default function LayoutBuilder({ selectedModule, onDirtyChange, shakeTrig
                         <option value="audio">Audio / Voice Note</option>
                         <option value="lookup">Lookup (Relationship)</option>
                         <option value="subform">Subform</option>
+                        <option value="geolocation">📍 Geolocation / GPS Check-in</option>
                       </select>
                     </div>
                     {(newField.type === 'select' || newField.type === 'radio') && (

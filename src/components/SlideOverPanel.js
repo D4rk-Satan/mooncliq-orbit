@@ -327,7 +327,22 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
                 <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#94a3b8', marginBottom: '0.5rem' }}>{field.label}</div>
                 {field.type?.toLowerCase() === 'audio' && value !== '-' ? (
                   <audio controls src={value} style={{ width: '100%', height: '40px' }} />
-                ) : (
+                ) : field.type?.toLowerCase() === 'geolocation' && value !== '-' ? (() => {
+                  let g = null;
+                  try { g = typeof value === 'string' ? JSON.parse(value) : value; } catch (e) { }
+                  if (!g || !g.lat) return <div>{String(value)}</div>;
+                  return (
+                    <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '0.75rem' }}>
+                      <div style={{ fontSize: '0.9rem', color: '#0f172a', fontWeight: 500 }}>{g.address}</div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem', fontSize: '0.75rem', color: '#64748b' }}>
+                        <span>GPS: {g.lat}, {g.lng} (±{g.accuracy}m)</span>
+                        <a href={`https://www.google.com/maps?q=${g.lat},${g.lng}`} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', fontWeight: 600, textDecoration: 'underline' }}>
+                          Open Map ↗
+                        </a>
+                      </div>
+                    </div>
+                  );
+                })() : (
                   <div style={{ fontSize: '1rem', color: '#0f172a', fontWeight: 500, wordBreak: 'break-word' }}>{value}</div>
                 )}
               </div>
