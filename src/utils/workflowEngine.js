@@ -13,8 +13,20 @@ export async function executeBackendWorkflows(organizationId, moduleType, record
     try {
         // Find all active workflows that match the current event
 
-        // 1. Task-Specific Direct Automation:
-        if (moduleType === 'Task' && recordData?.taskAutomation && recordData.taskAutomation !== 'None') {
+        // 1. Task-Specific Direct Automation (Only runs when task is ACTIVE, and never if moved/completed):
+        if (moduleType === 'Task' && recordData?.taskAutomation && recordData.taskAutomation !== 'None' && recordEvent === 'DueTimeReached') {
+            // Task ka latest status check karo database se (kya task move ho chuka hai?)
+            const currentTask = await prisma.task.findUnique({
+                where: { id: recordData.id },
+                include: { stage: true }
+            });
+
+            const stageName = currentTask?.stage?.name?.toLowerCase() || '';
+            if (!currentTask || stageName === 'completed' || stageName === 'overdue' || stageName === 'done') {
+                console.log(`[Workflow Engine] Task ${recordData.id} is already moved/closed (${stageName}). Skipping automation.`);
+                return;
+            }
+
             const specificWorkflow = await prisma.workflowRule.findFirst({
                 where: {
                     organizationId,
@@ -26,18 +38,22 @@ export async function executeBackendWorkflows(organizationId, moduleType, record
             if (specificWorkflow && specificWorkflow.code) {
                 console.log(`[Workflow Engine] Executing assigned Task Automation: ${specificWorkflow.name}`);
                 runScriptInLambda(specificWorkflow.code, {
-                    record: recordData,
+                    record: currentTask,
                     event: recordEvent,
                     taskAutomation: recordData.taskAutomation
                 }).catch(err => {
                     console.error(`[Workflow Engine] Error running assigned task automation ${specificWorkflow.name}:`, err);
                 });
             }
+            return; // Task automation execute hone ke baad general workflows trigger na hon
         }
 
 
 
+
         // We look for 'AfterSubmit' triggers specifically for backend automation
+        // CRITICAL: Jo scripts Task Automation ke dropdown me assign hoti hain, 
+        // wo generic record creation (Lead/Deal Created) par AUTOMATICALLY nahi chalni chahiye.
         const workflows = await prisma.workflowRule.findMany({
             where: {
                 organizationId,
@@ -53,10 +69,28 @@ export async function executeBackendWorkflows(organizationId, moduleType, record
 
         if (workflows.length === 0) return;
 
-        console.log(`[Workflow Engine] Found ${workflows.length} workflows for ${moduleType} -> ${recordEvent}`);
+        // Fetch all taskAutomation names currently designated for Tasks to prevent accidental trigger
+        const activeTaskAutomations = await prisma.task.findMany({
+            where: {
+                organizationId,
+                taskAutomation: { not: null }
+            },
+            select: { taskAutomation: true },
+            distinct: ['taskAutomation']
+        });
+        const taskAutomationNames = new Set(activeTaskAutomations.map(t => t.taskAutomation).filter(Boolean));
+
+        // Filter out workflows that are actually designated for Task dropdowns
+        const eligibleWorkflows = moduleType !== 'Task'
+            ? workflows.filter(w => !taskAutomationNames.has(w.name))
+            : workflows;
+
+        if (eligibleWorkflows.length === 0) return;
+
+        console.log(`[Workflow Engine] Found ${eligibleWorkflows.length} general workflows for ${moduleType} -> ${recordEvent}`);
 
         // Execute them asynchronously so we don't block the API response
-        workflows.forEach(async (workflow) => {
+        eligibleWorkflows.forEach(async (workflow) => {
             try {
                 console.log(`[Workflow Engine] Executing: ${workflow.name}`);
 

@@ -184,6 +184,7 @@ export default function AccountPage() {
                   </button>
                 ) : null
               )}
+              currentUser={currentUser}
               onDeleteClick={hasPermission(currentUser, 'Account', 'delete') ? handleDeleteAccount : null}
             />
           )}

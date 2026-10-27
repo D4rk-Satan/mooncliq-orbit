@@ -57,12 +57,25 @@ export async function POST(request) {
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       try {
-        // Extract standard fields
-        const firstName = row.firstName || row['First Name'] || `Lead ${i + 1}`;
-        const lastName = row.lastName || row['Last Name'] || '';
+        // Extract standard fields & handle fullName
+        let firstName = row.firstName || row['First Name'] || '';
+        let lastName = row.lastName || row['Last Name'] || '';
+
+        if (!firstName && (row.fullName || row['Full Name'] || row.name || row.Name)) {
+          const rawName = String(row.fullName || row['Full Name'] || row.name || row.Name).trim();
+          const parts = rawName.split(/\s+/);
+          firstName = parts[0] || `Lead ${i + 1}`;
+          lastName = parts.slice(1).join(' ') || '';
+        }
+
+        if (!firstName) firstName = `Lead ${i + 1}`;
+
         const email = row.email || row.Email || '';
         const phone = row.phone || row.Phone || '';
-        const owner = row.owner || row.Owner || user.email;
+        const defaultOwner = user.profile?.nickname || user.name || user.email;
+        const owner = row.owner || row.Owner || defaultOwner;
+        const fullName = `${firstName} ${lastName}`.trim();
+        const companyName = row.companyName || row.company || row['Company Name'] || '';
 
         // Group everything else into customData
         const customData = {};
@@ -70,6 +83,8 @@ export async function POST(request) {
           if (!standardFields.includes(key) && 
               key !== 'First Name' && key !== 'Last Name' && 
               key !== 'Email' && key !== 'Phone' && key !== 'Owner' &&
+              key !== 'fullName' && key !== 'Full Name' &&
+              key !== 'companyName' && key !== 'Company Name' && key !== 'company' &&
               key !== 'id' && key !== 'createdAt' && key !== 'stage') {
             
             // Remove 'custom_' prefix if it came from our export
@@ -83,6 +98,8 @@ export async function POST(request) {
             organizationId: user.organizationId,
             blueprintId: blueprint.id,
             stageId: initialStage.id,
+            fullName,
+            companyName,
             firstName,
             lastName,
             email,

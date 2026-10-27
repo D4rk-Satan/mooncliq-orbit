@@ -234,6 +234,7 @@ export default function CustomModulePage() {
             </Button>
           ) : null
         )}
+        currentUser={userInfo}
         onDeleteClick={hasPermission(userInfo, moduleDef.name, 'delete') ? handleDeleteRecord : null}
       />
 

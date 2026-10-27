@@ -14,6 +14,11 @@ import { useLeads } from "../../hooks/useLeads";
 import { useConfirm } from "../../contexts/ConfirmContext";
 import GlobalLoader from "../../components/ui/GlobalLoader";
 import { hasPermission, canExport } from "../../lib/permissions";
+import ImportModal from "../../components/ImportModal";
+import ExportModal from "../../components/ExportModal";
+import NotificationBell from "../../components/NotificationBell";
+
+
 
 const getColumnColor = (color) => color || "#e2e8f0";
 
@@ -71,7 +76,9 @@ export default function LeadModule() {
   const [selectedLeadIds, setSelectedLeadIds] = useState([]);
   const [isBulkTagPickerOpen, setIsBulkTagPickerOpen] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [openAccordion, setOpenAccordion] = useState(null);
   // ListView Filter State
   const [activeFilters, setActiveFilters] = useState([]);
@@ -225,6 +232,11 @@ export default function LeadModule() {
       });
       const savedLead = await res.json();
       setLeads((prev) => [savedLead, ...prev]);
+
+      // Instant In-App Bell Refresh
+      setTimeout(() => {
+        window.dispatchEvent(new Event("orbit-refresh-notifications"));
+      }, 500);
     } catch (err) {
       console.error("Failed to save lead", err);
     }
@@ -695,8 +707,8 @@ export default function LeadModule() {
                                     e.stopPropagation();
                                     setActiveCardMenuId(null);
                                     showConfirm({
-                                      title: "Delete Record", 
-                                      message: "Are you sure you want to permanently delete this record?", 
+                                      title: "Delete Record",
+                                      message: "Are you sure you want to permanently delete this record?",
                                       onConfirm: () => handleDeleteLead(lead)
                                     });
                                   }}
@@ -1060,11 +1072,11 @@ export default function LeadModule() {
                 <Button variant="primary" onClick={() => setIsFormOpen(true)}>
                   + Add Lead
                 </Button>
-
-
-
               </>
             )}
+
+            {/* 🔔 Notification Bell */}
+            <NotificationBell />
 
             <div style={{ position: 'relative' }} ref={menuRef}>
               <button
@@ -1206,17 +1218,17 @@ export default function LeadModule() {
                             {hasPermission(currentUser, 'Lead', 'create') && (
                               <button
                                 style={{ display: 'block', width: '100%', textAlign: 'left', padding: '0.5rem', borderRadius: '4px', backgroundColor: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.85rem' }}
-                                onClick={() => { fileInputRef.current?.click(); setIsMenuOpen(false); }}
-                                disabled={isImporting}
+                                onClick={() => { setIsImportModalOpen(true); setIsMenuOpen(false); }}
                               >
-                                {isImporting ? 'Importing...' : 'Import Leads'}
+                                Import Leads
                               </button>
                             )}
 
                             {canExport(currentUser) && (
                               <button
                                 style={{ display: 'block', width: '100%', textAlign: 'left', padding: '0.5rem', borderRadius: '4px', backgroundColor: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.85rem' }}
-                                onClick={() => { handleExport(); setIsMenuOpen(false); }}
+                                onClick={() => { setIsExportModalOpen(true); setIsMenuOpen(false); }}
+
                               >
                                 Export Leads
                               </button>
@@ -1447,6 +1459,22 @@ export default function LeadModule() {
             setSelectedLead(updatedEntity);
           }
         }}
+      />
+
+      <ImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        moduleName="Lead"
+        blueprint={blueprint}
+        onImportSuccess={() => fetchOnlyLeads()}
+      />
+
+
+      <ExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        moduleName="Lead"
+        blueprint={blueprint}
       />
     </>
   );

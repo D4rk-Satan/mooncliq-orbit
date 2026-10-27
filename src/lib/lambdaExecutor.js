@@ -1,5 +1,7 @@
 import { LambdaClient, InvokeCommand } from "@aws-sdk/client-lambda";
 import vm from 'vm';
+import prisma from './prisma';
+import { orbitSdkSource } from './orbitSdk';
 
 let lambdaClient = null;
 try {
@@ -14,70 +16,7 @@ try {
   console.warn("Could not initialize LambdaClient. Proceeding with local fallback.", e);
 }
 
-const sdkCode = `
-const orbit = {
-  async getRecord(moduleType, id) {
-    const res = await fetch(\`\${context.apiUrl}/api/records?moduleType=\${moduleType}&id=\${id}\`, {
-      headers: { Authorization: \`Bearer \${context.token}\` }
-    });
-    if (!res.ok) throw new Error('Failed to get record');
-    return res.json();
-  },
-  async createRecord(moduleType, data) {
-    const res = await fetch(\`\${context.apiUrl}/api/records?moduleType=\${moduleType}\`, {
-      method: 'POST',
-      headers: { Authorization: \`Bearer \${context.token}\`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) throw new Error('Failed to create record');
-    return res.json();
-  },
-  async updateRecord(moduleType, id, data) {
-    const res = await fetch(\`\${context.apiUrl}/api/records?moduleType=\${moduleType}&id=\${id}\`, {
-      method: 'PUT',
-      headers: { Authorization: \`Bearer \${context.token}\`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) throw new Error('Failed to update record');
-    return res.json();
-  },
-  async deleteRecord(moduleType, id) {
-    const res = await fetch(\`\${context.apiUrl}/api/records?moduleType=\${moduleType}&id=\${id}\`, {
-      method: 'DELETE',
-      headers: { Authorization: \`Bearer \${context.token}\` }
-    });
-    if (!res.ok) throw new Error('Failed to delete record');
-    return true;
-  },
-  async sendEmail(to, subject, body) {
-    const res = await fetch(\`\${context.apiUrl}/api/email/send\`, {
-      method: 'POST',
-      headers: { Authorization: \`Bearer \${context.token}\`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ to, subject, body })
-    });
-    if (!res.ok) throw new Error('Failed to send email');
-    return res.json();
-  },
-  async aggregateRecords(moduleType, filters, operation, field) {
-    const res = await fetch(\`\${context.apiUrl}/api/records/aggregate?moduleType=\${moduleType}&operation=\${operation}&field=\${field}\`, {
-      method: 'POST',
-      headers: { Authorization: \`Bearer \${context.token}\`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(filters)
-    });
-    if (!res.ok) throw new Error('Failed to aggregate records');
-    return res.json();
-  },
-  async addNote(moduleType, recordId, content) {
-    const res = await fetch(\`\${context.apiUrl}/api/notes\`, {
-      method: 'POST',
-      headers: { Authorization: \`Bearer \${context.token}\`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ moduleType, recordId, content })
-    });
-    if (!res.ok) throw new Error('Failed to add note');
-    return res.json();
-  }
-};
-`;
+const sdkCode = orbitSdkSource;
 
 /**
  * Executes a custom script securely in the AWS Lambda Sandbox or Local VM.
@@ -103,6 +42,7 @@ export async function runScriptInLambda(code, context) {
         context,
         console,
         fetch,
+        prisma,
       };
       vm.createContext(sandbox);
       const result = await vm.runInContext(scriptStr, sandbox);

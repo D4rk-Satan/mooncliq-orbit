@@ -4,6 +4,7 @@ import { getAuthUser } from '../../../lib/auth';
 import { executeBiDirectionalSync } from '../../../lib/syncLookups';
 import { executeBackendWorkflows } from '../../../utils/workflowEngine';
 import { withPermission } from '../../../lib/rbac';
+import { scheduleTaskDueCheck } from '../../../lib/delayScheduler';
 
 export const POST = withPermission('Task', 'create', async (request, user) => {
   try {
@@ -71,6 +72,9 @@ export const POST = withPermission('Task', 'create', async (request, user) => {
 
     // Execute Backend Workflows (Async)
     executeBackendWorkflows(user.organizationId, 'Task', 'Created', task);
+
+    // Lock Exact-Time Delay Trigger for Due Date
+    scheduleTaskDueCheck(task);
 
     return NextResponse.json(task);
   } catch (error) {
@@ -154,6 +158,9 @@ export const PATCH = withPermission('Task', 'edit', async (request, user) => {
     if (typeof executeBackendWorkflows === "function") {
       executeBackendWorkflows(user.organizationId, 'Task', 'Edited', updatedTask);
     }
+
+    // Re-lock Exact-Time Delay Trigger if Due Date was changed or updated
+    scheduleTaskDueCheck(updatedTask);
 
     return NextResponse.json(updatedTask);
   } catch (error) {

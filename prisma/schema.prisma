@@ -37,6 +37,7 @@ model Organization {
   workflowRules         WorkflowRule[]
   customModules         CustomModule[]
   customRecords         CustomRecord[]
+  notification          Notification[]
 }
 
 model Profile {
@@ -460,4 +461,20 @@ model CustomRecord {
   blueprint        Blueprint    @relation(fields: [blueprintId], references: [id], onDelete: Cascade)
   stage            Stage        @relation(fields: [stageId], references: [id], onDelete: Cascade)
   organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+model Notification {
+  id             String       @id @default(uuid())
+  organizationId String
+  userEmail      String       // Target user email (or '@all' for team alerts)
+  title          String
+  message        String
+  type           String       @default("info") // 'urgent', 'success', 'warning', 'info'
+  actionUrl      String?      // Optional click redirection link
+  isRead         Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, userEmail, isRead])
+  @@index([createdAt])
 }

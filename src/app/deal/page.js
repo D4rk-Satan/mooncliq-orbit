@@ -272,6 +272,7 @@ export default function DealModule() {
                   </button>
                 ) : null
               )}
+              currentUser={currentUser}
               onDeleteClick={hasPermission(currentUser, 'Deal', 'delete') ? handleDeleteDeal : null}
             />
           )}

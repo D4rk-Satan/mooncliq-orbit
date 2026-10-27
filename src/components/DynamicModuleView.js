@@ -5,6 +5,11 @@ import Badge from "./ui/Badge";
 import Button from "./ui/Button";
 import EmptyState from "./ui/EmptyState";
 import { useConfirm } from "../contexts/ConfirmContext";
+import ImportModal from "./ImportModal";
+import ExportModal from "./ExportModal";
+import { hasPermission, canExport } from "../lib/permissions";
+import NotificationBell from './NotificationBell';
+
 
 const getColumnColor = (color) => color || "#e2e8f0";
 
@@ -89,6 +94,8 @@ export default function DynamicModuleView({
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [openAccordion, setOpenAccordion] = useState(null);
   const [openMobileStageId, setOpenMobileStageId] = useState(null);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   const [activeCardMenuId, setActiveCardMenuId] = useState(null);
   const menuRef = useRef(null);
@@ -322,401 +329,460 @@ export default function DynamicModuleView({
               </div>
 
               <div className="kanban-cards" style={{ backgroundColor: col.stage.color ? `${col.stage.color.substring(0, 7)}15` : '#f8fafc', borderRadius: '16px', padding: '0.75rem', minHeight: '300px', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {col.records.map(record => {
-              const title = record.taskName || record.fullName || record.customData?.companyName || record.name || (record.firstName ? `${record.firstName} ${record.lastName || ''}`.trim() : 'Unknown Record');
+                {col.records.map(record => {
+                  const title = record.taskName || record.fullName || record.customData?.companyName || record.name || (record.firstName ? `${record.firstName} ${record.lastName || ''}`.trim() : 'Unknown Record');
 
-              const subtitle = record.customData?.industry || record.email || moduleName;
-              let recordTags = [];
-              try { recordTags = Array.isArray(record.tags) ? record.tags : JSON.parse(record.tags || "[]"); } catch (e) { }
+                  const subtitle = record.customData?.industry || record.email || moduleName;
+                  let recordTags = [];
+                  try { recordTags = Array.isArray(record.tags) ? record.tags : JSON.parse(record.tags || "[]"); } catch (e) { }
 
-              const dateOptions = { day: 'numeric', month: 'short' };
-              const formattedDate = record.createdAt ? new Date(record.createdAt).toLocaleDateString('en-US', dateOptions) : 'No due date';
-              const callCount = Math.floor(Math.random() * 4) + 1;
-              const attachCount = Math.floor(Math.random() * 3) + 1;
+                  const dateOptions = { day: 'numeric', month: 'short' };
+                  const formattedDate = record.createdAt ? new Date(record.createdAt).toLocaleDateString('en-US', dateOptions) : 'No due date';
+                  const callCount = Math.floor(Math.random() * 4) + 1;
+                  const attachCount = Math.floor(Math.random() * 3) + 1;
 
-              return (
-                <div
-                  key={record.id}
-                  className={`kanban-card ${selectedRecordIds.includes(record.id) ? 'selected' : ''}`}
-                  onClick={() => onRecordClick && onRecordClick(record)}
-                  draggable="true"
-                  onDragStart={(e) => e.dataTransfer.setData("recordId", record.id)}
-                  style={{ border: selectedRecordIds.includes(record.id) ? '2px solid var(--primary)' : '1px solid transparent', backgroundColor: '#ffffff', borderRadius: '16px', padding: '1rem', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}
-                >
-                  <div className="card-header-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
-                      <input type="checkbox" checked={selectedRecordIds.includes(record.id)} onChange={(e) => toggleRecordSelection(record.id, e)} onClick={(e) => e.stopPropagation()} style={{ marginTop: '6px' }} />
-                      <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <h4 style={{ margin: 0, fontSize: '0.95rem', color: '#111827', fontWeight: 600 }}>{title}</h4>
-                        <span style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '2px' }}>{subtitle}</span>
+                  return (
+                    <div
+                      key={record.id}
+                      className={`kanban-card ${selectedRecordIds.includes(record.id) ? 'selected' : ''}`}
+                      onClick={() => onRecordClick && onRecordClick(record)}
+                      draggable="true"
+                      onDragStart={(e) => e.dataTransfer.setData("recordId", record.id)}
+                      style={{ border: selectedRecordIds.includes(record.id) ? '2px solid var(--primary)' : '1px solid transparent', backgroundColor: '#ffffff', borderRadius: '16px', padding: '1rem', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}
+                    >
+                      <div className="card-header-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
+                          <input type="checkbox" checked={selectedRecordIds.includes(record.id)} onChange={(e) => toggleRecordSelection(record.id, e)} onClick={(e) => e.stopPropagation()} style={{ marginTop: '6px' }} />
+                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <h4 style={{ margin: 0, fontSize: '0.95rem', color: '#111827', fontWeight: 600 }}>{title}</h4>
+                            <span style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '2px' }}>{subtitle}</span>
+                          </div>
+                        </div>
+
+                        <div style={{ position: 'relative' }}>
+                          <button className="card-menu-btn" onClick={(e) => { e.stopPropagation(); setActiveCardMenuId(activeCardMenuId === record.id ? null : record.id); }}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
+                          </button>
+                          {activeCardMenuId === record.id && (
+                            <div style={{ position: 'absolute', right: 0, top: '100%', backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', zIndex: 50, padding: '0.25rem' }} onClick={(e) => e.stopPropagation()}>
+                              <button onClick={(e) => { e.stopPropagation(); setActiveCardMenuId(null); onEditClick && onEditClick(record); }} style={{ width: '100%', padding: '0.5rem 0.75rem', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.85rem' }}>Edit</button>
+                              {onDeleteClick && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveCardMenuId(null);
+                                    showConfirm({
+                                      title: "Delete Record",
+                                      message: `Are you sure you want to permanently delete this record?`,
+                                      onConfirm: () => onDeleteClick(record)
+                                    });
+                                  }}
+                                  style={{ width: '100%', padding: '0.5rem 0.75rem', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.85rem', color: '#ef4444' }}
+                                >
+                                  Delete
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="card-footer-bottom" style={{ marginTop: '1rem', paddingTop: '0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div className="date-badge" style={{ backgroundColor: '#f1f5f9', color: '#64748b', padding: '0.25rem 0.6rem', borderRadius: '8px', border: 'none', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem', fontWeight: 500 }}>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                          {formattedDate}
+                        </div>
+
+                        {recordTags.length > 0 && (
+                          <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
+                            <Badge color={recordTags[0].color}>
+                              {recordTags[0].name}
+                            </Badge>
+                            {recordTags.length > 1 && (
+                              <Badge backgroundColor="#e2e8f0" textColor="#64748b">
+                                +{recordTags.length - 1}
+                              </Badge>
+                            )}
+                          </div>
+                        )}
+
+                        <div className="card-icons" style={{ display: 'flex', gap: '0.75rem', color: '#94a3b8' }}>
+                          <div className="card-icon-item" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem' }}>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                            <span>{callCount}</span>
+                          </div>
+                          <div className="card-icon-item">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+                            <span>{attachCount}</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })
+        }
+      </div >
+    );
+  };
 
-                    <div style={{ position: 'relative' }}>
-                      <button className="card-menu-btn" onClick={(e) => { e.stopPropagation(); setActiveCardMenuId(activeCardMenuId === record.id ? null : record.id); }}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
+  const renderListView = () => {
+    const getInitials = (name) => (name || '').split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) || '?';
+    const renderCellContent = (record, colName) => {
+      let cData = {};
+      try { cData = typeof record.customData === 'string' ? JSON.parse(record.customData) : (record.customData || {}); } catch (e) { }
+
+      let val = '';
+      const standardFields = ['id', 'name', 'firstName', 'lastName', 'email', 'phone', 'owner', 'stage', 'createdAt', 'updatedAt'];
+
+      if (colName === 'firstName' || colName === 'fullName') {
+        val = record.fullName ? record.fullName : `${record.firstName || ''} ${record.lastName || ''}`.trim();
+        if (!val) val = '-';
+      }
+
+      else if (colName === 'name') val = record.name;
+      else if (colName === 'companyName') val = cData.companyName || '-';
+      else if (colName === 'owner') return record.owner ? <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#818cf8', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 600 }}>{getInitials(record.owner)}</div> : <span>-</span>;
+      else if (colName === 'stage') return <div style={{ padding: '4px 12px', borderRadius: '20px', backgroundColor: record.stage?.color || '#3b82f6', color: '#ffffff', fontSize: '0.75rem', fontWeight: 600, display: 'inline-block' }}>{record.stage?.name || 'Unknown'}</div>;
+      else if (colName === 'status') {
+        const isActive = record.status === 'Active' || cData.status === 'Active';
+        return (
+          <button
+            onClick={async (e) => {
+              e.stopPropagation();
+              const newStatus = isActive ? 'In-Active' : 'Active';
+              try {
+                const res = await fetch('/api/products', {
+                  method: 'PATCH',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ productId: record.id, status: newStatus })
+                });
+                if (res.ok) {
+                  window.location.reload(); // Update hone ke baad table refresh kar dega
+                }
+              } catch (err) {
+                console.error("Status Update Error:", err);
+              }
+            }}
+
+            style={{ padding: '4px 12px', borderRadius: '20px', backgroundColor: isActive ? '#a7f3d0' : '#fca5a5', color: isActive ? '#065f46' : '#991b1b', fontSize: '0.75rem', fontWeight: 600, border: 'none', cursor: 'pointer' }}>
+            {isActive ? 'Active' : 'In-Active'}
+          </button>
+        );
+      }
+
+      else if (colName === 'createdAt' || colName === 'updatedAt') val = new Date(record[colName]).toLocaleDateString('en-GB');
+      else if (standardFields.includes(colName)) val = record[colName] || '-';
+      else val = cData[colName] || '-';
+
+      const blueprintField = (blueprint?.fields || []).find(f => f.name === colName);
+      if (blueprintField?.type?.toLowerCase() === 'audio' && val && val !== '-') {
+        return <div onClick={(e) => e.stopPropagation()}><audio controls src={val} style={{ width: '160px', height: '32px' }} /></div>;
+      }
+
+      return <div style={{ maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={val}>{val}</div>;
+    };
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, backgroundColor: 'transparent', padding: '1.5rem', overflow: 'hidden' }}>
+        <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+          <div style={{ overflowY: 'auto', flex: 1 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+              <thead style={{ position: 'sticky', top: 0, backgroundColor: '#ffffff', zIndex: 10 }}>
+                <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                  <th style={{ padding: "0.75rem 1rem", width: "40px", textAlign: "center" }}>
+                    <input type="checkbox" checked={filteredRecords.length > 0 && selectedRecordIds.length === filteredRecords.length} onChange={selectAllRecords} />
+                  </th>
+                  {visibleColumns.map((colName, idx) => (
+                    <th key={colName + idx} draggable onDragStart={(e) => handleDragStartCol(e, idx)} onDragOver={(e) => e.preventDefault()} onDrop={(e) => handleDropCol(e, idx)} style={{ padding: "0.75rem 1rem", fontSize: "0.75rem", fontWeight: 600, color: "#64748b", cursor: "grab" }}>
+                      {getFieldInfo(colName)}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filteredRecords.map((record) => (
+                  <tr key={record.id} style={{ borderBottom: '1px solid #f1f5f9', cursor: 'pointer', background: selectedRecordIds.includes(record.id) ? '#f8fafc' : 'transparent' }} onClick={() => onRecordClick && onRecordClick(record)}>
+                    <td style={{ padding: '1rem', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+                      <input type="checkbox" checked={selectedRecordIds.includes(record.id)} onChange={(e) => toggleRecordSelection(record.id, e)} />
+                    </td>
+                    {visibleColumns.map((colName, idx) => (
+                      <td key={colName + idx} style={{ padding: "0.75rem 1rem", fontSize: "0.9rem" }}>{renderCellContent(record, colName)}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {/* Footer Pagination (Added here) */}
+          <div style={{ padding: '1rem', borderTop: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#ffffff' }}>
+            <div style={{ color: '#64748b', fontSize: '0.85rem' }}>
+              Showing 1-{filteredRecords.length} of {records.length}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <button style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e2e8f0', borderRadius: '8px', background: '#fff', cursor: 'pointer', color: '#64748b' }}>
+                {/* Left Arrow SVG */}
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+              </button>
+              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#0f172a', margin: '0 0.5rem' }}>1 / 1</span>
+              <button style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e2e8f0', borderRadius: '8px', background: '#fff', cursor: 'pointer', color: '#64748b' }}>
+                {/* Right Arrow SVG */}
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', flex: 1 }}>
+      {/* Mini Header Inside the Component for Filters and Search */}
+      <div className="module-view-header" style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem 1.5rem', backgroundColor: 'transparent', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+
+        {/* 1. LEFT SIDE: Title */}
+        <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 'bold', color: '#0f172a' }}>{moduleName}s</h1>
+
+        {/* 2. CENTER: Unified Search & Filter (Leads Style) */}
+        <div style={{ display: 'flex', flex: '1 1 auto', justifyContent: 'center', minWidth: '220px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)', position: 'relative', width: '100%', maxWidth: '380px' }}>
+            <svg style={{ marginLeft: '12px', color: '#94a3b8' }} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+
+            <input type="text" placeholder={`type 3 characters to search...`} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} style={{ flex: 1, padding: '8px 12px', border: 'none', outline: 'none', fontSize: '0.9rem', backgroundColor: 'transparent' }} />
+
+            <div style={{ width: '1px', height: '24px', backgroundColor: '#e2e8f0' }}></div>
+
+            <div style={{ position: 'relative' }} ref={filterBuilderRef}>
+              <button onClick={() => setIsFilterBuilderOpen(!isFilterBuilderOpen)} style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: isFilterBuilderOpen ? '#d9f99d' : 'transparent', border: 'none', borderRadius: '0 8px 8px 0', cursor: 'pointer', color: isFilterBuilderOpen ? '#0f172a' : '#64748b', fontWeight: 500, fontSize: '0.85rem', transition: 'all 0.15s' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+                Filter
+              </button>
+
+              {isFilterBuilderOpen && (
+                <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: '8px', width: '320px', backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', zIndex: 50, padding: '1rem' }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '12px' }}>Add Filter</div>
+                  <CustomDropdown value={fbField} placeholder="Select Field..." onChange={(val) => { setFbField(val); setFbValue(''); setFbOperator('contains'); }} options={[{ value: 'stage', label: 'Stage' }, ...(blueprint?.fields || []).map(f => ({ value: f.name, label: f.label }))]} />
+                  {fbField && <CustomDropdown value={fbOperator} placeholder="Select Operator..." onChange={(val) => setFbOperator(val)} options={[{ value: 'contains', label: 'Contains' }, { value: 'is', label: 'Is' }]} />}
+                  {fbField && <input type="text" placeholder="Value..." value={fbValue} onChange={(e) => setFbValue(e.target.value)} style={{ width: '100%', padding: '8px', marginTop: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', outline: 'none' }} />}
+                  <button onClick={addFilter} style={{ marginTop: '8px', padding: '8px', width: '100%', backgroundColor: '#d9f99d', borderRadius: '6px', cursor: 'pointer', border: 'none', fontWeight: 600 }}>Apply Filter</button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* 3. RIGHT SIDE: Action Buttons & Toggles */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', justifyContent: 'flex-end' }}>
+
+          {/* Ye Add Deal button wapas laayega */}
+          {renderHeaderActions && renderHeaderActions()}
+
+          {/* 🔔 Notification Bell */}
+          <NotificationBell />
+
+
+          {/* 3-Dot Menu Dropdown (Exact Leads Style) */}
+          <div style={{ position: 'relative' }} ref={menuRef}>
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              style={{ padding: '0.5rem', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="1"></circle>
+                <circle cx="12" cy="5" r="1"></circle>
+                <circle cx="12" cy="19" r="1"></circle>
+              </svg>
+            </button>
+
+            {isMenuOpen && (
+              <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: '0.5rem', backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', minWidth: '180px', zIndex: 50, padding: '0.5rem' }}>
+
+                {/* Section 1: View Mode */}
+                {supportKanban && (
+                  <div className="view-mode-section" style={{ marginBottom: '4px' }}>
+                    <div
+                      onClick={(e) => { e.stopPropagation(); setOpenAccordion(openAccordion === 'view' ? null : 'view'); setIsManageColsMenuOpen(false); setIsSortMenuOpen(false); }}
+                      style={{ padding: '0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#0f172a', textTransform: 'uppercase', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', backgroundColor: openAccordion === 'view' ? '#d9f99d' : 'transparent', borderRadius: '4px' }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#d9f99d'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = openAccordion === 'view' ? '#d9f99d' : 'transparent'}
+                    >
+                      <span>View Mode</span>
+                    </div>
+
+                    {openAccordion === 'view' && (
+                      <div style={{ paddingLeft: '0.5rem', marginTop: '4px', borderLeft: '2px solid #e2e8f0', marginLeft: '6px' }}>
+                        <button
+                          style={{ display: 'block', width: '100%', textAlign: 'left', padding: '0.5rem', borderRadius: '4px', backgroundColor: viewMode === 'kanban' ? '#d9f99d' : 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.85rem' }}
+                          onClick={() => { setViewMode('kanban'); setIsMenuOpen(false); }}
+                        >
+                          Kanban Board
+                        </button>
+                        <button
+                          style={{ display: 'block', width: '100%', textAlign: 'left', padding: '0.5rem', borderRadius: '4px', backgroundColor: viewMode === 'list' ? '#d9f99d' : 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.85rem' }}
+                          onClick={() => { setViewMode('list'); setIsMenuOpen(false); }}
+                        >
+                          List View
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {supportKanban && <div style={{ height: '1px', backgroundColor: '#e2e8f0', margin: '0.5rem 0' }}></div>}
+
+                {/* Section 2: Manage Data */}
+                <div style={{ marginBottom: '4px' }}>
+                  <div
+                    onClick={(e) => { e.stopPropagation(); setOpenAccordion(openAccordion === 'data' ? null : 'data'); setIsManageColsMenuOpen(false); setIsSortMenuOpen(false); }}
+                    style={{ padding: '0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#0f172a', textTransform: 'uppercase', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', backgroundColor: openAccordion === 'data' ? '#d9f99d' : 'transparent', borderRadius: '4px' }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#d9f99d'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = openAccordion === 'data' ? '#d9f99d' : 'transparent'}
+                  >
+                    <span>Manage Data</span>
+                  </div>
+
+                  {openAccordion === 'data' && (
+                    <div style={{ paddingLeft: '0.5rem', marginTop: '4px', borderLeft: '2px solid #e2e8f0', marginLeft: '6px', position: 'relative' }}>
+                      {viewMode === 'list' && (
+                        <>
+                          <button
+                            style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', textAlign: 'left', padding: '0.5rem', borderRadius: '4px', backgroundColor: isManageColsMenuOpen ? '#f1f5f9' : 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.85rem' }}
+                            onClick={(e) => { e.stopPropagation(); setIsManageColsMenuOpen(!isManageColsMenuOpen); setIsSortMenuOpen(false); }}
+                          >
+                            Columns
+                          </button>
+
+                          {/* Manage Columns Popup */}
+                          {isManageColsMenuOpen && (
+                            <div style={{ position: 'absolute', right: '100%', top: '0', marginRight: '8px', padding: '0.5rem', maxHeight: '350px', width: '280px', overflowY: 'auto', backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', zIndex: 60 }}>
+                              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', marginBottom: '0.5rem' }}>VISIBLE COLUMNS ({visibleColumns.length}/7)</div>
+                              {[{ name: 'createdAt', label: 'Created Date' }, { name: 'firstName', label: 'First Name' }, { name: 'companyName', label: 'Company' }, ...(blueprint?.fields || [])].reduce((acc, curr) => { if (!acc.find(i => i.name === curr.name)) acc.push(curr); return acc; }, []).map((field, idx) => {
+                                const isSelected = visibleColumns.includes(field.name);
+                                return (
+                                  <div key={field.name + idx} onClick={(e) => { e.stopPropagation(); handleColToggle(field.name); }} style={{ display: 'flex', alignItems: 'center', padding: '8px', fontSize: '0.85rem', cursor: 'pointer', backgroundColor: isSelected ? '#d9f99d' : 'transparent', borderRadius: '6px', marginBottom: '2px' }}>
+                                    {field.label}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </>
+                      )}
+
+                      <button
+                        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', textAlign: 'left', padding: '0.5rem', borderRadius: '4px', backgroundColor: isSortMenuOpen ? '#f1f5f9' : 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.85rem' }}
+                        onClick={(e) => { e.stopPropagation(); setIsSortMenuOpen(!isSortMenuOpen); setIsManageColsMenuOpen(false); }}
+                      >
+                        Sort Data
                       </button>
-                      {activeCardMenuId === record.id && (
-                        <div style={{ position: 'absolute', right: 0, top: '100%', backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', zIndex: 50, padding: '0.25rem' }} onClick={(e) => e.stopPropagation()}>
-                          <button onClick={(e) => { e.stopPropagation(); setActiveCardMenuId(null); onEditClick && onEditClick(record); }} style={{ width: '100%', padding: '0.5rem 0.75rem', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.85rem' }}>Edit</button>
-                          {onDeleteClick && (
+
+                      {/* Sort Data Popup */}
+                      {isSortMenuOpen && (
+                        <div style={{ position: 'absolute', right: '100%', top: '32px', marginRight: '8px', padding: '0.5rem', maxHeight: '350px', width: '280px', overflowY: 'auto', backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', zIndex: 60 }}>
+                          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', marginBottom: '0.5rem' }}>SORT FIELDS</div>
+                          {[{ name: 'createdAt', label: 'Created Date' }, { name: 'firstName', label: 'First Name' }, { name: 'companyName', label: 'Company' }, ...(blueprint?.fields || [])].reduce((acc, curr) => { if (!acc.find(i => i.name === curr.name)) acc.push(curr); return acc; }, []).map((field, idx) => {
+                            const isSelected = sortConfig.key === field.name;
+                            return (
+                              <div key={field.name + idx} onClick={(e) => { e.stopPropagation(); setSortConfig({ key: field.name, direction: isSelected && sortConfig.direction === 'asc' ? 'desc' : 'asc' }); }} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px', fontSize: '0.85rem', cursor: 'pointer', backgroundColor: isSelected ? '#d9f99d' : 'transparent', borderRadius: '6px' }}>
+                                {field.label} {isSelected ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Section 3: Actions (Import / Export) */}
+                {(hasPermission(currentUser, moduleName, 'create') || canExport(currentUser)) && (
+                  <>
+                    <div style={{ height: '1px', backgroundColor: '#e2e8f0', margin: '0.5rem 0' }}></div>
+                    <div style={{ marginBottom: '4px' }}>
+                      <div
+                        onClick={(e) => { e.stopPropagation(); setOpenAccordion(openAccordion === 'actions' ? null : 'actions'); }}
+                        style={{ padding: '0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#0f172a', textTransform: 'uppercase', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', backgroundColor: openAccordion === 'actions' ? '#d9f99d' : 'transparent', borderRadius: '4px' }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#d9f99d'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = openAccordion === 'actions' ? '#d9f99d' : 'transparent'}
+                      >
+                        <span>Actions</span>
+                      </div>
+
+                      {openAccordion === 'actions' && (
+                        <div style={{ paddingLeft: '0.5rem', marginTop: '4px', borderLeft: '2px solid #e2e8f0', marginLeft: '6px' }}>
+                          {hasPermission(currentUser, moduleName, 'create') && (
                             <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setActiveCardMenuId(null);
-                                showConfirm({
-                                  title: "Delete Record",
-                                  message: `Are you sure you want to permanently delete this record?`,
-                                  onConfirm: () => onDeleteClick(record)
-                                });
-                              }}
-                              style={{ width: '100%', padding: '0.5rem 0.75rem', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.85rem', color: '#ef4444' }}
+                              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '0.5rem', borderRadius: '4px', backgroundColor: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.85rem' }}
+                              onClick={() => { setIsImportModalOpen(true); setIsMenuOpen(false); }}
                             >
-                              Delete
+                              Import {moduleName}s
+                            </button>
+                          )}
+                          {canExport(currentUser) && (
+                            <button
+                              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '0.5rem', borderRadius: '4px', backgroundColor: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.85rem' }}
+                              onClick={() => { setIsExportModalOpen(true); setIsMenuOpen(false); }}
+                            >
+                              Export {moduleName}s
                             </button>
                           )}
                         </div>
                       )}
                     </div>
-                  </div>
+                  </>
+                )}
 
-                  <div className="card-footer-bottom" style={{ marginTop: '1rem', paddingTop: '0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div className="date-badge" style={{ backgroundColor: '#f1f5f9', color: '#64748b', padding: '0.25rem 0.6rem', borderRadius: '8px', border: 'none', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem', fontWeight: 500 }}>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                      {formattedDate}
-                    </div>
-
-                    {recordTags.length > 0 && (
-                      <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
-                        <Badge color={recordTags[0].color}>
-                          {recordTags[0].name}
-                        </Badge>
-                        {recordTags.length > 1 && (
-                          <Badge backgroundColor="#e2e8f0" textColor="#64748b">
-                            +{recordTags.length - 1}
-                          </Badge>
-                        )}
-                      </div>
-                    )}
-
-                    <div className="card-icons" style={{ display: 'flex', gap: '0.75rem', color: '#94a3b8' }}>
-                      <div className="card-icon-item" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem' }}>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
-                        <span>{callCount}</span>
-                      </div>
-                      <div className="card-icon-item">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
-                        <span>{attachCount}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-            </div>
-    );
-  })
-}
-      </div >
-    );
-  };
-
-const renderListView = () => {
-  const getInitials = (name) => (name || '').split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) || '?';
-  const renderCellContent = (record, colName) => {
-    let cData = {};
-    try { cData = typeof record.customData === 'string' ? JSON.parse(record.customData) : (record.customData || {}); } catch (e) { }
-
-    let val = '';
-    const standardFields = ['id', 'name', 'firstName', 'lastName', 'email', 'phone', 'owner', 'stage', 'createdAt', 'updatedAt'];
-
-    if (colName === 'firstName' || colName === 'fullName') {
-      val = record.fullName ? record.fullName : `${record.firstName || ''} ${record.lastName || ''}`.trim();
-      if (!val) val = '-';
-    }
-
-    else if (colName === 'name') val = record.name;
-    else if (colName === 'companyName') val = cData.companyName || '-';
-    else if (colName === 'owner') return record.owner ? <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#818cf8', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 600 }}>{getInitials(record.owner)}</div> : <span>-</span>;
-    else if (colName === 'stage') return <div style={{ padding: '4px 12px', borderRadius: '20px', backgroundColor: record.stage?.color || '#3b82f6', color: '#ffffff', fontSize: '0.75rem', fontWeight: 600, display: 'inline-block' }}>{record.stage?.name || 'Unknown'}</div>;
-    else if (colName === 'status') {
-      const isActive = record.status === 'Active' || cData.status === 'Active';
-      return (
-        <button
-          onClick={async (e) => {
-            e.stopPropagation();
-            const newStatus = isActive ? 'In-Active' : 'Active';
-            try {
-              const res = await fetch('/api/products', {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ productId: record.id, status: newStatus })
-              });
-              if (res.ok) {
-                window.location.reload(); // Update hone ke baad table refresh kar dega
-              }
-            } catch (err) {
-              console.error("Status Update Error:", err);
-            }
-          }}
-
-          style={{ padding: '4px 12px', borderRadius: '20px', backgroundColor: isActive ? '#a7f3d0' : '#fca5a5', color: isActive ? '#065f46' : '#991b1b', fontSize: '0.75rem', fontWeight: 600, border: 'none', cursor: 'pointer' }}>
-          {isActive ? 'Active' : 'In-Active'}
-        </button>
-      );
-    }
-
-    else if (colName === 'createdAt' || colName === 'updatedAt') val = new Date(record[colName]).toLocaleDateString('en-GB');
-    else if (standardFields.includes(colName)) val = record[colName] || '-';
-    else val = cData[colName] || '-';
-
-    const blueprintField = (blueprint?.fields || []).find(f => f.name === colName);
-    if (blueprintField?.type?.toLowerCase() === 'audio' && val && val !== '-') {
-      return <div onClick={(e) => e.stopPropagation()}><audio controls src={val} style={{ width: '160px', height: '32px' }} /></div>;
-    }
-
-    return <div style={{ maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={val}>{val}</div>;
-  };
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, backgroundColor: 'transparent', padding: '1.5rem', overflow: 'hidden' }}>
-      <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
-        <div style={{ overflowY: 'auto', flex: 1 }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-            <thead style={{ position: 'sticky', top: 0, backgroundColor: '#ffffff', zIndex: 10 }}>
-              <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
-                <th style={{ padding: "0.75rem 1rem", width: "40px", textAlign: "center" }}>
-                  <input type="checkbox" checked={filteredRecords.length > 0 && selectedRecordIds.length === filteredRecords.length} onChange={selectAllRecords} />
-                </th>
-                {visibleColumns.map((colName, idx) => (
-                  <th key={colName + idx} draggable onDragStart={(e) => handleDragStartCol(e, idx)} onDragOver={(e) => e.preventDefault()} onDrop={(e) => handleDropCol(e, idx)} style={{ padding: "0.75rem 1rem", fontSize: "0.75rem", fontWeight: 600, color: "#64748b", cursor: "grab" }}>
-                    {getFieldInfo(colName)}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filteredRecords.map((record) => (
-                <tr key={record.id} style={{ borderBottom: '1px solid #f1f5f9', cursor: 'pointer', background: selectedRecordIds.includes(record.id) ? '#f8fafc' : 'transparent' }} onClick={() => onRecordClick && onRecordClick(record)}>
-                  <td style={{ padding: '1rem', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
-                    <input type="checkbox" checked={selectedRecordIds.includes(record.id)} onChange={(e) => toggleRecordSelection(record.id, e)} />
-                  </td>
-                  {visibleColumns.map((colName, idx) => (
-                    <td key={colName + idx} style={{ padding: "0.75rem 1rem", fontSize: "0.9rem" }}>{renderCellContent(record, colName)}</td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {/* Footer Pagination (Added here) */}
-        <div style={{ padding: '1rem', borderTop: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#ffffff' }}>
-          <div style={{ color: '#64748b', fontSize: '0.85rem' }}>
-            Showing 1-{filteredRecords.length} of {records.length}
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <button style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e2e8f0', borderRadius: '8px', background: '#fff', cursor: 'pointer', color: '#64748b' }}>
-              {/* Left Arrow SVG */}
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="15 18 9 12 15 6"></polyline>
-              </svg>
-            </button>
-            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#0f172a', margin: '0 0.5rem' }}>1 / 1</span>
-            <button style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e2e8f0', borderRadius: '8px', background: '#fff', cursor: 'pointer', color: '#64748b' }}>
-              {/* Right Arrow SVG */}
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="9 18 15 12 9 6"></polyline>
-              </svg>
-            </button>
-          </div>
-        </div>
-
-      </div>
-    </div>
-  );
-};
-
-return (
-  <div style={{ display: 'flex', flexDirection: 'column', height: '100%', flex: 1 }}>
-    {/* Mini Header Inside the Component for Filters and Search */}
-    <div className="module-view-header" style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem 1.5rem', backgroundColor: 'transparent', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-
-      {/* 1. LEFT SIDE: Title */}
-      <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 'bold', color: '#0f172a' }}>{moduleName}s</h1>
-
-      {/* 2. CENTER: Unified Search & Filter (Leads Style) */}
-      <div style={{ display: 'flex', flex: '1 1 auto', justifyContent: 'center', minWidth: '220px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)', position: 'relative', width: '100%', maxWidth: '380px' }}>
-          <svg style={{ marginLeft: '12px', color: '#94a3b8' }} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-
-          <input type="text" placeholder={`type 3 characters to search...`} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} style={{ flex: 1, padding: '8px 12px', border: 'none', outline: 'none', fontSize: '0.9rem', backgroundColor: 'transparent' }} />
-
-          <div style={{ width: '1px', height: '24px', backgroundColor: '#e2e8f0' }}></div>
-
-          <div style={{ position: 'relative' }} ref={filterBuilderRef}>
-            <button onClick={() => setIsFilterBuilderOpen(!isFilterBuilderOpen)} style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: isFilterBuilderOpen ? '#d9f99d' : 'transparent', border: 'none', borderRadius: '0 8px 8px 0', cursor: 'pointer', color: isFilterBuilderOpen ? '#0f172a' : '#64748b', fontWeight: 500, fontSize: '0.85rem', transition: 'all 0.15s' }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
-              Filter
-            </button>
-
-            {isFilterBuilderOpen && (
-              <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: '8px', width: '320px', backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', zIndex: 50, padding: '1rem' }}>
-                <div style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '12px' }}>Add Filter</div>
-                <CustomDropdown value={fbField} placeholder="Select Field..." onChange={(val) => { setFbField(val); setFbValue(''); setFbOperator('contains'); }} options={[{ value: 'stage', label: 'Stage' }, ...(blueprint?.fields || []).map(f => ({ value: f.name, label: f.label }))]} />
-                {fbField && <CustomDropdown value={fbOperator} placeholder="Select Operator..." onChange={(val) => setFbOperator(val)} options={[{ value: 'contains', label: 'Contains' }, { value: 'is', label: 'Is' }]} />}
-                {fbField && <input type="text" placeholder="Value..." value={fbValue} onChange={(e) => setFbValue(e.target.value)} style={{ width: '100%', padding: '8px', marginTop: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', outline: 'none' }} />}
-                <button onClick={addFilter} style={{ marginTop: '8px', padding: '8px', width: '100%', backgroundColor: '#d9f99d', borderRadius: '6px', cursor: 'pointer', border: 'none', fontWeight: 600 }}>Apply Filter</button>
               </div>
             )}
           </div>
         </div>
+
       </div>
 
-      {/* 3. RIGHT SIDE: Action Buttons & Toggles */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', justifyContent: 'flex-end' }}>
-
-        {/* Ye Add Deal button wapas laayega */}
-        {renderHeaderActions && renderHeaderActions()}
-
-        {/* 3-Dot Menu Dropdown (Exact Leads Style) */}
-        <div style={{ position: 'relative' }} ref={menuRef}>
-          <button
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            style={{ padding: '0.5rem', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="1"></circle>
-              <circle cx="12" cy="5" r="1"></circle>
-              <circle cx="12" cy="19" r="1"></circle>
-            </svg>
-          </button>
-
-          {isMenuOpen && (
-            <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: '0.5rem', backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', minWidth: '180px', zIndex: 50, padding: '0.5rem' }}>
-
-              {/* Section 1: View Mode */}
-              {supportKanban && (
-                <div className="view-mode-section" style={{ marginBottom: '4px' }}>
-                  <div
-                    onClick={(e) => { e.stopPropagation(); setOpenAccordion(openAccordion === 'view' ? null : 'view'); setIsManageColsMenuOpen(false); setIsSortMenuOpen(false); }}
-                    style={{ padding: '0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#0f172a', textTransform: 'uppercase', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', backgroundColor: openAccordion === 'view' ? '#d9f99d' : 'transparent', borderRadius: '4px' }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#d9f99d'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = openAccordion === 'view' ? '#d9f99d' : 'transparent'}
-                  >
-                    <span>View Mode</span>
-                  </div>
-
-                  {openAccordion === 'view' && (
-                    <div style={{ paddingLeft: '0.5rem', marginTop: '4px', borderLeft: '2px solid #e2e8f0', marginLeft: '6px' }}>
-                      <button
-                        style={{ display: 'block', width: '100%', textAlign: 'left', padding: '0.5rem', borderRadius: '4px', backgroundColor: viewMode === 'kanban' ? '#d9f99d' : 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.85rem' }}
-                        onClick={() => { setViewMode('kanban'); setIsMenuOpen(false); }}
-                      >
-                        Kanban Board
-                      </button>
-                      <button
-                        style={{ display: 'block', width: '100%', textAlign: 'left', padding: '0.5rem', borderRadius: '4px', backgroundColor: viewMode === 'list' ? '#d9f99d' : 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.85rem' }}
-                        onClick={() => { setViewMode('list'); setIsMenuOpen(false); }}
-                      >
-                        List View
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {supportKanban && <div style={{ height: '1px', backgroundColor: '#e2e8f0', margin: '0.5rem 0' }}></div>}
-
-              {/* Section 2: Manage Data */}
-              <div style={{ marginBottom: '4px' }}>
-                <div
-                  onClick={(e) => { e.stopPropagation(); setOpenAccordion(openAccordion === 'data' ? null : 'data'); setIsManageColsMenuOpen(false); setIsSortMenuOpen(false); }}
-                  style={{ padding: '0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#0f172a', textTransform: 'uppercase', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', backgroundColor: openAccordion === 'data' ? '#d9f99d' : 'transparent', borderRadius: '4px' }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#d9f99d'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = openAccordion === 'data' ? '#d9f99d' : 'transparent'}
-                >
-                  <span>Manage Data</span>
-                </div>
-
-                {openAccordion === 'data' && (
-                  <div style={{ paddingLeft: '0.5rem', marginTop: '4px', borderLeft: '2px solid #e2e8f0', marginLeft: '6px', position: 'relative' }}>
-                    {viewMode === 'list' && (
-                      <>
-                        <button
-                          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', textAlign: 'left', padding: '0.5rem', borderRadius: '4px', backgroundColor: isManageColsMenuOpen ? '#f1f5f9' : 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.85rem' }}
-                          onClick={(e) => { e.stopPropagation(); setIsManageColsMenuOpen(!isManageColsMenuOpen); setIsSortMenuOpen(false); }}
-                        >
-                          Columns
-                        </button>
-
-                        {/* Manage Columns Popup */}
-                        {isManageColsMenuOpen && (
-                          <div style={{ position: 'absolute', right: '100%', top: '0', marginRight: '8px', padding: '0.5rem', maxHeight: '350px', width: '280px', overflowY: 'auto', backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', zIndex: 60 }}>
-                            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', marginBottom: '0.5rem' }}>VISIBLE COLUMNS ({visibleColumns.length}/7)</div>
-                            {[{ name: 'createdAt', label: 'Created Date' }, { name: 'firstName', label: 'First Name' }, { name: 'companyName', label: 'Company' }, ...(blueprint?.fields || [])].reduce((acc, curr) => { if (!acc.find(i => i.name === curr.name)) acc.push(curr); return acc; }, []).map((field, idx) => {
-                              const isSelected = visibleColumns.includes(field.name);
-                              return (
-                                <div key={field.name + idx} onClick={(e) => { e.stopPropagation(); handleColToggle(field.name); }} style={{ display: 'flex', alignItems: 'center', padding: '8px', fontSize: '0.85rem', cursor: 'pointer', backgroundColor: isSelected ? '#d9f99d' : 'transparent', borderRadius: '6px', marginBottom: '2px' }}>
-                                  {field.label}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </>
-                    )}
-
-                    <button
-                      style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', textAlign: 'left', padding: '0.5rem', borderRadius: '4px', backgroundColor: isSortMenuOpen ? '#f1f5f9' : 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.85rem' }}
-                      onClick={(e) => { e.stopPropagation(); setIsSortMenuOpen(!isSortMenuOpen); setIsManageColsMenuOpen(false); }}
-                    >
-                      Sort Data
-                    </button>
-
-                    {/* Sort Data Popup */}
-                    {isSortMenuOpen && (
-                      <div style={{ position: 'absolute', right: '100%', top: '32px', marginRight: '8px', padding: '0.5rem', maxHeight: '350px', width: '280px', overflowY: 'auto', backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', zIndex: 60 }}>
-                        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', marginBottom: '0.5rem' }}>SORT FIELDS</div>
-                        {[{ name: 'createdAt', label: 'Created Date' }, { name: 'firstName', label: 'First Name' }, { name: 'companyName', label: 'Company' }, ...(blueprint?.fields || [])].reduce((acc, curr) => { if (!acc.find(i => i.name === curr.name)) acc.push(curr); return acc; }, []).map((field, idx) => {
-                          const isSelected = sortConfig.key === field.name;
-                          return (
-                            <div key={field.name + idx} onClick={(e) => { e.stopPropagation(); setSortConfig({ key: field.name, direction: isSelected && sortConfig.direction === 'asc' ? 'desc' : 'asc' }); }} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px', fontSize: '0.85rem', cursor: 'pointer', backgroundColor: isSelected ? '#d9f99d' : 'transparent', borderRadius: '6px' }}>
-                              {field.label} {isSelected ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
+      {/* Active Filters Display */}
+      {activeFilters.length > 0 && (
+        <div style={{ display: 'flex', gap: '8px', padding: '0.5rem 1.5rem', backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+          {activeFilters.map(f => (
+            <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 10px', backgroundColor: '#d9f99d', borderRadius: '16px', fontSize: '0.8rem', fontWeight: 500 }}>
+              {f.field} {f.operator} "{f.value}"
+              <span onClick={() => removeFilter(f.id)} style={{ cursor: 'pointer', opacity: 0.6, marginLeft: '4px' }}>✕</span>
             </div>
-          )}
+          ))}
+          <span onClick={() => setActiveFilters([])} style={{ fontSize: '0.8rem', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', marginLeft: '4px', fontWeight: 500 }}>Clear All</span>
         </div>
+      )}
+
+      {/* Content Rendering */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        {(records.length === 0 && searchQuery === "") ? renderEmptyState() : (viewMode === 'kanban' ? renderKanbanView() : renderListView())}
       </div>
 
+      {/* Universal Import Modal */}
+      <ImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        moduleName={moduleName}
+        blueprint={blueprint}
+        onImportSuccess={() => window.location.reload()}
+      />
+
+      {/* Universal Export Modal */}
+      <ExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        moduleName={moduleName}
+        blueprint={blueprint}
+      />
+
     </div>
-
-    {/* Active Filters Display */}
-    {activeFilters.length > 0 && (
-      <div style={{ display: 'flex', gap: '8px', padding: '0.5rem 1.5rem', backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-        {activeFilters.map(f => (
-          <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 10px', backgroundColor: '#d9f99d', borderRadius: '16px', fontSize: '0.8rem', fontWeight: 500 }}>
-            {f.field} {f.operator} "{f.value}"
-            <span onClick={() => removeFilter(f.id)} style={{ cursor: 'pointer', opacity: 0.6, marginLeft: '4px' }}>✕</span>
-          </div>
-        ))}
-        <span onClick={() => setActiveFilters([])} style={{ fontSize: '0.8rem', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', marginLeft: '4px', fontWeight: 500 }}>Clear All</span>
-      </div>
-    )}
-
-    {/* Content Rendering */}
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      {(records.length === 0 && searchQuery === "") ? renderEmptyState() : (viewMode === 'kanban' ? renderKanbanView() : renderListView())}
-    </div>
-
-  </div>
-);
+  );
 }

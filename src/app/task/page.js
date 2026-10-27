@@ -194,6 +194,7 @@ export default function TaskPage() {
                   </button>
                 ) : null
               )}
+              currentUser={currentUser}
               onDeleteClick={hasPermission(currentUser, 'Task', 'delete') ? handleDeleteTask : null}
             />
           )}

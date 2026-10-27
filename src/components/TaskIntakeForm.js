@@ -38,7 +38,7 @@ export default function TaskIntakeForm({ blueprint, isOpen, onClose, onSave, tas
   // Dynamic fields
   const [customData, setCustomData] = useState({});
   const [users, setUsers] = useState([]);
-  const [automationOptions, setAutomationOptions] = useState([]);
+  const [allWorkflows, setAllWorkflows] = useState([]);
   const [currentUserName, setCurrentUserName] = useState("");
 
   const { executeScript, standardFieldStates: scriptFieldStates } = useClientScripts({
@@ -113,7 +113,7 @@ export default function TaskIntakeForm({ blueprint, isOpen, onClose, onSave, tas
 
   // UI Guard: Watch the start date so we can block the due date calendar
   const currentStartDate = watch("startDateTime");
-
+  const currentRelatedModule = watch("relatedModule");
 
   useEffect(() => {
     if (isOpen) {
@@ -194,11 +194,7 @@ export default function TaskIntakeForm({ blueprint, isOpen, onClose, onSave, tas
           if (workflowsRes.ok) {
             const workflowsData = await workflowsRes.json();
             if (Array.isArray(workflowsData)) {
-              const taskWorkflows = workflowsData
-                .filter(w => (w.moduleType === 'Task' || !w.moduleType) && w.isActive !== false)
-                .map(w => w.name)
-                .filter(Boolean);
-              setAutomationOptions(taskWorkflows);
+              setAllWorkflows(workflowsData.filter(w => w.isActive !== false));
             }
           }
         } catch (err) {
@@ -393,10 +389,25 @@ export default function TaskIntakeForm({ blueprint, isOpen, onClose, onSave, tas
                           const isRelatedModule = field.name === 'relatedModule';
 
                           let dynamicOptions = field.options;
-
                           if (isTaskAutomation) {
-                            dynamicOptions = ['None', ...automationOptions.filter(opt => opt !== 'None')];
-                          } else if (isRelatedModule) {
+                            const selMod = (currentRelatedModule || '').toLowerCase().trim();
+
+                            const filtered = allWorkflows.filter(w => {
+                              const wfMod = (w.moduleType || '').toLowerCase().trim();
+                              // 1. Agar koi related module chuna hai (jaise 'lead'):
+                              if (selMod && selMod !== 'none') {
+                                return wfMod === selMod || wfMod === 'task' || !wfMod;
+                              }
+                              // 2. Agar koi module nahi chuna:
+                              return wfMod === 'task' || !wfMod;
+                            }).map(w => w.name);
+
+                            // Agar allWorkflows abhi load nahi hua, toh fallback to default options
+                            const sourceList = filtered.length > 0 ? filtered : (field.options || []);
+                            dynamicOptions = ['None', ...sourceList.filter(opt => opt && opt !== 'None')];
+                          }
+
+                          else if (isRelatedModule) {
                             // 1. System ke active modules (Task ko hata kar taaki task khud se link na ho)
                             const activeSystem = (userInfo?.activeModules || ['Lead', 'Deal', 'Account', 'Product'])
                               .filter(m => m !== 'Task');

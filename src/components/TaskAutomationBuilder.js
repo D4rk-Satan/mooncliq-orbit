@@ -62,12 +62,12 @@ export default function TaskAutomationBuilder({ organizationId }) {
       alert("Name and Module are required.");
       return;
     }
-    
+
     try {
       const token = await getAuthToken();
       const method = selectedWorkflow.id ? 'PUT' : 'POST';
       const url = selectedWorkflow.id ? `/api/workflows?id=${selectedWorkflow.id}` : '/api/workflows';
-      
+
       const res = await fetch(url, {
         method,
         headers: {
@@ -79,7 +79,7 @@ export default function TaskAutomationBuilder({ organizationId }) {
           recordEvent: selectedWorkflow.triggerCategory === 'Scheduled' ? 'None' : selectedWorkflow.recordEvent
         })
       });
-      
+
       if (res.ok) {
         setSelectedWorkflow(null);
         fetchWorkflows();
@@ -93,15 +93,15 @@ export default function TaskAutomationBuilder({ organizationId }) {
   };
 
   const handleDelete = async (id) => {
-    if(!confirm("Are you sure you want to delete this automation?")) return;
+    if (!confirm("Are you sure you want to delete this automation?")) return;
     try {
       const token = await getAuthToken();
       const res = await fetch(`/api/workflows?id=${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
-      if(res.ok) fetchWorkflows();
-    } catch(e) {
+      if (res.ok) fetchWorkflows();
+    } catch (e) {
       console.error(e);
     }
   };
@@ -123,7 +123,7 @@ return { success: true };`;
           <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600 }}>
             {selectedWorkflow.id ? 'Edit Automation' : 'Create Task Automation'}
           </h2>
-          <button 
+          <button
             onClick={() => setSelectedWorkflow(null)}
             style={{ background: 'none', border: '1px solid #cbd5e1', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer' }}
           >
@@ -134,20 +134,20 @@ return { success: true };`;
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '2rem' }}>
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, fontSize: '0.875rem' }}>Automation Name</label>
-            <input 
-              type="text" 
-              className="form-input" 
+            <input
+              type="text"
+              className="form-input"
               value={selectedWorkflow.name}
-              onChange={e => setSelectedWorkflow({...selectedWorkflow, name: e.target.value})}
+              onChange={e => setSelectedWorkflow({ ...selectedWorkflow, name: e.target.value })}
               placeholder="e.g. Overdue Task Checker"
             />
           </div>
           <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, fontSize: '0.875rem' }}>Module</label>
-            <select 
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, fontSize: '0.875rem' }}>Automation For</label>
+            <select
               className="form-input"
               value={selectedWorkflow.moduleType}
-              onChange={e => setSelectedWorkflow({...selectedWorkflow, moduleType: e.target.value})}
+              onChange={e => setSelectedWorkflow({ ...selectedWorkflow, moduleType: e.target.value })}
             >
               <option value="">Select a Module</option>
               <option value="Lead">Lead</option>
@@ -165,12 +165,12 @@ return { success: true };`;
             <div style={{ display: 'flex', gap: '1.5rem' }}>
               {['Created', 'Edited', 'CreatedOrEdited', 'Deleted'].map(evt => (
                 <label key={evt} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                  <input 
-                    type="radio" 
-                    name="recordEvent" 
+                  <input
+                    type="radio"
+                    name="recordEvent"
                     value={evt}
                     checked={selectedWorkflow.recordEvent === evt}
-                    onChange={e => setSelectedWorkflow({...selectedWorkflow, recordEvent: e.target.value})}
+                    onChange={e => setSelectedWorkflow({ ...selectedWorkflow, recordEvent: e.target.value })}
                   />
                   {evt === 'CreatedOrEdited' ? 'Created or Edited' : evt}
                 </label>
@@ -182,10 +182,10 @@ return { success: true };`;
         <div style={{ display: 'grid', gridTemplateColumns: selectedWorkflow.triggerEvent === 'Custom' ? '1fr 1fr 1fr' : '1fr 1fr', gap: '2rem', marginBottom: '2rem' }}>
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, fontSize: '0.875rem' }}>Trigger Category</label>
-            <select 
+            <select
               className="form-input"
               value={selectedWorkflow.triggerCategory}
-              onChange={e => setSelectedWorkflow({...selectedWorkflow, triggerCategory: e.target.value, triggerEvent: ''})}
+              onChange={e => setSelectedWorkflow({ ...selectedWorkflow, triggerCategory: e.target.value, triggerEvent: '' })}
             >
               <option value="">Select Category</option>
               <option value="Scheduled">Scheduled (Time-based)</option>
@@ -196,10 +196,10 @@ return { success: true };`;
           </div>
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, fontSize: '0.875rem' }}>Specific Trigger</label>
-            <select 
+            <select
               className="form-input"
               value={selectedWorkflow.triggerEvent}
-              onChange={e => setSelectedWorkflow({...selectedWorkflow, triggerEvent: e.target.value})}
+              onChange={e => setSelectedWorkflow({ ...selectedWorkflow, triggerEvent: e.target.value })}
               disabled={!selectedWorkflow.triggerCategory}
             >
               <option value="">Select Trigger</option>
@@ -211,23 +211,23 @@ return { success: true };`;
           {selectedWorkflow.triggerCategory === 'Scheduled' && selectedWorkflow.triggerEvent === 'Custom' && (
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, fontSize: '0.875rem' }}>Cron Expression</label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 className="form-input"
-                placeholder="e.g. 0 18 * * * (Every day at 6 PM)" 
+                placeholder="e.g. 0 18 * * * (Every day at 6 PM)"
                 value={selectedWorkflow.targetFields?.[0] || ''}
-                onChange={e => setSelectedWorkflow({...selectedWorkflow, targetFields: [e.target.value]})}
+                onChange={e => setSelectedWorkflow({ ...selectedWorkflow, targetFields: [e.target.value] })}
               />
             </div>
           )}
           {selectedWorkflow.triggerCategory === 'Scheduled' && selectedWorkflow.triggerEvent === 'SpecificDateTime' && (
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, fontSize: '0.875rem' }}>Select Date & Time</label>
-              <input 
-                type="datetime-local" 
+              <input
+                type="datetime-local"
                 className="form-input"
                 value={selectedWorkflow.targetFields?.[0] || ''}
-                onChange={e => setSelectedWorkflow({...selectedWorkflow, targetFields: [e.target.value]})}
+                onChange={e => setSelectedWorkflow({ ...selectedWorkflow, targetFields: [e.target.value] })}
               />
             </div>
           )}
@@ -244,7 +244,7 @@ return { success: true };`;
               defaultLanguage="javascript"
               theme="vs-dark"
               value={selectedWorkflow.code}
-              onChange={(val) => setSelectedWorkflow({...selectedWorkflow, code: val})}
+              onChange={(val) => setSelectedWorkflow({ ...selectedWorkflow, code: val })}
               options={{
                 minimap: { enabled: false },
                 fontSize: 14,
@@ -265,11 +265,11 @@ return { success: true };`;
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
         <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600 }}>Task Automations</h2>
-        <button 
-          className="btn-primary" 
+        <button
+          className="btn-primary"
           style={{ padding: '0.5rem 1rem' }}
           onClick={() => setSelectedWorkflow({
-            name: '', moduleType: '', recordEvent: 'Created', 
+            name: '', moduleType: '', recordEvent: 'Created',
             triggerCategory: 'Scheduled', triggerEvent: 'Hourly',
             targetFields: [], code: defaultCode, isActive: true
           })}
@@ -290,7 +290,7 @@ return { success: true };`;
             <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
               <tr>
                 <th style={{ padding: '1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Automation Name</th>
-                <th style={{ padding: '1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Module</th>
+                <th style={{ padding: '1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Automation For</th>
                 <th style={{ padding: '1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Category</th>
                 <th style={{ padding: '1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Trigger</th>
                 <th style={{ padding: '1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Status</th>

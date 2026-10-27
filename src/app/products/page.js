@@ -183,6 +183,7 @@ export default function ProductsPage() {
                   </button>
                 ) : null
               )}
+              currentUser={currentUser}
               onDeleteClick={hasPermission(currentUser, 'Product', 'delete') ? handleDeleteProduct : null}
             />
           )}

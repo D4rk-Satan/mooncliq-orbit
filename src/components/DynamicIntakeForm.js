@@ -18,6 +18,7 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
   const [currentStep, setCurrentStep] = useState(0);
   const [isTimeEditedByUser, setIsTimeEditedByUser] = useState(false);
   const [taskAutomationOptions, setTaskAutomationOptions] = useState([]);
+  const [allWorkflows, setAllWorkflows] = useState([]);
 
   const [standardData, setStandardData] = useState({});
   const [customData, setCustomData] = useState({});
@@ -221,11 +222,7 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
           if (workflowsRes.ok) {
             const workflowsData = await workflowsRes.json();
             if (Array.isArray(workflowsData)) {
-              const taskWorkflows = workflowsData
-                .filter(w => (w.moduleType === 'Task' || !w.moduleType) && w.isActive !== false)
-                .map(w => w.name)
-                .filter(Boolean);
-              setTaskAutomationOptions(taskWorkflows);
+              setAllWorkflows(workflowsData.filter(w => w.isActive !== false));
             }
           }
         } catch (e) {
@@ -494,7 +491,22 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
 
                       {sectionFields.map(field => {
                         const stateOverride = standardFieldStates?.[field.name];
-                        const dynamicOptions = getDynamicFieldOptions(field, { userInfo, customModules, taskAutomationOptions });
+
+                        let dynamicOptions = getDynamicFieldOptions(field, { userInfo, customModules, taskAutomationOptions });
+
+                        if (moduleType === 'Task' && field.name === 'taskAutomation') {
+                          const currentRelated = (watch("relatedModule") || '').toLowerCase().trim();
+                          const filtered = allWorkflows.filter(w => {
+                            const wfMod = (w.moduleType || '').toLowerCase().trim();
+                            if (currentRelated && currentRelated !== 'none') {
+                              return wfMod === currentRelated || wfMod === 'task' || !wfMod;
+                            }
+                            return wfMod === 'task' || !wfMod;
+                          }).map(w => w.name);
+
+                          const sourceList = filtered.length > 0 ? filtered : (allWorkflows.map(w => w.name));
+                          dynamicOptions = ['None', ...sourceList.filter(opt => opt && opt !== 'None')];
+                        }
 
                         const modifiedField = {
                           ...field,
