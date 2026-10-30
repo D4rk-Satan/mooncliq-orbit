@@ -40,6 +40,8 @@ export async function runScriptInLambda(code, context) {
       const scriptStr = `(async () => { \n${finalCode}\n })()`;
       const sandbox = {
         context,
+        record: context.record,
+        event: context.event,
         console,
         fetch,
         prisma,

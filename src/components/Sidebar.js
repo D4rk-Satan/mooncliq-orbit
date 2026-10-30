@@ -102,12 +102,43 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, refresh
         ></div>
       )}
       <aside className={`dashboard-sidebar ${isCollapsed ? 'collapsed' : ''} ${isMobileMenuOpen ? 'mobile-open' : ''}`} style={{ width: isCollapsed ? '72px' : '220px', transition: isMounted ? 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)' : 'none', overflow: 'visible', flexShrink: 0 }}>
-        <div className="sidebar-logo" style={{ display: 'flex', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'space-between', padding: isCollapsed ? '1rem 0' : '1rem 1.5rem' }}>
-          {!isCollapsed && <span>moonCliq</span>}
-          {isCollapsed && <span style={{ fontSize: '1.2rem' }}>mC</span>}
+        <div className="sidebar-logo" style={{ display: 'flex', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'space-between', padding: isCollapsed ? '1rem 0' : '0.85rem 1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0, overflow: 'hidden' }}>
+            <img
+              src="/mooncliq-puzzle-only.png"
+              alt="moonCliq"
+              style={{ height: '32px', width: 'auto', objectFit: 'contain', flexShrink: 0 }}
+            />
+
+            {/* Smooth Non-blurry Fixed Width Container */}
+            <div
+              style={{
+                width: isCollapsed ? 0 : '120px',
+                opacity: isCollapsed ? 0 : 1,
+                transform: 'translateZ(0)',
+                transition: 'opacity 0.2s ease 0.08s, width 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                overflow: 'hidden',
+                whiteSpace: 'nowrap',
+                display: 'flex',
+                alignItems: 'center'
+              }}
+            >
+              <img
+                src="/mooncliq-text-only.png"
+                alt="moonCliq CRM"
+                style={{
+                  height: '26px',
+                  width: 'auto',
+                  objectFit: 'contain',
+                  imageRendering: '-webkit-optimize-contrast',
+                  display: 'block'
+                }}
+              />
+            </div>
+          </div>
           <button
             onClick={toggleSidebar}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem', color: '#6b7280', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem', color: '#6b7280', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
             title="Toggle Sidebar"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: isCollapsed ? 'rotate(180deg)' : 'none', transition: 'transform 0.3s' }}>

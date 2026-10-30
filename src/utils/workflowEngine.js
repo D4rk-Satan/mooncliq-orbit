@@ -93,6 +93,7 @@ export async function executeBackendWorkflows(organizationId, moduleType, record
         eligibleWorkflows.forEach(async (workflow) => {
             try {
                 console.log(`[Workflow Engine] Executing: ${workflow.name}`);
+                console.log(`[Workflow Engine] Workflow Code to run:\n${workflow.code}`);
 
                 const result = await runScriptInLambda(workflow.code, {
                     record: recordData,

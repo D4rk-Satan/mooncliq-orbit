@@ -7,8 +7,13 @@ const inter = Inter({ subsets: ["latin"], variable: '--font-inter' });
 const outfit = Outfit({ subsets: ["latin"], variable: '--font-outfit' });
 
 export const metadata = {
-  title: "MoonCliq CRM | Sign In",
+  title: "MoonCliq CRM",
   description: "Textile Industry CRM developed by MoonCliq",
+  icons: {
+    icon: "/icon.png",
+    shortcut: "/favicon.ico",
+    apple: "/icon.png",
+  },
 };
 
 import AmplifyProvider from "../components/AmplifyProvider";
@@ -20,7 +25,7 @@ import { cookies } from 'next/headers';
 export default async function RootLayout({ children }) {
   const cookieStore = await cookies();
   const isOnboardingDone = cookieStore.get('mooncliq_onboarding_done')?.value === 'true';
-  
+
   let initialBootstrap = null;
   const cookieBootstrap = cookieStore.get('mooncliq_bootstrap_ssr')?.value;
   if (cookieBootstrap) {
@@ -34,8 +39,8 @@ export default async function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className={`${inter.variable} ${outfit.variable}`}>
-        <NextTopLoader 
-          color="#a356ebff" 
+        <NextTopLoader
+          color="#a356ebff"
           initialPosition={0.15}
           crawlSpeed={200}
           height={3}
@@ -47,7 +52,7 @@ export default async function RootLayout({ children }) {
         />
         <Toaster position="top-right" />
         <AmplifyProvider>
-          <DashboardLayoutWrapper 
+          <DashboardLayoutWrapper
             initialOnboardingDone={isOnboardingDone}
             initialBootstrap={initialBootstrap}
           >

@@ -555,7 +555,7 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
                   marginBottom: '-1px', transition: 'all 0.2s', whiteSpace: 'nowrap'
                 }}
               >
-                {tab} {tab === 'Files' || tab === 'Related' ? '(2)' : ''}
+                {tab} {tab === 'Files' || tab === 'Related'}
               </button>
             ))}
           </div>
