@@ -5,12 +5,12 @@ export function getDefaultBlueprintData(mod) {
         return {
             stages: {
                 create: [
-                    { name: 'New', orderIndex: 1, color: '#ffae0bff', isSystem: true },
-                    { name: 'Contacted', orderIndex: 2, color: '#ff8800ff', isSystem: true },
-                    { name: 'Qualified', orderIndex: 3, color: '#886bfeff', isSystem: true },
-                    { name: 'Close Won', orderIndex: 4, color: '#62ffb6ff', isSystem: true },
-                    { name: 'Close Lost', orderIndex: 5, color: '#fe5757ff', isSystem: true },
-                    { name: 'Junk', orderIndex: 6, color: '#98a9c2ff', isSystem: true },
+                    { name: 'New', orderIndex: 1, color: '#2b82f6', isSystem: true },
+                    { name: 'Contacted', orderIndex: 2, color: '#6366f1', isSystem: true },
+                    { name: 'Qualified', orderIndex: 3, color: '#8b5cf6', isSystem: true },
+                    { name: 'Close Won', orderIndex: 4, color: '#10b981', isSystem: true },
+                    { name: 'Close Lost', orderIndex: 5, color: '#ef4444', isSystem: true },
+                    { name: 'Junk', orderIndex: 6, color: '#64748b', isSystem: true },
                 ]
             },
             fields: {
@@ -45,9 +45,9 @@ export function getDefaultBlueprintData(mod) {
             stages: {
                 create: [
                     { name: 'Qualification', orderIndex: 1, color: '#3b82f6', isSystem: true },
-                    { name: 'Contacted', orderIndex: 2, color: '#eab308', isSystem: true },
+                    { name: 'Contacted', orderIndex: 2, color: '#0ea5e9', isSystem: true },
                     { name: 'Proposal', orderIndex: 3, color: '#8b5cf6', isSystem: true },
-                    { name: 'Negotiation', orderIndex: 4, color: '#ec4899', isSystem: true },
+                    { name: 'Negotiation', orderIndex: 4, color: '#f59e0b', isSystem: true },
                     { name: 'Close Won', orderIndex: 5, color: '#10b981', isSystem: true },
                     { name: 'Close Lost', orderIndex: 6, color: '#ef4444', isSystem: true },
                 ]

@@ -452,19 +452,6 @@ export default function Dashboard() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <h1 style={{ margin: 0, fontSize: '1.5rem', color: '#0f172a', fontWeight: 700 }}>Dashboard</h1>
           </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '6px 12px' }}>
-              <svg width="16" height="16" stroke="#94a3b8" strokeWidth="2" fill="none"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
-              <input type="text" placeholder="Search" style={{ border: 'none', outline: 'none', marginLeft: '8px', fontSize: '0.9rem' }} />
-            </div>
-            <button style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', border: '1px solid #e2e8f0', backgroundColor: '#fff', borderRadius: '8px', fontSize: '0.9rem', fontWeight: 500, cursor: 'pointer' }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg> Filter
-            </button>
-            <button style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', backgroundColor: '#10b981', color: '#fff', borderRadius: '8px', border: 'none', fontSize: '0.9rem', fontWeight: 600, cursor: 'pointer' }}>
-              ↓ Import or Export
-            </button>
-          </div>
         </header>
 
         {/* Dashboard Grid Layout */}
