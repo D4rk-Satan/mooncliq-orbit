@@ -3205,7 +3205,7 @@ export default function SettingsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {['Lead', 'Deal', 'Account', 'Task', 'Product', ...customModules.map(m => m.name)].map(mod => (
+                    {['Lead', 'Deal', 'Account', 'Task', 'Product', 'Whatsapp', 'Campaigns', ...customModules.map(m => m.name)].map(mod => (
                       <tr key={mod} style={{ borderBottom: '1px solid #f1f5f9' }}>
                         <td style={{ padding: '0.75rem', fontWeight: 500 }}>{mod}</td>
                         {['view', 'create', 'edit', 'delete'].map(action => (

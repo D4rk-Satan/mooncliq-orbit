@@ -406,10 +406,19 @@ export default function WhatsAppSettings() {
                 transition: 'all 0.2s'
               }}
             >
-              {/* Meta Official Logo */}
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="white">
-                <path d="M16.993 6.667c-1.84 0-3.37.95-4.493 2.45-1.123-1.5-2.653-2.45-4.493-2.45C4.462 6.667 2 9.42 2 12.8c0 3.38 2.462 6.133 6.007 6.133 1.84 0 3.37-.95 4.493-2.45 1.123 1.5 2.653 2.45 4.493 2.45 3.545 0 6.007-2.753 6.007-6.133 0-3.38-2.462-6.133-6.007-6.133zm-8.986 9.8c-2.07 0-3.54-1.637-3.54-3.667 0-2.03 1.47-3.667 3.54-3.667 1.528 0 2.81 1.096 3.42 2.72-.11.23-.23.46-.35.69-.64 1.25-1.74 2.224-3.07 2.224zm8.986 0c-1.33 0-2.43-.974-3.07-2.224-.12-.23-.24-.46-.35-.69.61-1.624 1.892-2.72 3.42-2.72 2.07 0 3.54 1.637 3.54 3.667 0 2.03-1.47 3.667-3.54 3.667z"/>
-              </svg>
+              {/* Official Meta Clean Icon */}
+              <img
+                src="/meta-icon-official.svg"
+                alt="Meta"
+                style={{
+                  width: '26px',
+                  height: '16px',
+                  objectFit: 'contain',
+                  filter: 'brightness(0) invert(1)',
+                  display: 'inline-block',
+                  flexShrink: 0
+                }}
+              />
               {isConnectingMeta ? "Launching Meta Window..." : "Continue with Meta"}
             </button>
 

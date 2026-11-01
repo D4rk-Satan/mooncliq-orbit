@@ -1,11 +1,59 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Button from "../../components/ui/Button";
+import WhatsAppSetupPrompt from "@/components/WhatsAppSetupPrompt";
+import GlobalLoader from "@/components/ui/GlobalLoader";
 
-export default function CampaignsComingSoon() {
+export default function CampaignsPage() {
   const router = useRouter();
+  const [isLoading, setIsLoading] = useState(true);
+  const [isConfigured, setIsConfigured] = useState(false);
+
+  useEffect(() => {
+    const checkConfig = async () => {
+      try {
+        const { fetchAuthSession } = await import('aws-amplify/auth');
+        const { tokens } = await fetchAuthSession();
+        if (!tokens) {
+          setIsLoading(false);
+          return;
+        }
+
+        const token = tokens.idToken.toString();
+        const res = await fetch('/api/me', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (res.ok) {
+          const userData = await res.json();
+          const hasPhoneId = Boolean(userData?.organization?.whatsappPhoneNumberId);
+          const hasToken = Boolean(userData?.organization?.whatsappAccessToken);
+          setIsConfigured(hasPhoneId && hasToken);
+        }
+      } catch (error) {
+        console.error("Failed to check configuration:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkConfig();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div style={{ display: 'flex', flex: 1, height: '100vh', alignItems: 'center', justifyContent: 'center' }}>
+        <GlobalLoader />
+      </div>
+    );
+  }
+
+  // Agar WhatsApp API setup nahi hai to Setup Prompt dikhayenge
+  if (!isConfigured) {
+    return <WhatsAppSetupPrompt moduleName="Campaigns" />;
+  }
 
   return (
     <div style={{
@@ -74,13 +122,11 @@ export default function CampaignsComingSoon() {
         </h1>
 
         <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#475569', marginBottom: '1rem' }}>
-          Coming Very Soon!
+          WhatsApp API Connected!
         </h2>
 
         <p style={{ color: '#64748b', lineHeight: '1.6', marginBottom: '2.5rem', fontSize: '0.95rem' }}>
-          We are currently crafting an amazing Campaigns Module for you.
-          Soon, you'll be able to launch targeted bulk outreach, segment audiences with precision filters,
-          and analyze real-time campaign performance seamlessly inside Mooncliq CRM.
+          Your WhatsApp Business API is connected. The broadcast campaign composer &amp; audience segmentation tool is coming very soon.
         </p>
 
         <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
