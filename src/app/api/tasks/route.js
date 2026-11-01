@@ -94,12 +94,23 @@ export const GET = withPermission('Task', 'view', async (request, user) => {
     });
 
     if (!user.profile?.canAccessSettings && user.profile?.permissions?.Task?.visibility === 'private') {
+      const userEmail = (user.email || '').toLowerCase();
+      const userNick = (user.profile?.nickname || user.nickname || '').toLowerCase();
+
       tasks = tasks.filter(t => {
         let customData = t.customData;
         if (typeof customData === 'string') {
           try { customData = JSON.parse(customData); } catch (e) { customData = {}; }
         }
-        return customData?.owner === user.email;
+
+        const taskOwner = (t.owner || '').toLowerCase();
+        const customOwner = (customData?.owner || '').toLowerCase();
+
+        return (
+          (taskOwner && (taskOwner === userEmail || taskOwner === userNick)) ||
+          (customOwner && (customOwner === userEmail || customOwner === userNick)) ||
+          t.assignedBy === user.id
+        );
       });
     }
 
