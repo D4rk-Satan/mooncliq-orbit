@@ -1599,8 +1599,30 @@ export default function SettingsPage() {
                               <td style={{ padding: '1rem', color: '#0f172a', fontWeight: 500 }}>{invite.email} <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>(Invited)</span></td>
                               <td style={{ padding: '1rem' }}><span style={{ backgroundColor: '#f1f5f9', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem', color: '#475569', fontWeight: 600 }}>{invite.profile?.name || 'Pending'}</span></td>
                               <td style={{ padding: '1rem' }}><span style={{ color: '#f59e0b', fontWeight: 600, fontSize: '0.85rem' }}>○ Pending</span></td>
-                              <td style={{ padding: '1rem' }}>
+                              <td style={{ padding: '1rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                                 <button
+                                  type="button"
+                                  onClick={() => {
+                                    const inviteUrl = `${window.location.origin}/invite/${invite.token}`;
+                                    navigator.clipboard.writeText(inviteUrl);
+                                    alert("Invite link copied to clipboard!\n" + inviteUrl);
+                                  }}
+                                  style={{
+                                    backgroundColor: '#2563eb',
+                                    border: 'none',
+                                    color: '#ffffff',
+                                    padding: '0.25rem 0.75rem',
+                                    borderRadius: '4px',
+                                    fontSize: '0.8rem',
+                                    cursor: 'pointer',
+                                    fontWeight: 600
+                                  }}
+                                >
+                                  Copy Link
+                                </button>
+
+                                <button
+                                  type="button"
                                   onClick={async () => {
                                     if (!window.confirm("Are you sure you want to revoke this pending invite?")) return;
                                     try {

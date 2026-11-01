@@ -57,9 +57,15 @@ export const POST = withPermission('Settings', 'manageUsers', async (request, us
 
     // 5. Send the Email via AWS SES
     const targetProfile = await prisma.profile.findUnique({ where: { id: profileId } });
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const inviteLink = `${baseUrl}/invite/${token}`;
 
+
+    // Dynamic URL: Jo domain request bhej raha hai wahi use hoga (e.g. https://crm.mooncliq.com)
+    const origin = request.headers.get('origin')
+      || (request.headers.get('host') ? `https://${request.headers.get('host')}` : null)
+      || process.env.NEXT_PUBLIC_APP_URL
+      || 'https://crm.mooncliq.com';
+    const baseUrl = origin.replace(/\/$/, '');
+    const inviteLink = `${baseUrl}/invite/${token}`;
     const org = await prisma.organization.findUnique({ where: { id: user.organizationId } });
 
     const inviterName = user.profile?.name || user.email;
@@ -75,10 +81,10 @@ export const POST = withPermission('Settings', 'manageUsers', async (request, us
     );
 
     if (!emailSent) {
-      return NextResponse.json({ message: "Invitation created, but failed to send email via AWS SES. Check server logs." }, { status: 201 });
+      return NextResponse.json({ message: "Invitation created, but failed to send, You can copy and share the invite link directly.", inviteLink }, { status: 201 });
     }
 
-    return NextResponse.json({ message: "Invitation sent successfully!" }, { status: 201 });
+    return NextResponse.json({ message: "Invitation sent successfully!", inviteLink }, { status: 201 });
 
   } catch (error) {
     console.error("Error creating invitation:", error);
