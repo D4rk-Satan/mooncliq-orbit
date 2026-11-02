@@ -155,7 +155,7 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, refresh
         <nav suppressHydrationWarning className="sidebar-nav" style={{ padding: '0.5rem 0', flex: 1, overflowY: 'auto' }}>
           {categories.map((category, idx) => (
             <React.Fragment key={idx}>
-              {category.name === "UPCOMING" && customModules.length > 0 && (
+              {category.name === "UPCOMING" && isMounted && customModules.length > 0 && (
                 <div suppressHydrationWarning style={{ display: 'flex', flexDirection: 'column', marginBottom: isCollapsed ? '0.5rem' : '1rem' }}>
                   {!isCollapsed && (
                     <div style={{ padding: '0.5rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#9ca3af', letterSpacing: '0.05em', cursor: 'default', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

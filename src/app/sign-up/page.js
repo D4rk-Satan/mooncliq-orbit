@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { signUp, confirmSignUp } from 'aws-amplify/auth';
+import { signUp, confirmSignUp, resendSignUpCode } from 'aws-amplify/auth';
 import { useRouter } from "next/navigation";
 
 const PasswordRequirements = ({ password }) => {
@@ -37,6 +37,20 @@ export default function SignUp() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [invitedContext, setInvitedContext] = useState(null);
+  const [resendTimer, setResendTimer] = useState(30);
+  const [isResending, setIsResending] = useState(false);
+  const [resendMessage, setResendMessage] = useState('');
+
+  useEffect(() => {
+    let interval;
+    if (step === 'confirm' && resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer(prev => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [step, resendTimer]);
+
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -185,10 +199,46 @@ export default function SignUp() {
       });
 
       setStep('confirm');
+      setResendTimer(30);
     } catch (err) {
+      // SMART BACK/REFRESH HANDLER:
+      // Agar user pehle password daal chuka tha aur back/refresh karke aaya
+      if (err.name === 'UsernameExistsException' || err.message?.includes('already exists')) {
+        try {
+          // Latest code bhej kar direct OTP screen par le jao
+          await resendSignUpCode({ username: formData.email });
+          setError('');
+          setResendMessage('Account already initiated. We have sent the latest verification code to your email.');
+          setResendTimer(30);
+          setStep('confirm');
+          return;
+        } catch (resendErr) {
+          // Agar account already confirmed hai toh sign in par bhejo
+          if (resendErr.message?.includes('confirmed') || resendErr.name === 'InvalidParameterException') {
+            setError('This account is already verified. Please sign in.');
+            return;
+          }
+        }
+      }
       setError(err.message || 'An error occurred during sign up.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleResendCode = async () => {
+    if (resendTimer > 0 || isResending) return;
+    setIsResending(true);
+    setError('');
+    setResendMessage('');
+    try {
+      await resendSignUpCode({ username: formData.email });
+      setResendMessage('A new verification code has been sent to your email.');
+      setResendTimer(30);
+    } catch (err) {
+      setError(err.message || 'Failed to resend code.');
+    } finally {
+      setIsResending(false);
     }
   };
 
@@ -213,232 +263,256 @@ export default function SignUp() {
   };
 
   return (
-      <div className="auth-container">
-        <div className="auth-card">
-          <div className="auth-header">
-            {invitedContext ? (
-              <>
-                <h2 className="auth-title">Welcome to Mooncliq Orbit</h2>
-                <p className="auth-subtitle" style={{ color: '#0f172a', backgroundColor: '#d9f99d', padding: '6px', borderRadius: '4px', fontWeight: 500 }}>
-                  🎉 You have been invited to join <strong>{invitedContext.company}</strong>. Set your password to complete your profile.
-                </p>
-              </>
-            ) : (
-              <>
-                <h2 className="auth-title">
-                  {step === 'confirm' ? 'Verify Email' : (step === 'organization' ? 'Organization Details' : 'Create Account')}
-                </h2>
-                <p className="auth-subtitle">
-                  {step === 'confirm'
-                    ? `We sent a code to ${formData.email}`
-                    : (step === 'organization' ? 'Step 2: Tell us about your company' : 'Step 1: Get started with your free trial')}
-                </p>
-              </>
-            )}
-          </div>
-
-          {error && (
-            <div style={{ color: '#ef4444', backgroundColor: '#fef2f2', padding: '0.75rem', borderRadius: '8px', marginBottom: '1rem', fontSize: '0.875rem' }}>
-              {error}
-            </div>
-          )}
-
-          {/* STEP 1: Personal Details */}
-          {step === 'account' && (
-            <form onSubmit={handleNextToOrg}>
-              <div className="form-group">
-                <label className="form-label" htmlFor="name">Full Name</label>
-                <input
-                  type="text"
-                  id="name"
-                  className="form-input"
-                  placeholder="John Doe"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label" htmlFor="email">Email Address</label>
-                <input
-                  type="email"
-                  id="email"
-                  className="form-input"
-                  placeholder="you@company.com"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  required
-                  disabled={!!invitedContext}
-                  style={invitedContext ? { backgroundColor: '#f1f5f9', color: '#64748b', cursor: 'not-allowed' } : {}}
-                />
-              </div>
-
-              <div className="password-input-wrapper" style={{ display: 'none' }}></div>
-
-              <div className="form-group">
-                <label className="form-label" htmlFor="password">Password</label>
-                <div className="password-input-wrapper">
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    id="password"
-                    className="form-input"
-                    placeholder="••••••••"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    required
-                  />
-                  <button
-                    type="button"
-                    className="password-toggle-btn"
-                    onClick={() => setShowPassword(!showPassword)}
-                    tabIndex="-1"
-                  >
-                    {showPassword ? "Hide" : "Show"}
-                  </button>
-                </div>
-                <PasswordRequirements password={formData.password} />
-              </div>
-
-              <button type="submit" className="form-button">
-                {invitedContext ? 'Sign Up' : 'Continue to Organization →'}
-              </button>
-            </form>
-          )}
-
-          {/* STEP 2: Organization Details */}
-          {step === 'organization' && (
-            <form onSubmit={handleOrgSubmit}>
-              <div className="form-group">
-                <label className="form-label" htmlFor="company">Company Name</label>
-                <input
-                  type="text"
-                  id="company"
-                  className="form-input"
-                  placeholder="Acme Corp"
-                  value={formData.company}
-                  onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label" htmlFor="gstNumber">GST Number (Optional)</label>
-                <input
-                  type="text"
-                  id="gstNumber"
-                  className="form-input"
-                  placeholder="24AAACC1206D1ZH"
-                  maxLength={15}
-                  value={formData.gstNumber}
-                  onChange={handleGstChange}
-                />
-                {gstError && (
-                  <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.75rem', color: '#ef4444' }}>{gstError}</p>
-                )}
-              </div>
-
-              <div className="form-group">
-                <label className="form-label" htmlFor="industry">Industry</label>
-                <select
-                  id="industry"
-                  className="form-input"
-                  value={formData.industry}
-                  onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
-                >
-                  <option value="">Select industry...</option>
-                  <option value="Real Estate">Real Estate</option>
-                  <option value="Software">Software & IT</option>
-                  <option value="Agency">Marketing Agency</option>
-                  <option value="Textile">Textile</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label" htmlFor="teamSize">Team Size</label>
-                <select
-                  id="teamSize"
-                  className="form-input"
-                  value={formData.teamSize}
-                  onChange={(e) => setFormData({ ...formData, teamSize: e.target.value })}
-                >
-                  <option value="">Select size...</option>
-                  <option value="1-10">1-10</option>
-                  <option value="11-50">11-50</option>
-                  <option value="51-200">51-200</option>
-                  <option value="201+">201+</option>
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Company Logo (Optional)</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="form-input"
-                    onChange={handleLogoUpload}
-                    disabled={isUploadingLogo}
-                    style={{ flex: 1 }}
-                  />
-                  {formData.logoUrl && (
-                    <img 
-                      src={formData.logoUrl} 
-                      alt="Logo Preview" 
-                      style={{ width: '40px', height: '40px', objectFit: 'contain', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: '#f8fafc' }} 
-                    />
-                  )}
-                </div>
-                {isUploadingLogo && <p style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.25rem' }}>Uploading logo...</p>}
-                {formData.logoUrl && !isUploadingLogo && <p style={{ fontSize: '0.8rem', color: '#16a34a', marginTop: '0.25rem' }}>✓ Logo uploaded successfully</p>}
-              </div>
-
-              <button type="submit" className="form-button" disabled={isLoading || isUploadingLogo}>
-                {isLoading ? 'Creating Account...' : 'Sign Up'}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setStep('account')}
-                style={{ width: '100%', background: 'none', border: 'none', color: '#64748b', marginTop: '1rem', cursor: 'pointer', fontSize: '0.9rem' }}
-              >
-                ← Back
-              </button>
-            </form>
-          )}
-
-          {/* STEP 3: OTP Confirmation */}
-          {step === 'confirm' && (
-            <form onSubmit={handleConfirmSubmit}>
-              <div className="form-group">
-                <label className="form-label" htmlFor="code">Confirmation Code</label>
-                <input
-                  type="text"
-                  id="code"
-                  className="form-input"
-                  placeholder="123456"
-                  value={formData.code}
-                  onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                  required
-                />
-              </div>
-
-              <button type="submit" className="form-button" disabled={isLoading}>
-                {isLoading ? 'Verifying...' : 'Verify & Continue'}
-              </button>
-            </form>
-          )}
-
-          {(step === 'account' || step === 'organization') && (
-            <div className="auth-footer">
-              Already have an account?{' '}
-              <Link href="/sign-in" className="auth-link">
-                Sign in
-              </Link>
-            </div>
+    <div className="auth-container">
+      <div className="auth-card">
+        <div className="auth-header">
+          {invitedContext ? (
+            <>
+              <h2 className="auth-title">Welcome to Mooncliq Orbit</h2>
+              <p className="auth-subtitle" style={{ color: '#0f172a', backgroundColor: '#d9f99d', padding: '6px', borderRadius: '4px', fontWeight: 500 }}>
+                🎉 You have been invited to join <strong>{invitedContext.company}</strong>. Set your password to complete your profile.
+              </p>
+            </>
+          ) : (
+            <>
+              <h2 className="auth-title">
+                {step === 'confirm' ? 'Verify Email' : (step === 'organization' ? 'Organization Details' : 'Create Account')}
+              </h2>
+              <p className="auth-subtitle">
+                {step === 'confirm'
+                  ? `We sent a code to ${formData.email}`
+                  : (step === 'organization' ? 'Step 2: Tell us about your company' : 'Step 1: Get started with your free trial')}
+              </p>
+            </>
           )}
         </div>
+
+        {error && (
+          <div style={{ color: '#ef4444', backgroundColor: '#fef2f2', padding: '0.75rem', borderRadius: '8px', marginBottom: '1rem', fontSize: '0.875rem' }}>
+            {error}
+          </div>
+        )}
+
+        {/* STEP 1: Personal Details */}
+        {step === 'account' && (
+          <form onSubmit={handleNextToOrg}>
+            <div className="form-group">
+              <label className="form-label" htmlFor="name">Full Name</label>
+              <input
+                type="text"
+                id="name"
+                className="form-input"
+                placeholder="John Doe"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label" htmlFor="email">Email Address</label>
+              <input
+                type="email"
+                id="email"
+                className="form-input"
+                placeholder="you@company.com"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                required
+                disabled={!!invitedContext}
+                style={invitedContext ? { backgroundColor: '#f1f5f9', color: '#64748b', cursor: 'not-allowed' } : {}}
+              />
+            </div>
+
+            <div className="password-input-wrapper" style={{ display: 'none' }}></div>
+
+            <div className="form-group">
+              <label className="form-label" htmlFor="password">Password</label>
+              <div className="password-input-wrapper">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  id="password"
+                  className="form-input"
+                  placeholder="••••••••"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  required
+                />
+                <button
+                  type="button"
+                  className="password-toggle-btn"
+                  onClick={() => setShowPassword(!showPassword)}
+                  tabIndex="-1"
+                >
+                  {showPassword ? "Hide" : "Show"}
+                </button>
+              </div>
+              <PasswordRequirements password={formData.password} />
+            </div>
+
+            <button type="submit" className="form-button">
+              {invitedContext ? 'Sign Up' : 'Continue to Organization →'}
+            </button>
+          </form>
+        )}
+
+        {/* STEP 2: Organization Details */}
+        {step === 'organization' && (
+          <form onSubmit={handleOrgSubmit}>
+            <div className="form-group">
+              <label className="form-label" htmlFor="company">Company Name</label>
+              <input
+                type="text"
+                id="company"
+                className="form-input"
+                placeholder="Acme Corp"
+                value={formData.company}
+                onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label" htmlFor="gstNumber">GST Number (Optional)</label>
+              <input
+                type="text"
+                id="gstNumber"
+                className="form-input"
+                placeholder="24AAACC1206D1ZH"
+                maxLength={15}
+                value={formData.gstNumber}
+                onChange={handleGstChange}
+              />
+              {gstError && (
+                <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.75rem', color: '#ef4444' }}>{gstError}</p>
+              )}
+            </div>
+
+            <div className="form-group">
+              <label className="form-label" htmlFor="industry">Industry</label>
+              <select
+                id="industry"
+                className="form-input"
+                value={formData.industry}
+                onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
+              >
+                <option value="">Select industry...</option>
+                <option value="Real Estate">Real Estate</option>
+                <option value="Software">Software & IT</option>
+                <option value="Agency">Marketing Agency</option>
+                <option value="Textile">Textile</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label" htmlFor="teamSize">Team Size</label>
+              <select
+                id="teamSize"
+                className="form-input"
+                value={formData.teamSize}
+                onChange={(e) => setFormData({ ...formData, teamSize: e.target.value })}
+              >
+                <option value="">Select size...</option>
+                <option value="1-10">1-10</option>
+                <option value="11-50">11-50</option>
+                <option value="51-200">51-200</option>
+                <option value="201+">201+</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Company Logo (Optional)</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="form-input"
+                  onChange={handleLogoUpload}
+                  disabled={isUploadingLogo}
+                  style={{ flex: 1 }}
+                />
+                {formData.logoUrl && (
+                  <img
+                    src={formData.logoUrl}
+                    alt="Logo Preview"
+                    style={{ width: '40px', height: '40px', objectFit: 'contain', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: '#f8fafc' }}
+                  />
+                )}
+              </div>
+              {isUploadingLogo && <p style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.25rem' }}>Uploading logo...</p>}
+              {formData.logoUrl && !isUploadingLogo && <p style={{ fontSize: '0.8rem', color: '#16a34a', marginTop: '0.25rem' }}>✓ Logo uploaded successfully</p>}
+            </div>
+
+            <button type="submit" className="form-button" disabled={isLoading || isUploadingLogo}>
+              {isLoading ? 'Creating Account...' : 'Sign Up'}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setStep('account')}
+              style={{ width: '100%', background: 'none', border: 'none', color: '#64748b', marginTop: '1rem', cursor: 'pointer', fontSize: '0.9rem' }}
+            >
+              ← Back
+            </button>
+          </form>
+        )}
+
+        {/* STEP 3: OTP Confirmation */}
+        {step === 'confirm' && (
+          <form onSubmit={handleConfirmSubmit}>
+            {resendMessage && (
+              <div style={{ color: '#15803d', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', padding: '0.75rem', borderRadius: '8px', marginBottom: '1rem', fontSize: '0.875rem' }}>
+                {resendMessage}
+              </div>
+            )}
+
+            <div className="form-group">
+              <label className="form-label" htmlFor="code">Confirmation Code</label>
+              <input
+                type="text"
+                id="code"
+                className="form-input"
+                placeholder="123456"
+                value={formData.code}
+                onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                required
+              />
+            </div>
+
+            <button type="submit" className="form-button" disabled={isLoading}>
+              {isLoading ? 'Verifying...' : 'Verify & Continue'}
+            </button>
+
+            <div style={{ marginTop: '1.25rem', textAlign: 'center', fontSize: '0.875rem', color: '#64748b' }}>
+              Didn't receive the code?{' '}
+              {resendTimer > 0 ? (
+                <span style={{ fontWeight: 600, color: '#0f172a' }}>
+                  Resend in {resendTimer}s
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleResendCode}
+                  disabled={isResending}
+                  style={{ background: 'none', border: 'none', color: '#2563eb', fontWeight: 600, cursor: 'pointer', padding: 0 }}
+                >
+                  {isResending ? 'Sending...' : 'Resend Code'}
+                </button>
+              )}
+            </div>
+          </form>
+        )}
+
+        {(step === 'account' || step === 'organization') && (
+          <div className="auth-footer">
+            Already have an account?{' '}
+            <Link href="/sign-in" className="auth-link">
+              Sign in
+            </Link>
+          </div>
+        )}
       </div>
-    );
-  }
+    </div>
+  );
+}

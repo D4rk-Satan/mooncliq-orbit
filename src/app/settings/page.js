@@ -1578,20 +1578,45 @@ export default function SettingsPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {/* 1. Asli Active Users Dikhayenge */}
-                          {orgUsers
-                            .filter(user => !['administrator', 'admin'].includes(user.profile?.name?.toLowerCase()))
-                            .map(user => (
+                          {/* 1. Asli Active Users Dikhayenge (Including Super Admin) */}
+                          {orgUsers.map(user => {
+                            const isSuperAdmin = user.profile?.canAccessSettings || ['administrator', 'admin', 'superadmin', 'super admin'].includes(user.profile?.name?.toLowerCase());
 
+                            return (
                               <tr key={user.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                                <td style={{ padding: '1rem', color: '#0f172a', fontWeight: 500 }}>{user.email}</td>
-                                <td style={{ padding: '1rem' }}><span style={{ backgroundColor: '#f1f5f9', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem', color: '#475569', fontWeight: 600 }}>{user.profile?.name || 'No Role'}</span></td>
-                                <td style={{ padding: '1rem' }}><span style={{ color: '#10b981', fontWeight: 600, fontSize: '0.85rem' }}>● Active</span></td>
+                                <td style={{ padding: '1rem', color: '#0f172a', fontWeight: 500 }}>
+                                  {user.email}
+                                  {isSuperAdmin && (
+                                    <span style={{ marginLeft: '0.5rem', fontSize: '0.7rem', backgroundColor: '#e0e7ff', color: '#3730a3', padding: '0.15rem 0.5rem', borderRadius: '12px', fontWeight: 600 }}>
+                                      Owner / Admin
+                                    </span>
+                                  )}
+                                </td>
                                 <td style={{ padding: '1rem' }}>
-                                  <button onClick={() => handleRevokeAccess(user.id)} style={{ background: 'none', border: '1px solid #ef4444', color: '#ef4444', padding: '0.25rem 0.75rem', borderRadius: '4px', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600 }}>Revoke Access</button>
+                                  <span style={{ backgroundColor: '#f1f5f9', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem', color: '#475569', fontWeight: 600 }}>
+                                    {user.profile?.name || 'No Role'}
+                                  </span>
+                                </td>
+                                <td style={{ padding: '1rem' }}>
+                                  <span style={{ color: '#10b981', fontWeight: 600, fontSize: '0.85rem' }}>● Active</span>
+                                </td>
+                                <td style={{ padding: '1rem' }}>
+                                  {isSuperAdmin ? (
+                                    <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic', fontWeight: 500 }}>
+                                      Primary Admin
+                                    </span>
+                                  ) : (
+                                    <button 
+                                      onClick={() => handleRevokeAccess(user.id)} 
+                                      style={{ background: 'none', border: '1px solid #ef4444', color: '#ef4444', padding: '0.25rem 0.75rem', borderRadius: '4px', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600 }}
+                                    >
+                                      Revoke Access
+                                    </button>
+                                  )}
                                 </td>
                               </tr>
-                            ))}
+                            );
+                          })}
 
                           {/* 2. Pending Invites Dikhayenge */}
                           {pendingInvites.map(invite => (
@@ -2459,12 +2484,12 @@ export default function SettingsPage() {
                           canAccessSettings: false,
                           canExportData: false,
                           permissions: {
-                            Lead: { view: false, create: false, edit: false, delete: false },
-                            Deal: { view: false, create: false, edit: false, delete: false },
-                            Account: { view: false, create: false, edit: false, delete: false },
-                            Task: { view: false, create: false, edit: false, delete: false },
-                            Product: { view: false, create: false, edit: false, delete: false },
-                            ...customModules.reduce((acc, m) => ({ ...acc, [m.name]: { view: false, create: false, edit: false, delete: false } }), {})
+                            Lead: { view: false, create: false, edit: false, delete: false, export: false },
+                            Deal: { view: false, create: false, edit: false, delete: false, export: false },
+                            Account: { view: false, create: false, edit: false, delete: false, export: false },
+                            Task: { view: false, create: false, edit: false, delete: false, export: false },
+                            Product: { view: false, create: false, edit: false, delete: false, export: false },
+                            ...customModules.reduce((acc, m) => ({ ...acc, [m.name]: { view: false, create: false, edit: false, delete: false, export: false } }), {})
                           }
                         });
                         setIsProfileModalOpen(true);
@@ -2483,10 +2508,12 @@ export default function SettingsPage() {
                                 <span>Export: {profile.canExportData ? 'Yes' : 'No'}</span>
                               </div>
                             </div>
-                            <button className="btn-outline" onClick={() => {
-                              setSelectedProfile(profile);
-                              setIsProfileModalOpen(true);
-                            }}>Edit Permissions</button>
+                            {profile.name?.toLowerCase() !== 'standard user' && (
+                              <button className="btn-outline" onClick={() => {
+                                setSelectedProfile(profile);
+                                setIsProfileModalOpen(true);
+                              }}>Edit Permissions</button>
+                            )}
                           </div>
                         ))}
                       {profiles.filter(p => !['administrator', 'admin'].includes(p.name?.toLowerCase())).length === 0 && (
@@ -3199,19 +3226,7 @@ export default function SettingsPage() {
                 <input type="text" className="form-input" placeholder="e.g. Sales Representative" value={selectedProfile.name} onChange={e => setSelectedProfile({ ...selectedProfile, name: e.target.value })} />
               </div>
 
-              <div style={{ marginBottom: '2rem' }}>
-                <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem' }}>Global Permissions</h3>
-                <div style={{ display: 'flex', gap: '2rem' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 500 }}>
-                    <input type="checkbox" checked={selectedProfile.canAccessSettings} onChange={e => setSelectedProfile({ ...selectedProfile, canAccessSettings: e.target.checked })} />
-                    Administrator (Access to Setup & Settings)
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 500 }}>
-                    <input type="checkbox" checked={selectedProfile.canExportData} onChange={e => setSelectedProfile({ ...selectedProfile, canExportData: e.target.checked })} />
-                    Can Export Data
-                  </label>
-                </div>
-              </div>
+
 
               <div style={{ marginBottom: '2rem' }}>
                 <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem' }}>Module Permissions Matrix</h3>
@@ -3223,6 +3238,7 @@ export default function SettingsPage() {
                       <th style={{ padding: '0.75rem', textAlign: 'center', fontWeight: 600, color: '#64748b', fontSize: '0.85rem' }}>CREATE</th>
                       <th style={{ padding: '0.75rem', textAlign: 'center', fontWeight: 600, color: '#64748b', fontSize: '0.85rem' }}>EDIT</th>
                       <th style={{ padding: '0.75rem', textAlign: 'center', fontWeight: 600, color: '#64748b', fontSize: '0.85rem' }}>DELETE</th>
+                      <th style={{ padding: '0.75rem', textAlign: 'center', fontWeight: 600, color: '#64748b', fontSize: '0.85rem' }}>EXPORT</th>
                       <th style={{ padding: '0.75rem', textAlign: 'left', fontWeight: 600, color: '#64748b', fontSize: '0.85rem' }}>DATA ACCESS</th>
                     </tr>
                   </thead>
@@ -3230,14 +3246,14 @@ export default function SettingsPage() {
                     {['Lead', 'Deal', 'Account', 'Task', 'Product', 'Whatsapp', 'Campaigns', ...customModules.map(m => m.name)].map(mod => (
                       <tr key={mod} style={{ borderBottom: '1px solid #f1f5f9' }}>
                         <td style={{ padding: '0.75rem', fontWeight: 500 }}>{mod}</td>
-                        {['view', 'create', 'edit', 'delete'].map(action => (
+                        {['view', 'create', 'edit', 'delete', 'export'].map(action => (
                           <td key={action} style={{ padding: '0.75rem', textAlign: 'center' }}>
                             <input
                               type="checkbox"
                               checked={selectedProfile.permissions?.[mod]?.[action] || false}
                               onChange={(e) => {
                                 const newPerms = { ...selectedProfile.permissions };
-                                if (!newPerms[mod]) newPerms[mod] = { view: false, create: false, edit: false, delete: false, visibility: 'public' };
+                                if (!newPerms[mod]) newPerms[mod] = { view: false, create: false, edit: false, delete: false, export: false, visibility: 'public' };
                                 newPerms[mod][action] = e.target.checked;
 
                                 // Auto-check View if others are selected
@@ -3249,6 +3265,7 @@ export default function SettingsPage() {
                                   newPerms[mod]['create'] = false;
                                   newPerms[mod]['edit'] = false;
                                   newPerms[mod]['delete'] = false;
+                                  newPerms[mod]['export'] = false;
                                 }
 
                                 setSelectedProfile({ ...selectedProfile, permissions: newPerms });
@@ -3322,9 +3339,12 @@ export default function SettingsPage() {
                     required
                   >
                     <option value="">Select a Profile...</option>
-                    {profiles.map(p => (
-                      <option key={p.id} value={p.id}>{p.name}</option>
-                    ))}
+                    {profiles
+                      .filter(p => !p.canAccessSettings && !['administrator', 'admin', 'superadmin', 'super admin'].includes(p.name?.toLowerCase()))
+                      .map(p => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))
+                    }
                   </select>
                 </div>
 

@@ -322,23 +322,40 @@ export default function Dashboard() {
   const [leadBlueprint, setLeadBlueprint] = useState(null);
   const [taskBlueprint, setTaskBlueprint] = useState(null);
   const [selectedRecordType, setSelectedRecordType] = useState('Lead');
+  const [currentUser, setCurrentUser] = useState(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showAnnouncement, setShowAnnouncement] = useState(false);
 
   useEffect(() => {
     fetchDashboardData();
+    const isDismissed = typeof window !== 'undefined' ? sessionStorage.getItem('orbit_announcement_v1_dismissed') : null;
+    if (!isDismissed) {
+      setShowAnnouncement(true);
+    }
   }, []);
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  };
+
   //data fetching from api
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = async (isSoft = false) => {
     try {
-      setIsLoading(true);
+      if (!isSoft) setIsLoading(true);
+      else setIsRefreshing(true);
+
       const { tokens } = await fetchAuthSession();
       const token = tokens?.idToken?.toString();
       const headers = { Authorization: `Bearer ${token}` };
 
-      const [res, bpLeadRes, bpTaskRes] = await Promise.all([
+      const [res, bpLeadRes, bpTaskRes, meRes] = await Promise.all([
         fetch('/api/dashboard', { headers }),
         fetch('/api/blueprint?moduleType=Lead', { headers }),
-        fetch('/api/blueprint?moduleType=Task', { headers })
+        fetch('/api/blueprint?moduleType=Task', { headers }),
+        fetch('/api/me', { headers })
       ]);
 
       if (res.ok) {
@@ -350,10 +367,19 @@ export default function Dashboard() {
 
       if (bpLeadRes.ok) setLeadBlueprint(await bpLeadRes.json());
       if (bpTaskRes.ok) setTaskBlueprint(await bpTaskRes.json());
+      if (meRes && meRes.ok) setCurrentUser(await meRes.json());
     } catch (error) {
       console.error("Dashboard Fetch Error:", error);
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  };
+
+  const handleDismissAnnouncement = () => {
+    setShowAnnouncement(false);
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('orbit_announcement_v1_dismissed', 'true');
     }
   };
 
@@ -445,14 +471,114 @@ export default function Dashboard() {
 
   return (
     <>
-      <main className="dashboard-main" style={{ backgroundColor: 'var(--bg-primary)', padding: '1.5rem', overflowY: 'auto', position: 'relative' }}>
+      <main className="dashboard-main" style={{ backgroundColor: 'var(--bg-primary)', padding: '0.65rem 1.5rem 1.5rem 1.5rem', overflowY: 'auto', position: 'relative' }}>
 
-        {/* Header Section */}
-        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <h1 style={{ margin: 0, fontSize: '1.5rem', color: '#0f172a', fontWeight: 700 }}>Dashboard</h1>
+        {/* Header Section (Positioned high to align with sidebar logo above dividing line) */}
+        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: '52px', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
+          <div>
+            <h1 style={{ margin: 0, fontSize: '1.55rem', color: '#0f172a', fontWeight: 700, lineHeight: 1.2 }}>
+              {getGreeting()}, {currentUser?.profile?.nickname || currentUser?.profile?.name || currentUser?.email?.split('@')[0] || 'there'} 👋
+            </h1>
+            <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.825rem', color: '#64748b' }}>
+              Here's an overview of your pipeline, team deals, and tasks today.
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <button
+              onClick={() => fetchDashboardData(true)}
+              disabled={isRefreshing}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                backgroundColor: '#ffffff',
+                border: '1px solid #e2e8f0',
+                color: '#334155',
+                padding: '0.45rem 0.9rem',
+                borderRadius: '10px',
+                fontSize: '0.825rem',
+                fontWeight: 600,
+                cursor: isRefreshing ? 'not-allowed' : 'pointer',
+                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <svg
+                style={{
+                  width: '14px',
+                  height: '14px',
+                  transition: 'transform 0.5s ease',
+                  transform: isRefreshing ? 'rotate(360deg)' : 'none'
+                }}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              <span>{isRefreshing ? 'Syncing...' : 'Refresh'}</span>
+            </button>
           </div>
         </header>
+
+        {/* ---- #13 Top-Edge Slim Announcement Ribbon ---- */}
+        {showAnnouncement && (
+          <div style={{
+            backgroundColor: '#4f46e5',
+            color: '#ffffff',
+            padding: '0.5rem 1rem',
+            borderRadius: '12px',
+            marginBottom: '1.25rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            fontSize: '0.825rem',
+            boxShadow: '0 2px 4px rgba(79, 70, 229, 0.15)',
+            transition: 'all 0.3s ease'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <span style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                padding: '0.15rem 0.5rem',
+                borderRadius: '9999px',
+                fontSize: '0.7rem',
+                fontWeight: 700,
+                letterSpacing: '0.05em'
+              }}>
+                UPDATE
+              </span>
+              <span>
+                Meta WhatsApp Cloud API v19.0 is now connected & ready for all team members!
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <a 
+                href="/settings/whatsapp" 
+                style={{ color: '#ffffff', fontWeight: 600, textDecoration: 'underline', cursor: 'pointer' }}
+              >
+                View Settings →
+              </a>
+              <button 
+                onClick={handleDismissAnnouncement} 
+                title="Dismiss announcement"
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'rgba(255, 255, 255, 0.8)',
+                  cursor: 'pointer',
+                  padding: '2px 6px',
+                  borderRadius: '4px',
+                  fontSize: '0.9rem',
+                  lineHeight: 1
+                }}
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Dashboard Grid Layout */}
         <div className="dashboard-grid-layout" style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '1.5rem' }}>

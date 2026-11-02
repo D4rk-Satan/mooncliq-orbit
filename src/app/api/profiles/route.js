@@ -8,10 +8,38 @@ export async function GET(request) {
     const user = await getAuthUser(request);
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const profiles = await prisma.profile.findMany({
+    let profiles = await prisma.profile.findMany({
       where: { organizationId: user.organizationId },
       orderBy: { name: 'asc' }
     });
+
+    // AUTO-INJECT: Har organization me "Standard User" profile ensure karo (Non-deletable & Non-editable)
+    const hasStandardUser = profiles.some(p => p.name?.toLowerCase() === 'standard user');
+    if (!hasStandardUser) {
+      try {
+        const stdProfile = await prisma.profile.create({
+          data: {
+            organizationId: user.organizationId,
+            name: 'Standard User',
+            canAccessSettings: false,
+            canManageUsers: false,
+            canExportData: false,
+            permissions: {
+              Lead: { view: true, create: true, edit: true, delete: true, export: true, visibility: 'public' },
+              Deal: { view: true, create: true, edit: true, delete: true, export: true, visibility: 'public' },
+              Account: { view: true, create: true, edit: true, delete: true, export: true, visibility: 'public' },
+              Task: { view: true, create: true, edit: true, delete: true, export: true, visibility: 'public' },
+              Product: { view: true, create: true, edit: true, delete: true, export: true, visibility: 'public' },
+              Whatsapp: { view: true, create: true, edit: true, delete: false, export: true, visibility: 'public' },
+              Campaigns: { view: true, create: true, edit: true, delete: false, export: true, visibility: 'public' }
+            }
+          }
+        });
+        profiles.push(stdProfile);
+      } catch (err) {
+        console.error('Error auto-creating Standard User profile:', err);
+      }
+    }
 
     return NextResponse.json(profiles);
   } catch (error) {

@@ -18,6 +18,83 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
   const [localTags, setLocalTags] = useState([]);
   const [activeTab, setActiveTab] = useState('Details');
 
+  const [newNoteText, setNewNoteText] = useState("");
+  const [isSavingNote, setIsSavingNote] = useState(false);
+
+  // Parse existing notes (handles JSON array or legacy raw string)
+  const getTimelineNotes = () => {
+    if (!lead || !lead.notes) return [];
+    if (Array.isArray(lead.notes)) return lead.notes;
+    try {
+      const parsed = JSON.parse(lead.notes);
+      if (Array.isArray(parsed)) return parsed;
+      return [{ id: 'legacy-1', text: String(lead.notes), author: 'System Note', createdAt: lead.updatedAt || lead.createdAt || new Date().toISOString() }];
+    } catch (e) {
+      return [{ id: 'legacy-1', text: String(lead.notes), author: 'Legacy Note', createdAt: lead.updatedAt || lead.createdAt || new Date().toISOString() }];
+    }
+  };
+
+  const handleAddTimelineNote = async () => {
+    if (!newNoteText.trim() || isSavingNote || !lead?.id) return;
+    setIsSavingNote(true);
+
+    const authorName = currentUser?.profile?.nickname || currentUser?.profile?.name || currentUser?.name || currentUser?.email?.split('@')[0] || 'User';
+
+    const currentNotes = getTimelineNotes();
+    const newEntry = {
+      id: 'note_' + Date.now(),
+      text: newNoteText.trim(),
+      author: authorName,
+      authorEmail: currentUser?.email || '',
+      createdAt: new Date().toISOString()
+    };
+
+    const updatedNotesList = [newEntry, ...currentNotes];
+    const notesJsonString = JSON.stringify(updatedNotesList);
+
+    try {
+      const { fetchAuthSession } = await import('aws-amplify/auth');
+      const session = await fetchAuthSession();
+      const token = session.tokens?.idToken?.toString();
+
+      // Determine endpoint based on blueprint or record type (defaults to /api/leads)
+      const moduleType = (blueprint?.moduleType || 'lead').toLowerCase();
+      let endpoint = '/api/leads';
+      let payload = { leadId: lead.id, notes: notesJsonString };
+
+      if (moduleType === 'deal') {
+        endpoint = '/api/deals';
+        payload = { dealId: lead.id, notes: notesJsonString };
+      } else if (moduleType === 'task') {
+        endpoint = '/api/tasks';
+        payload = { taskId: lead.id, notes: notesJsonString };
+      }
+
+      const res = await fetch(endpoint, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : ''
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        const updatedRecord = await res.json();
+        // Optimistic local state update on the lead object
+        lead.notes = notesJsonString;
+        setNewNoteText("");
+        if (onLeadUpdate) onLeadUpdate(updatedRecord);
+      } else {
+        alert("Failed to save note. Please try again.");
+      }
+    } catch (err) {
+      console.error("Error adding note:", err);
+      alert("Error saving note: " + err.message);
+    } finally {
+      setIsSavingNote(false);
+    }
+  };
 
 
   useEffect(() => {
@@ -273,9 +350,25 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
     }
 
     if (activeTab === 'Details') {
+      const EXCLUDED_FIELDS = [
+        'notes',
+        'createdat',
+        'createddate',
+        'lastmodifiedbyid',
+        'lastmodifieddate',
+        'lastmodifiedby',
+        'updatedat',
+        'lastactivitydate'
+      ];
+
+      const visibleFields = (blueprint?.fields || []).filter(field => {
+        const fName = (field.name || '').toLowerCase();
+        return !EXCLUDED_FIELDS.includes(fName);
+      });
+
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', position: 'relative', paddingBottom: '0' }}>
-          {blueprint.fields.map(field => {
+          {visibleFields.map(field => {
             // Check if the property exists on the root object (standard field), otherwise fallback to customData
             let value = field.name in lead ? lead[field.name] : lead.customData?.[field.name];
 
@@ -351,6 +444,132 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
           {(!blueprint.fields || blueprint.fields.length === 0) && (
             <div style={{ color: '#94a3b8', fontSize: '0.9rem', fontStyle: 'italic' }}>No fields configured in blueprint.</div>
           )}
+        </div>
+      );
+    }
+
+    if (activeTab === 'Notes') {
+      const notesList = getTimelineNotes();
+
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {/* Top Add Note Box */}
+          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem' }}>
+            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#0f172a', marginBottom: '0.5rem' }}>
+              Add a Note
+            </label>
+            <textarea
+              value={newNoteText}
+              onChange={(e) => setNewNoteText(e.target.value)}
+              placeholder="Write an internal note, call summary, or customer update..."
+              rows={3}
+              style={{
+                width: '100%',
+                padding: '0.75rem',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                fontSize: '0.9rem',
+                fontFamily: 'inherit',
+                outline: 'none',
+                resize: 'vertical',
+                boxSizing: 'border-box'
+              }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.75rem' }}>
+              <button
+                type="button"
+                onClick={handleAddTimelineNote}
+                disabled={isSavingNote || !newNoteText.trim()}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.5rem 1.25rem',
+                  borderRadius: '8px',
+                  backgroundColor: !newNoteText.trim() || isSavingNote ? '#cbd5e1' : '#0f172a',
+                  color: '#ffffff',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  border: 'none',
+                  cursor: !newNoteText.trim() || isSavingNote ? 'not-allowed' : 'pointer',
+                  transition: 'background 0.2s'
+                }}
+              >
+                {isSavingNote ? 'Saving...' : '+ Post Note'}
+              </button>
+            </div>
+          </div>
+
+          {/* Timeline Feed */}
+          <div>
+            <h4 style={{ fontSize: '0.85rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 1rem 0' }}>
+              Timeline Notes ({notesList.length})
+            </h4>
+
+            {notesList.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '2.5rem 1rem', background: '#ffffff', border: '1px dashed #cbd5e1', borderRadius: '12px', color: '#94a3b8' }}>
+                <p style={{ margin: 0, fontSize: '0.9rem' }}>No notes yet. Post the first update above.</p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {notesList.map((n, idx) => {
+                  const authorName = n.author || 'User';
+                  const initials = authorName.slice(0, 2).toUpperCase();
+                  let formattedDate = n.createdAt;
+                  try {
+                    const d = new Date(n.createdAt);
+                    if (!isNaN(d.getTime())) {
+                      formattedDate = d.toLocaleString('en-IN', {
+                        day: '2-digit', month: 'short', year: 'numeric',
+                        hour: '2-digit', minute: '2-digit', hour12: true
+                      });
+                    }
+                  } catch (e) { }
+
+                  return (
+                    <div
+                      key={n.id || idx}
+                      style={{
+                        background: '#ffffff',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '10px',
+                        padding: '1rem',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <div style={{
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '50%',
+                            background: '#e0e7ff',
+                            color: '#3730a3',
+                            fontSize: '0.7rem',
+                            fontWeight: 700,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}>
+                            {initials}
+                          </div>
+                          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#0f172a' }}>
+                            {authorName}
+                          </span>
+                        </div>
+                        <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                          {formattedDate}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '0.9rem', color: '#334155', lineHeight: 1.5, whiteSpace: 'pre-wrap', paddingLeft: '2rem' }}>
+                        {n.text}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       );
     }
