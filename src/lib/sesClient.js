@@ -1,16 +1,33 @@
 import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
 
-// Ensure you have these environment variables set in your .env:
-// AWS_ACCESS_KEY_ID
-// AWS_SECRET_ACCESS_KEY
-// AWS_REGION (e.g., ap-south-1, us-east-1)
-// AWS_SES_FROM_EMAIL (e.g., no-reply@yourdomain.com)
+function getSESClient() {
+  const accessKeyId =
+    process.env.SES_AWS_ACCESS_KEY_ID ||
+    process.env.S3_UPLOAD_AWS_ACCESS_KEY_ID ||
+    process.env.LAMBDA_AWS_ACCESS_KEY_ID ||
+    process.env.AWS_ACCESS_KEY_ID;
 
-const sesClient = new SESClient({
-  region: process.env.AWS_REGION || "ap-south-1",
-  // In development, AWS SDK automatically picks up AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
-  // from the environment variables. If you deploy to EC2/Vercel with an IAM role, it will use that automatically.
-});
+  const secretAccessKey =
+    process.env.SES_AWS_SECRET_ACCESS_KEY ||
+    process.env.S3_UPLOAD_AWS_SECRET_ACCESS_KEY ||
+    process.env.LAMBDA_AWS_SECRET_ACCESS_KEY ||
+    process.env.AWS_SECRET_ACCESS_KEY;
+
+  const region = process.env.AWS_REGION || "ap-south-1";
+
+  const config = { region };
+
+  if (accessKeyId && secretAccessKey) {
+    config.credentials = {
+      accessKeyId: accessKeyId.trim(),
+      secretAccessKey: secretAccessKey.trim(),
+    };
+  }
+
+  return new SESClient(config);
+}
+
+const sesClient = getSESClient();
 
 /**
  * Sends an RBAC Invitation Email using AWS SES.
@@ -22,7 +39,7 @@ const sesClient = new SESClient({
  * @param {string} orgLogo - The URL of the organization's logo (optional).
  */
 export async function sendInvitationEmail(toEmail, inviteLink, organizationName, profileName, inviterName, orgLogo) {
-  const senderEmail = process.env.AWS_SES_FROM_EMAIL;
+  const senderEmail = process.env.AWS_SES_FROM_EMAIL || "support@mooncliq.com";
   
   if (!senderEmail) {
     console.warn("AWS_SES_FROM_EMAIL is not set. SES email dispatch skipped.");

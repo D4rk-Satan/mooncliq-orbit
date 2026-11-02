@@ -13,6 +13,9 @@ const nextConfig = {
     S3_BUCKET_NAME: process.env.S3_BUCKET_NAME,
     AWS_S3_BUCKET_NAME: process.env.AWS_S3_BUCKET_NAME,
     AWS_REGION: process.env.AWS_REGION || "ap-south-1",
+    AWS_SES_FROM_EMAIL: process.env.AWS_SES_FROM_EMAIL || "support@mooncliq.com",
+    SES_AWS_ACCESS_KEY_ID: process.env.SES_AWS_ACCESS_KEY_ID || process.env.S3_UPLOAD_AWS_ACCESS_KEY_ID,
+    SES_AWS_SECRET_ACCESS_KEY: process.env.SES_AWS_SECRET_ACCESS_KEY || process.env.S3_UPLOAD_AWS_SECRET_ACCESS_KEY,
   }
 };
 
