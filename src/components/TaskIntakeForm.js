@@ -12,6 +12,7 @@ import TaskAlertDropdown from "./TaskAlertDropdown";
 import TaskStageDropdown from "./TaskStageDropdown";
 import TaskUserDropdown from "./TaskUserDropdown";
 import { useBootstrap } from "@/contexts/AppBootstrapContext";
+import TaskPrioritySelector from "./TaskPrioritySelector";
 
 export default function TaskIntakeForm({ blueprint, isOpen, onClose, onSave, taskData, standardFieldStates }) {
   const [localBlueprint, setBlueprint] = useState(blueprint || null);
@@ -50,7 +51,7 @@ export default function TaskIntakeForm({ blueprint, isOpen, onClose, onSave, tas
 
   const { visibleFields, orderedSections } = useMemo(() => {
     if (!localBlueprint?.fields) return { visibleFields: [], orderedSections: [] };
-    const vf = localBlueprint.fields.filter(f => !f.isHidden && !scriptFieldStates?.[f.name]?.isHidden);
+    const vf = localBlueprint.fields.filter(f => !f.isHidden && !scriptFieldStates?.[f.name]?.isHidden && f.name !== 'relatedRecordId');
 
     let os = [];
     if (localBlueprint?.layoutConfig && Array.isArray(localBlueprint.layoutConfig) && localBlueprint.layoutConfig.length > 0) {
@@ -380,7 +381,7 @@ export default function TaskIntakeForm({ blueprint, isOpen, onClose, onSave, tas
 
                           // Hide stageId aur assignedBy upon creation (sirf Edit par hi dikhega)
                           if ((field.name === 'stageId' || field.name === 'assignedBy') && !taskData) return null;
-
+                          if (field.name === 'relatedRecordId') return null;
 
                           const alwaysRequired = ['taskName', 'owner', 'startDateTime', 'dueDateTime'];
                           const isRequiredByRule = stateOverride?.isRequired !== undefined ? stateOverride.isRequired : field.isRequired;
@@ -454,6 +455,8 @@ export default function TaskIntakeForm({ blueprint, isOpen, onClose, onSave, tas
                                   fieldComponent = <TaskAlertDropdown {...commonProps} onChange={(val) => commonProps.onChange(val)} />;
                                 } else if (fName === 'stageid') {
                                   fieldComponent = <TaskStageDropdown {...commonProps} blueprint={localBlueprint} onChange={(val) => commonProps.onChange(val)} />;
+                                } else if (fName === 'priority') {
+                                  fieldComponent = <TaskPrioritySelector {...commonProps} readOnly={false} onChange={(val) => commonProps.onChange(val)} />;
                                 } else {
                                   fieldComponent = (
                                     <DynamicField

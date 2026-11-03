@@ -9,7 +9,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useBootstrap } from "@/contexts/AppBootstrapContext";
 import { isFieldVisible, getDynamicFieldOptions, isFieldFullWidth } from '../utils/fieldRules';
-
+import TaskPrioritySelector from "./TaskPrioritySelector";
 
 export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onClose, onSave }) {
   const { userInfo, customModules } = useBootstrap();
@@ -144,32 +144,15 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
         const now = new Date();
         now.setSeconds(0, 0);
 
-        if (startVal) {
+
+
+        if (startVal && dueVal) {
           const startD = new Date(startVal);
-          if (startD < now) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: "Start time cannot be in the past",
-              path: ["startDateTime"]
-            });
-          }
-        }
-
-        if (dueVal) {
           const dueD = new Date(dueVal);
-          let baseDate = new Date(now);
-          if (startVal) {
-            const startD = new Date(startVal);
-            if (startD > baseDate) {
-              baseDate = startD;
-            }
-          }
-          baseDate.setMinutes(baseDate.getMinutes() + 10);
-
-          if (dueD < baseDate) {
+          if (dueD <= startD) {
             ctx.addIssue({
               code: z.ZodIssueCode.custom,
-              message: "Must be at least 10 minutes after Start time",
+              message: "Due time must be after Start time",
               path: ["dueDateTime"]
             });
           }
@@ -310,7 +293,8 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
           if (!canSave) return;
 
           let payloadData = { ...formData };
-          if (!isTimeEditedByUser) {
+          // AUTO-BUMP: Agar user form bharte-bharte late ho gaya aur start time past me chala gaya
+          if (moduleType === 'Task' && payloadData.startDateTime) {
             const formatLocal = (d) => {
               const yyyy = d.getFullYear();
               const mm = String(d.getMonth() + 1).padStart(2, '0');
@@ -319,13 +303,20 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
               const mins = String(d.getMinutes()).padStart(2, '0');
               return `${yyyy}-${mm}-${dd}T${hh}:${mins}`;
             };
-            if (payloadData.startDateTime) {
-              payloadData.startDateTime = formatLocal(new Date());
-            }
-            if (payloadData.dueDateTime) {
-              const due = new Date();
-              due.setMinutes(due.getMinutes() + 10);
-              payloadData.dueDateTime = formatLocal(due);
+
+            const now = new Date();
+            const startD = new Date(payloadData.startDateTime);
+
+            // Agar start time past me nikal gaya (e.g. form bharte waqt delay ho gaya)
+            if (startD < now) {
+              const originalGap = payloadData.dueDateTime
+                ? (new Date(payloadData.dueDateTime) - startD)
+                : (10 * 60 * 1000);
+
+              const safeGap = Math.max(originalGap, 10 * 60 * 1000); // kam se kam 10 mins
+
+              payloadData.startDateTime = formatLocal(now);
+              payloadData.dueDateTime = formatLocal(new Date(now.getTime() + safeGap));
             }
           }
 
@@ -522,79 +513,89 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
                             render={({ field: controllerField, fieldState }) => (
                               <div style={{ width: '100%', gridColumn: isFieldFullWidth(field) ? '1 / -1' : 'auto' }}>
 
+                                {moduleType === 'Task' && field.name === 'priority' ? (
+                                  <TaskPrioritySelector
+                                    field={modifiedField}
+                                    value={controllerField.value || ''}
+                                    onChange={(val) => {
+                                      controllerField.onChange(val);
+                                      handleFieldChange(field, 'priority', val);
+                                    }}
+                                  />
+                                ) : (
 
+                                  <DynamicField
+                                    formData={{ ...standardData, ...customData }}
+                                    key={field.id}
+                                    field={modifiedField}
+                                    value={controllerField.value || ''}
+                                    min={
+                                      (() => {
+                                        if (moduleType !== 'Task') return undefined;
 
-                                <DynamicField
-                                  formData={{ ...standardData, ...customData }}
-                                  key={field.id}
-                                  field={modifiedField}
-                                  value={controllerField.value || ''}
-                                  min={
-                                    (() => {
-                                      if (moduleType !== 'Task') return undefined;
+                                        const formatLocal = (d) => {
+                                          const yyyy = d.getFullYear();
+                                          const mm = String(d.getMonth() + 1).padStart(2, '0');
+                                          const dd = String(d.getDate()).padStart(2, '0');
+                                          const hh = String(d.getHours()).padStart(2, '0');
+                                          const mins = String(d.getMinutes()).padStart(2, '0');
+                                          return `${yyyy}-${mm}-${dd}T${hh}:${mins}`;
+                                        };
 
-                                      const formatLocal = (d) => {
-                                        const yyyy = d.getFullYear();
-                                        const mm = String(d.getMonth() + 1).padStart(2, '0');
-                                        const dd = String(d.getDate()).padStart(2, '0');
-                                        const hh = String(d.getHours()).padStart(2, '0');
-                                        const mins = String(d.getMinutes()).padStart(2, '0');
-                                        return `${yyyy}-${mm}-${dd}T${hh}:${mins}`;
-                                      };
+                                        const now = new Date();
+                                        const todayStart = new Date(now);
+                                        todayStart.setHours(0, 0, 0, 0);
 
-                                      const now = new Date();
-                                      const todayStart = new Date(now);
-                                      todayStart.setHours(0, 0, 0, 0);
+                                        const currentDateTimeString = formatLocal(now);
+                                        const currentStartDate = watch('startDateTime');
 
-                                      const currentDateTimeString = formatLocal(now);
-                                      const currentStartDate = watch('startDateTime');
+                                        if (field.name === 'startDateTime') return formatLocal(todayStart);
 
-                                      if (field.name === 'startDateTime') return formatLocal(todayStart);
-
-                                      if (field.name === 'dueDateTime') {
-                                        let baseDate;
-                                        if (currentStartDate && currentStartDate > currentDateTimeString) {
-                                          baseDate = new Date(currentStartDate);
-                                        } else {
-                                          baseDate = new Date();
+                                        if (field.name === 'dueDateTime') {
+                                          let baseDate;
+                                          if (currentStartDate && currentStartDate > currentDateTimeString) {
+                                            baseDate = new Date(currentStartDate);
+                                          } else {
+                                            baseDate = new Date();
+                                          }
+                                          // 10 minutes ka gap add kar diya
+                                          baseDate.setMinutes(baseDate.getMinutes() + 10);
+                                          return formatLocal(baseDate);
                                         }
-                                        // 10 minutes ka gap add kar diya
-                                        baseDate.setMinutes(baseDate.getMinutes() + 10);
-                                        return formatLocal(baseDate);
-                                      }
-                                      return undefined;
-                                    })()
-                                  }
-                                  onChange={(name, val, record, mappings) => {
-                                    const correctedVal = handleDateSelectionCorrection(field.name, val);
-                                    if (field.name === 'startDateTime') {
-                                      setIsTimeEditedByUser(true);
-                                      if (correctedVal) {
-                                        const start = new Date(correctedVal);
-                                        if (!isNaN(start.getTime())) {
-                                          const updatedDue = new Date(start.getTime() + 10 * 60000);
-                                          const yyyy = updatedDue.getFullYear();
-                                          const mm = String(updatedDue.getMonth() + 1).padStart(2, '0');
-                                          const dd = String(updatedDue.getDate()).padStart(2, '0');
-                                          const hh = String(updatedDue.getHours()).padStart(2, '0');
-                                          const mins = String(updatedDue.getMinutes()).padStart(2, '0');
-                                          const dueString = `${yyyy}-${mm}-${dd}T${hh}:${mins}`;
-                                          setValue('dueDateTime', dueString, { shouldValidate: true, shouldDirty: true });
-                                          setStandardData(prev => ({ ...prev, dueDateTime: dueString }));
-                                        }
-                                      }
-                                    } else if (field.name === 'dueDateTime') {
-                                      setIsTimeEditedByUser(true);
+                                        return undefined;
+                                      })()
                                     }
+                                    onChange={(name, val, record, mappings) => {
+                                      const correctedVal = handleDateSelectionCorrection(field.name, val);
+                                      if (field.name === 'startDateTime') {
+                                        setIsTimeEditedByUser(true);
+                                        if (correctedVal) {
+                                          const start = new Date(correctedVal);
+                                          if (!isNaN(start.getTime())) {
+                                            const updatedDue = new Date(start.getTime() + 10 * 60000);
+                                            const yyyy = updatedDue.getFullYear();
+                                            const mm = String(updatedDue.getMonth() + 1).padStart(2, '0');
+                                            const dd = String(updatedDue.getDate()).padStart(2, '0');
+                                            const hh = String(updatedDue.getHours()).padStart(2, '0');
+                                            const mins = String(updatedDue.getMinutes()).padStart(2, '0');
+                                            const dueString = `${yyyy}-${mm}-${dd}T${hh}:${mins}`;
+                                            setValue('dueDateTime', dueString, { shouldValidate: true, shouldDirty: true });
+                                            setStandardData(prev => ({ ...prev, dueDateTime: dueString }));
+                                          }
+                                        }
+                                      } else if (field.name === 'dueDateTime') {
+                                        setIsTimeEditedByUser(true);
+                                      }
 
-                                    controllerField.onChange(correctedVal);
-                                    handleFieldChange(field, name, correctedVal, record, mappings);
-                                  }}
-                                  onBlur={controllerField.onBlur}
-                                  error={fieldErrors?.[field.name] || fieldState.error?.message}
-                                  readOnly={fieldReadonlyStates?.[field.name]}
-                                />
-                              </div>
+                                      controllerField.onChange(correctedVal);
+                                      handleFieldChange(field, name, correctedVal, record, mappings);
+                                    }}
+                                    onBlur={controllerField.onBlur}
+                                    error={fieldErrors?.[field.name] || fieldState.error?.message}
+                                    readOnly={fieldReadonlyStates?.[field.name]}
+                                  />
+                                )
+                                }     </div>
                             )}
                           />
                         );
