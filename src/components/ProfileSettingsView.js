@@ -38,9 +38,9 @@ export default function ProfileSettingsView() {
         if (res.ok) {
           const data = await res.json();
           setProfileData({
-            avatarUrl: data.profile?.avatarUrl || '',
-            nickname: data.profile?.nickname || '',
-            role: data.profile?.role || '',
+            avatarUrl: data.avatarUrl || data.profile?.avatarUrl || '',
+            nickname: data.nickname || data.profile?.nickname || '',
+            role: data.role || data.profile?.role || '',
             logoUrl: data.organization?.logoUrl || '',
             companyName: data.organization?.name || '',
             industry: data.organization?.industry || '',

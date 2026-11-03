@@ -51,13 +51,13 @@ export async function POST(request) {
             }
         }
 
-        // 2.5 Unique Nickname Validation (Org Level Check)
+        // 2.5 Unique Nickname Validation (User Level Check in same Org)
         if (nickname) {
-            const existingNickname = await prisma.profile.findFirst({
+            const existingNickname = await prisma.user.findFirst({
                 where: {
                     organizationId: session.organizationId,
                     nickname: { equals: nickname.trim(), mode: 'insensitive' },
-                    id: { not: session.profileId } // Khud ka purana profile exclude
+                    id: { not: session.id } // Khud ko exclude karo
                 }
             });
 
@@ -69,12 +69,12 @@ export async function POST(request) {
             }
         }
 
-        // 3. User ki Personal Profile (Avatar, Nickname) update karna
-        await prisma.profile.update({
-            where: { id: session.profileId },
+        // 3. User ki Personal Profile (Avatar, Nickname, Role) User table me update karna
+        await prisma.user.update({
+            where: { id: session.id },
             data: {
                 avatarUrl,
-                nickname,
+                nickname: nickname ? nickname.trim() : null,
                 role,
                 onboardingCompleted: true // Yahan hum true kar dete hain taki Modal dubara kabhi na khule!
             }

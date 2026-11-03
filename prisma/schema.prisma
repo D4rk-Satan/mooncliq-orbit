@@ -66,6 +66,11 @@ model User {
   profileId      String?
   isActive       Boolean      @default(true)
   reportsToId    String?      // Manager Hierarchy
+  name                String?
+  nickname            String?
+  avatarUrl           String?
+  role                String?      // Job title (e.g. Sales Manager)
+  onboardingCompleted Boolean      @default(false)
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   profile        Profile?     @relation(fields: [profileId], references: [id], onDelete: Cascade)
   reportsTo      User?        @relation("ManagerHierarchy", fields: [reportsToId], references: [id], onDelete: SetNull)
