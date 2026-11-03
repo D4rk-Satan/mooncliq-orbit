@@ -15,10 +15,10 @@ export default function TaskUserDropdown({ field, value, onChange, users, readOn
   });
 
   const options = Array.from(uniqueUsersMap.values()).map(u => {
-    const displayName = u.profile?.nickname || u.profile?.name || u.email;
+    const displayName = u.nickname || u.name || u.profile?.nickname || u.profile?.name || u.email;
     return {
       label: displayName,
-      value: u.profile?.nickname || u.email,
+      value: displayName,
       id: u.id || u.email
     };
   });

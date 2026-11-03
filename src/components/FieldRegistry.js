@@ -339,8 +339,8 @@ const UserInput = ({ field, value, onChange }) => {
           {loading ? "Loading users..." : `Select ${field.label}`}
         </option>
         {users.map((u) => (
-          <option key={u.id || u.email} value={u.profile?.nickname || u.email}>
-            {u.profile?.nickname || u.email}
+          <option key={u.id || u.email} value={u.nickname || u.name || u.profile?.nickname || u.email}>
+            {u.nickname || u.name || u.profile?.nickname || u.email}
           </option>
         ))}
       </select>

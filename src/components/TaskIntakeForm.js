@@ -181,7 +181,7 @@ export default function TaskIntakeForm({ blueprint, isOpen, onClose, onSave, tas
           const meRes = await fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } });
           if (meRes.ok) {
             const meData = await meRes.json();
-            const nicknameOrEmail = meData.profile?.nickname || meData.email || "";
+            const nicknameOrEmail = meData.nickname || meData.name || meData.profile?.nickname || meData.email || "";
             if (nicknameOrEmail) setCurrentUserName(nicknameOrEmail);
           }
 
