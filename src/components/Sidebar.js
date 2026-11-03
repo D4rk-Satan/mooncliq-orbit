@@ -188,71 +188,82 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, refresh
                   ))}
                 </div>
               )}
-              <div style={{ marginBottom: isCollapsed ? '0.5rem' : '1rem' }}>
+              {(() => {
+                const defaultModules = ["Lead", "Deal", "Account", "Task", "Products"];
+                const activeMods = userInfo.activeModules && userInfo.activeModules.length > 0
+                  ? userInfo.activeModules
+                  : defaultModules;
 
-                {/* Category Header (Clickable for Accordion) */}
-                {!isCollapsed && (
-                  <div
-                    style={{
-                      padding: '0.5rem 1.5rem',
-                      fontSize: '0.75rem',
-                      fontWeight: '600',
-                      color: '#9ca3af',
-                      letterSpacing: '0.05em',
-                      cursor: 'default',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center'
-                    }}
-                  >
-                    {category.name}
-                  </div>
-                )}
+                // Category ke wahi items nikalo jinki user ke paas Permission hai
+                const visibleItems = category.items.filter((item) => {
+                  if ((category.name === "CRM" || category.name === "WORK") && !activeMods.includes(item.name)) {
+                    return false;
+                  }
+                  const permissionControlledModules = ["Lead", "Deal", "Account", "Task", "Products", "Whatsapp", "Campaigns"];
+                  if (permissionControlledModules.includes(item.name)) {
+                    const moduleKey = item.name === "Products" ? "Product" : item.name;
+                    if (!hasPermission(userInfo, moduleKey, "view")) {
+                      return false; // 👈 Deal, Task ya koi bhi unpermitted module hide!
+                    }
+                  }
+                  return true;
+                });
 
-                {/* Category Items (Sirf tabhi dikhenge jab ye open ho, ya phir sidebar collapsed ho) */}
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  {category.items.map((item, itemIdx) => {
-                    const defaultModules = ["Lead", "Deal", "Account", "Task", "Products"];
-                    const activeMods = userInfo.activeModules && userInfo.activeModules.length > 0
-                      ? userInfo.activeModules
-                      : defaultModules;
+                // Agar category ke saare items hide ho gaye (jaise Task hide hone par WORK khali ho gaya), toh poori category hide!
+                if (visibleItems.length === 0) return null;
 
-                    if ((category.name === "CRM" || category.name === "WORK") && !activeMods.includes(item.name)) {
-                      return null;
-                    }
-                    if (item.name === "Whatsapp" && !hasPermission(userInfo, "Whatsapp", "view")) {
-                      return null;
-                    }
-                    if (item.name === "Campaigns" && !hasPermission(userInfo, "Campaigns", "view")) {
-                      return null;
-                    }
-                    return (
-                      <Link
-                        key={itemIdx}
-                        href={item.href}
-                        onClick={() => setIsMobileMenuOpen && setIsMobileMenuOpen(false)}
-                        className={`nav-item ${pathname === item.href ? "active" : ""}`}
+                return (
+                  <div style={{ marginBottom: isCollapsed ? '0.5rem' : '1rem' }}>
+                    {/* Category Header */}
+                    {!isCollapsed && (
+                      <div
                         style={{
+                          padding: '0.5rem 1.5rem',
+                          fontSize: '0.75rem',
+                          fontWeight: '600',
+                          color: '#9ca3af',
+                          letterSpacing: '0.05em',
+                          cursor: 'default',
                           display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.6rem',
-                          textDecoration: 'none',
-                          justifyContent: isCollapsed ? 'center' : 'flex-start',
-                          padding: isCollapsed ? '0.5rem 0' : '0.4rem 1.25rem',
-                          margin: isCollapsed ? '0.15rem' : '0.15rem 0.75rem',
-                          fontSize: '0.85rem',
-                          fontWeight: '500',
-                          color: '#334155'
+                          justifyContent: 'space-between',
+                          alignItems: 'center'
                         }}
                       >
-                        <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} title={item.name}>{item.icon}</span>
-                        {!isCollapsed && <span style={{ whiteSpace: 'nowrap' }}>{item.name}</span>}
-                      </Link>
-                    );
-                  })}
-                </div>
+                        {category.name}
+                      </div>
+                    )}
 
-              </div>
+                    {/* Category Items */}
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      {visibleItems.map((item, itemIdx) => (
+                        <Link
+                          key={itemIdx}
+                          href={item.href}
+                          onClick={() => setIsMobileMenuOpen && setIsMobileMenuOpen(false)}
+                          className={`nav-item ${pathname === item.href ? "active" : ""}`}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.6rem',
+                            textDecoration: 'none',
+                            justifyContent: isCollapsed ? 'center' : 'flex-start',
+                            padding: isCollapsed ? '0.5rem 0' : '0.4rem 1.25rem',
+                            margin: isCollapsed ? '0.15rem' : '0.15rem 0.75rem',
+                            fontSize: '0.85rem',
+                            fontWeight: '500',
+                            color: '#334155'
+                          }}
+                        >
+                          <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} title={item.name}>
+                            {item.icon}
+                          </span>
+                          {!isCollapsed && <span style={{ whiteSpace: 'nowrap' }}>{item.name}</span>}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
             </React.Fragment>
           ))}        </nav>
 

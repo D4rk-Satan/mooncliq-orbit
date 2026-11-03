@@ -6,10 +6,22 @@ export default function TaskUserDropdown({ field, value, onChange, users, readOn
   const [buttonRect, setButtonRect] = useState(null);
   const buttonRef = React.useRef(null);
 
-  const options = users.map(u => ({
-    label: u.profile?.nickname || u.email,
-    value: u.profile?.nickname || u.email
-  }));
+  // 1. Email-based Deduplication (Never show duplicate users)
+  const uniqueUsersMap = new Map();
+  (users || []).forEach(u => {
+    if (u && u.email && !uniqueUsersMap.has(u.email)) {
+      uniqueUsersMap.set(u.email, u);
+    }
+  });
+
+  const options = Array.from(uniqueUsersMap.values()).map(u => {
+    const displayName = u.profile?.nickname || u.profile?.name || u.email;
+    return {
+      label: displayName,
+      value: u.profile?.nickname || u.email,
+      id: u.id || u.email
+    };
+  });
 
 
   const selectedOption = options.find(o => o.value === value);
