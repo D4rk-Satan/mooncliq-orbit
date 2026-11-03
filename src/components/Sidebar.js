@@ -13,7 +13,22 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, refresh
   const router = useRouter();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
-  const [openCategory, setOpenCategory] = useState("CRM");
+  const [openCategory, setOpenCategory] = useState("SALES & CRM");
+  // Active route par aate hi uska category automatically open rahe
+  React.useEffect(() => {
+    if (pathname.startsWith('/lead') || pathname.startsWith('/deal') || pathname.startsWith('/account') || pathname.startsWith('/products')) {
+      setOpenCategory("SALES & CRM");
+    } else if (pathname.startsWith('/task')) {
+      setOpenCategory("WORK");
+    } else if (pathname.startsWith('/whatsapp') || pathname.startsWith('/campaigns')) {
+      setOpenCategory("COMMUNICATION");
+    } else if (pathname.startsWith('/custom-module')) {
+      setOpenCategory("CUSTOM MODULES");
+    } else if (pathname.startsWith('/dial-pad') || pathname.startsWith('/project')) {
+      setOpenCategory("UPCOMING");
+    }
+  }, [pathname]);
+
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
   // Instant data from Bootstrap cache / provider
@@ -100,6 +115,24 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, refresh
 
   return (
     <>
+      <style jsx global>{`
+        .mini-group-wrapper:hover .mini-flyout-menu {
+          display: flex !important;
+          opacity: 1 !important;
+          visibility: visible !important;
+          pointer-events: auto !important;
+        }
+        .mini-group-wrapper::after {
+          content: '';
+          position: absolute;
+          right: -15px;
+          top: 0;
+          bottom: 0;
+          width: 20px;
+        }
+      `}</style>.
+
+
       {/* Mobile Backdrop (Dark background) */}
       {isMobileMenuOpen && (
         <div
@@ -108,7 +141,7 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, refresh
         ></div>
       )}
       <aside className={`dashboard-sidebar ${isCollapsed ? 'collapsed' : ''} ${isMobileMenuOpen ? 'mobile-open' : ''}`} style={{ width: isCollapsed ? '72px' : '220px', transition: isMounted ? 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)' : 'none', overflow: 'visible', flexShrink: 0 }}>
-        <div className="sidebar-logo" style={{ display: 'flex', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'space-between', padding: isCollapsed ? '1rem 0' : '0.85rem 1rem' }}>
+        <div className="sidebar-logo" style={{ display: 'flex', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'space-between', padding: isCollapsed ? '0.75rem 0' : '0.85rem 1rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0, overflow: 'hidden' }}>
             <img
               src="/mooncliq-puzzle-only.png"
@@ -152,42 +185,138 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, refresh
             </svg>
           </button>
         </div>
-        <nav suppressHydrationWarning className="sidebar-nav" style={{ padding: '0.5rem 0', flex: 1, overflowY: 'auto' }}>
+        <nav suppressHydrationWarning className="sidebar-nav" style={{ padding: '0.5rem 0', flex: 1, overflow: isCollapsed ? 'visible' : 'auto' }}>
           {categories.map((category, idx) => (
             <React.Fragment key={idx}>
-              {category.name === "UPCOMING" && isMounted && customModules.length > 0 && (
-                <div suppressHydrationWarning style={{ display: 'flex', flexDirection: 'column', marginBottom: isCollapsed ? '0.5rem' : '1rem' }}>
-                  {!isCollapsed && (
-                    <div style={{ padding: '0.5rem 1.5rem', fontSize: '0.75rem', fontWeight: '600', color: '#9ca3af', letterSpacing: '0.05em', cursor: 'default', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      CUSTOM MODULES
-                    </div>
-                  )}
-                  {customModules.filter(mod => hasPermission(userInfo, mod.name, 'view')).map((mod) => (
-                    <Link
-                      key={mod.id}
-                      href={`/custom-module/${mod.id}`}
-                      onClick={() => setIsMobileMenuOpen && setIsMobileMenuOpen(false)}
-                      className={`nav-item ${pathname === `/custom-module/${mod.id}` ? "active" : ""}`}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.6rem',
-                        textDecoration: 'none',
-                        justifyContent: isCollapsed ? 'center' : 'flex-start',
-                        padding: isCollapsed ? '0.5rem 0' : '0.4rem 1.25rem',
-                        margin: isCollapsed ? '0.15rem' : '0.15rem 0.75rem',
-                        fontSize: '0.85rem',
-                        fontWeight: '500',
-                        color: '#334155'
-                      }}
-                      title={mod.name}
-                    >
-                      <DynamicLucideIcon name={mod.icon} />
-                      {!isCollapsed && <span style={{ whiteSpace: 'nowrap' }}>{mod.name}</span>}
-                    </Link>
-                  ))}
-                </div>
-              )}
+              {category.name === "UPCOMING" && isMounted && customModules.length > 0 && (() => {
+                const visibleCustomModules = customModules.filter(mod => hasPermission(userInfo, mod.name, 'view'));
+                if (visibleCustomModules.length === 0) return null;
+
+                const activeCustomModule = visibleCustomModules.find(mod => pathname === `/custom-module/${mod.id}`) || visibleCustomModules[0];
+                const isCustomActive = visibleCustomModules.some(mod => pathname === `/custom-module/${mod.id}`);
+
+                return (
+                  <div suppressHydrationWarning style={{ display: 'flex', flexDirection: 'column', marginBottom: isCollapsed ? '0.5rem' : '1rem' }}>
+                    {!isCollapsed ? (
+                      <>
+                        <div
+                          onClick={() => setOpenCategory(openCategory === "CUSTOM MODULES" ? "" : "CUSTOM MODULES")}
+                          style={{
+                            padding: '0.5rem 1.5rem',
+                            fontSize: '0.75rem',
+                            fontWeight: '600',
+                            color: openCategory === "CUSTOM MODULES" ? '#475569' : '#9ca3af',
+                            letterSpacing: '0.05em',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            userSelect: 'none'
+                          }}
+                        >
+                          <span>CUSTOM MODULES</span>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: openCategory === "CUSTOM MODULES" ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.2s' }}>
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                          </svg>
+                        </div>
+                        {openCategory === "CUSTOM MODULES" && visibleCustomModules.map((mod) => (
+                          <Link
+                            key={mod.id}
+                            href={`/custom-module/${mod.id}`}
+                            onClick={() => setIsMobileMenuOpen && setIsMobileMenuOpen(false)}
+                            className={`nav-item ${pathname === `/custom-module/${mod.id}` ? "active" : ""}`}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.6rem',
+                              textDecoration: 'none',
+                              justifyContent: 'flex-start',
+                              padding: '0.4rem 1.25rem',
+                              margin: '0.15rem 0.75rem',
+                              fontSize: '0.85rem',
+                              fontWeight: '500'
+                            }}
+                            title={mod.name}
+                          >
+                            <DynamicLucideIcon name={mod.icon} />
+                            <span style={{ whiteSpace: 'nowrap' }}>{mod.name}</span>
+                          </Link>
+                        ))}
+                      </>
+                    ) : (
+                      /* Collapsed Mini Mode - Flyout Menu on Hover */
+                      <div className="mini-group-wrapper" style={{ position: 'relative', display: 'flex', justifyContent: 'center' }}>
+                        <Link
+                          href={`/custom-module/${activeCustomModule.id}`}
+                          onClick={() => setIsMobileMenuOpen && setIsMobileMenuOpen(false)}
+                          className={`nav-item ${isCustomActive ? "active" : ""}`}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: '40px',
+                            height: '40px',
+                            padding: 0,
+                            margin: '0.15rem auto',
+                            borderRadius: '8px',
+                            textDecoration: 'none'
+                          }}
+                          title="Custom Modules"
+                        >
+                          <DynamicLucideIcon name={activeCustomModule.icon} />
+                        </Link>
+
+                        {/* Floating Popout Box */}
+                        <div
+                          className="mini-flyout-menu"
+                          style={{
+                            position: 'absolute',
+                            left: '68px',
+                            top: '0px',
+                            width: '180px',
+                            backgroundColor: '#ffffff',
+                            borderRadius: '10px',
+                            border: '1px solid #e2e8f0',
+                            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.18), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+                            padding: '6px',
+                            display: 'none',
+                            flexDirection: 'column',
+                            gap: '2px',
+                            zIndex: 999999
+                          }}
+                        >
+                          <div style={{ padding: '6px 10px', fontSize: '10px', fontWeight: '700', color: '#94a3af', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #f1f5f9', marginBottom: '4px' }}>
+                            CUSTOM MODULES
+                          </div>
+                          {visibleCustomModules.map((mod) => (
+                            <Link
+                              key={mod.id}
+                              href={`/custom-module/${mod.id}`}
+                              onClick={() => setIsMobileMenuOpen && setIsMobileMenuOpen(false)}
+                              className={`nav-item ${pathname === `/custom-module/${mod.id}` ? "active" : ""}`}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.6rem',
+                                padding: '0.4rem 0.75rem',
+                                margin: '1px 0',
+                                borderRadius: '6px',
+                                fontSize: '0.85rem',
+                                textDecoration: 'none'
+                              }}
+                            >
+                              <DynamicLucideIcon name={mod.icon} />
+                              <span style={{ whiteSpace: 'nowrap' }}>{mod.name}</span>
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+
               {(() => {
                 const defaultModules = ["Lead", "Deal", "Account", "Task", "Products"];
                 const activeMods = userInfo.activeModules && userInfo.activeModules.length > 0
@@ -212,57 +341,146 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, refresh
                 // Agar category ke saare items hide ho gaye (jaise Task hide hone par WORK khali ho gaya), toh poori category hide!
                 if (visibleItems.length === 0) return null;
 
+                const isCatOpen = openCategory === category.name || category.name === "OVERVIEW";
+
                 return (
                   <div style={{ marginBottom: isCollapsed ? '0.5rem' : '1rem' }}>
                     {/* Category Header */}
                     {!isCollapsed && (
                       <div
+                        onClick={() => category.name !== "OVERVIEW" && setOpenCategory(openCategory === category.name ? "" : category.name)}
                         style={{
                           padding: '0.5rem 1.5rem',
                           fontSize: '0.75rem',
                           fontWeight: '600',
-                          color: '#9ca3af',
+                          color: isCatOpen ? '#475569' : '#9ca3af',
                           letterSpacing: '0.05em',
-                          cursor: 'default',
+                          cursor: category.name === "OVERVIEW" ? 'default' : 'pointer',
                           display: 'flex',
                           justifyContent: 'space-between',
-                          alignItems: 'center'
+                          alignItems: 'center',
+                          userSelect: 'none'
                         }}
                       >
-                        {category.name}
+                        <span>{category.name}</span>
+                        {category.name !== "OVERVIEW" && (
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: isCatOpen ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.2s', color: '#9ca3af' }}>
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                          </svg>
+                        )}
                       </div>
                     )}
 
-                    {/* Category Items */}
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      {visibleItems.map((item, itemIdx) => (
-                        <Link
-                          key={itemIdx}
-                          href={item.href}
-                          onClick={() => setIsMobileMenuOpen && setIsMobileMenuOpen(false)}
-                          className={`nav-item ${pathname === item.href ? "active" : ""}`}
+                    {/* 1. Full Expanded Mode Items */}
+                    {!isCollapsed && isCatOpen && (
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        {visibleItems.map((item, itemIdx) => (
+                          <Link
+                            key={itemIdx}
+                            href={item.href}
+                            onClick={() => setIsMobileMenuOpen && setIsMobileMenuOpen(false)}
+                            className={`nav-item ${pathname === item.href ? "active" : ""}`}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.6rem',
+                              textDecoration: 'none',
+                              padding: '0.4rem 1.25rem',
+                              margin: '0.15rem 0.75rem',
+                              fontSize: '0.85rem',
+                              fontWeight: '500'
+                            }}
+                          >
+                            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} title={item.name}>
+                              {item.icon}
+                            </span>
+                            <span style={{ whiteSpace: 'nowrap' }}>{item.name}</span>
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* 2. Mini Collapsed Mode (Hover Floating Flyout) */}
+                    {isCollapsed && (
+                      <div
+                        className="mini-group-wrapper"
+                        style={{ position: 'relative', width: '100%', display: 'flex', justifyContent: 'center' }}
+                      >
+                        {(() => {
+                          const activeItem = visibleItems.find(i => pathname === i.href) || visibleItems[0];
+                          const isGroupActive = visibleItems.some(i => pathname === i.href);
+
+                          return (
+                            <Link
+                              href={activeItem.href}
+                              onClick={() => setIsMobileMenuOpen && setIsMobileMenuOpen(false)}
+                              className={`nav-item ${isGroupActive ? "active" : ""}`}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: '40px',
+                                height: '40px',
+                                padding: 0,
+                                margin: '0.15rem auto',
+                                borderRadius: '8px'
+                              }}
+                              title={category.name}
+                            >
+                              {activeItem.icon}
+                            </Link>
+                          );
+                        })()}
+
+                        {/* Floating Popout Box */}
+                        <div
+                          className="mini-flyout-menu"
                           style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.6rem',
-                            textDecoration: 'none',
-                            justifyContent: isCollapsed ? 'center' : 'flex-start',
-                            padding: isCollapsed ? '0.5rem 0' : '0.4rem 1.25rem',
-                            margin: isCollapsed ? '0.15rem' : '0.15rem 0.75rem',
-                            fontSize: '0.85rem',
-                            fontWeight: '500',
-                            color: '#334155'
+                            position: 'absolute',
+                            left: '68px',
+                            top: '0px',
+                            width: '180px',
+                            backgroundColor: '#ffffff',
+                            borderRadius: '10px',
+                            border: '1px solid #e2e8f0',
+                            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.18), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+                            padding: '6px',
+                            display: 'none',
+                            flexDirection: 'column',
+                            gap: '2px',
+                            zIndex: 999999
                           }}
                         >
-                          <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} title={item.name}>
-                            {item.icon}
-                          </span>
-                          {!isCollapsed && <span style={{ whiteSpace: 'nowrap' }}>{item.name}</span>}
-                        </Link>
-                      ))}
-                    </div>
+                          <div style={{ padding: '6px 10px', fontSize: '10px', fontWeight: '700', color: '#94a3af', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #f1f5f9', marginBottom: '4px' }}>
+                            {category.name}
+                          </div>
+                          {visibleItems.map((item, itemIdx) => (
+                            <Link
+                              key={itemIdx}
+                              href={item.href}
+                              onClick={() => setIsMobileMenuOpen && setIsMobileMenuOpen(false)}
+                              className={`nav-item ${pathname === item.href ? "active" : ""}`}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.6rem',
+                                padding: '0.4rem 0.75rem',
+                                margin: '1px 0',
+                                borderRadius: '6px',
+                                fontSize: '0.85rem',
+                                textDecoration: 'none'
+                              }}
+                            >
+                              <span>{item.icon}</span>
+                              <span style={{ whiteSpace: 'nowrap' }}>{item.name}</span>
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
+
               })()}
             </React.Fragment>
           ))}        </nav>
@@ -383,10 +601,7 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, refresh
 
               {!isCollapsed && <span style={{ whiteSpace: 'nowrap' }}>Profile</span>}
             </div>
-
           </div>
-          {/* ----- PROFILE POPOVER END ----- */}
-
         </div>
       </aside>
     </>
