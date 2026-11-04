@@ -163,9 +163,9 @@ export function getDefaultBlueprintData(mod) {
         return {
             stages: {
                 create: [
-                    { name: 'Pending', orderIndex: 1, color: '#fde68a', isSystem: true },
-                    { name: 'Overdue', orderIndex: 2, color: '#fca5a5', isSystem: true },
-                    { name: 'Completed', orderIndex: 3, color: '#a7f3d0', isSystem: true }
+                    { name: 'Pending', orderIndex: 1, color: '#3b82f6', isSystem: true },
+                    { name: 'Overdue', orderIndex: 2, color: '#ef4444', isSystem: true },
+                    { name: 'Completed', orderIndex: 3, color: '#10b981', isSystem: true }
                 ]
             },
             fields: {

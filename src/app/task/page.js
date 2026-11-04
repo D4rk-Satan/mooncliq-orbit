@@ -25,6 +25,7 @@ export default function TaskPage() {
   const [pendingTransition, setPendingTransition] = useState(null);
 
   const [selectedTask, setSelectedTask] = useState(null);
+  const [taskToEdit, setTaskToEdit] = useState(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -187,6 +188,12 @@ export default function TaskPage() {
               blueprint={blueprint}
               supportKanban={true}
               onRecordClick={(task) => setSelectedTask(task)}
+              onEditClick={
+                hasPermission(currentUser, 'Task', 'edit') ? (task) => {
+                  setTaskToEdit(task);
+                  setIsEditModalOpen(true);
+                } : null
+              }
               renderHeaderActions={() => (
                 hasPermission(currentUser, 'Task', 'create') ? (
                   <button className="btn-primary" onClick={() => setIsFormOpen(true)}>
@@ -232,6 +239,7 @@ export default function TaskPage() {
         onEditClick={
           hasPermission(currentUser, 'Task', 'edit') ? () => {
             setSelectedTask(null);
+            setTaskToEdit(selectedTask);
             setIsEditModalOpen(true);
           } : null
         }
@@ -240,8 +248,11 @@ export default function TaskPage() {
 
       <EntityEditModal
         isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        entity={selectedTask}
+        onClose={() => {
+          setIsEditModalOpen(false)
+          setTaskToEdit(null);
+        }}
+        entity={taskToEdit}
         blueprint={blueprint}
         onUpdate={handleTaskUpdate}
         currentUser={currentUser}

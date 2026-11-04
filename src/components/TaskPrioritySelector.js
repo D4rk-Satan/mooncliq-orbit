@@ -9,6 +9,17 @@ const PRIORITY_OPTIONS = [
 export default function TaskPrioritySelector({ field, value, onChange, readOnly }) {
   const currentValue = value || 'Medium';
 
+  // Agar form state me value khali hai toh turant 'Medium' se sync kar do
+  React.useEffect(() => {
+    if (!value && onChange) {
+      onChange('Medium');
+    }
+  }, [value, onChange]);
+
+
+
+
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '100%' }}>
       <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary, #334155)', display: 'flex', alignItems: 'center', gap: '4px' }}>

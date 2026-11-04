@@ -72,6 +72,11 @@ export default function DynamicModuleView({
   const [viewMode, setViewMode] = useState(supportKanban ? "kanban" : "list");
   const [searchQuery, setSearchQuery] = useState("");
 
+  const [internalSelectedIds, setInternalSelectedIds] = useState([]);
+  const effectiveSelectedIds = setSelectedRecordIds ? selectedRecordIds : internalSelectedIds;
+  const setEffectiveSelectedIds = setSelectedRecordIds || setInternalSelectedIds;
+  const [isBulkTagPickerOpen, setIsBulkTagPickerOpen] = useState(false);
+
   // Filter States
   const [activeFilters, setActiveFilters] = useState([]);
   const [filterLogic, setFilterLogic] = useState('AND');
@@ -181,18 +186,16 @@ export default function DynamicModuleView({
   };
 
   const toggleRecordSelection = (recordId, e) => {
-    if (!setSelectedRecordIds) return;
     e.stopPropagation();
-    setSelectedRecordIds(prev => {
+    setEffectiveSelectedIds(prev => {
       if (prev.includes(recordId)) return prev.filter(id => id !== recordId);
       return [...prev, recordId];
     });
   };
 
   const selectAllRecords = (e) => {
-    if (!setSelectedRecordIds) return;
-    if (e.target.checked) setSelectedRecordIds(filteredRecords.map(r => r.id));
-    else setSelectedRecordIds([]);
+    if (e.target.checked) setEffectiveSelectedIds(filteredRecords.map(r => r.id));
+    else setEffectiveSelectedIds([]);
   };
 
   // Filter & Sort Logic
@@ -336,9 +339,39 @@ export default function DynamicModuleView({
                   let recordTags = [];
                   try { recordTags = Array.isArray(record.tags) ? record.tags : JSON.parse(record.tags || "[]"); } catch (e) { }
 
-                  const dateOptions = { day: 'numeric', month: 'short' };
-                  const formattedDate = record.createdAt ? new Date(record.createdAt).toLocaleDateString('en-US', dateOptions) : 'No due date';
+                  // Smart Due Date & Time in IST with AM/PM
+                  const isTask = moduleName === 'Task';
+                  const targetDateRaw = isTask ? (record.dueDateTime || record.createdAt) : record.createdAt;
 
+                  let formattedDate = 'No date';
+                  let isOverdue = false;
+                  let isToday = false;
+                  let isCompleted = isTask && (col.stage?.name?.toLowerCase() === 'completed');
+
+                  if (targetDateRaw) {
+                    const d = new Date(targetDateRaw);
+                    if (!isNaN(d.getTime())) {
+                      // Format: "Nov 4, 3:30 PM" (IST timezone with AM/PM)
+                      formattedDate = d.toLocaleString('en-IN', {
+                        timeZone: 'Asia/Kolkata',
+                        day: 'numeric',
+                        month: 'short',
+                        hour: 'numeric',
+                        minute: '2-digit',
+                        hour12: true
+                      });
+
+                      // Check Overdue & Today
+                      if (isTask && !isCompleted) {
+                        const now = new Date();
+                        if (d < now) {
+                          isOverdue = true;
+                        } else if (d.toDateString() === now.toDateString()) {
+                          isToday = true;
+                        }
+                      }
+                    }
+                  }
 
                   return (
                     <div
@@ -352,9 +385,67 @@ export default function DynamicModuleView({
                       <div className="card-header-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
                           <input type="checkbox" checked={selectedRecordIds.includes(record.id)} onChange={(e) => toggleRecordSelection(record.id, e)} onClick={(e) => e.stopPropagation()} style={{ marginTop: '6px' }} />
-                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                             <h4 style={{ margin: 0, fontSize: '0.95rem', color: '#111827', fontWeight: 600 }}>{title}</h4>
-                            <span style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '2px' }}>{subtitle}</span>
+
+                            {isTask ? (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                {/* 1. Priority Pill */}
+                                {record.priority && (
+                                  <span style={{
+                                    fontSize: '10px',
+                                    fontWeight: 700,
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.04em',
+                                    padding: '2px 7px',
+                                    borderRadius: '5px',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    background: record.priority.toLowerCase() === 'high' ? '#fef2f2' : (record.priority.toLowerCase() === 'medium' ? '#fffbeb' : '#f0fdf4'),
+                                    color: record.priority.toLowerCase() === 'high' ? '#dc2626' : (record.priority.toLowerCase() === 'medium' ? '#d97706' : '#16a34a'),
+                                    border: `1px solid ${record.priority.toLowerCase() === 'high' ? 'rgba(239, 68, 68, 0.25)' : (record.priority.toLowerCase() === 'medium' ? 'rgba(245, 158, 11, 0.25)' : 'rgba(22, 163, 74, 0.25)')}`
+                                  }}>
+                                    <span style={{ width: 5, height: 5, borderRadius: '50%', background: record.priority.toLowerCase() === 'high' ? '#dc2626' : (record.priority.toLowerCase() === 'medium' ? '#d97706' : '#16a34a') }}></span>
+                                    {record.priority}
+                                  </span>
+                                )}
+
+                                {/* 2. Assignee Nickname Pill */}
+                                {record.owner && (
+                                  <div style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '5px',
+                                    background: '#f8fafc',
+                                    border: '1px solid #e2e8f0',
+                                    padding: '2px 7px 2px 3px',
+                                    borderRadius: '12px',
+                                    fontSize: '11px',
+                                    fontWeight: 600,
+                                    color: '#334155'
+                                  }}>
+                                    <div style={{
+                                      width: 17,
+                                      height: 17,
+                                      borderRadius: '50%',
+                                      background: '#6366f1',
+                                      color: '#ffffff',
+                                      fontSize: '9px',
+                                      fontWeight: 700,
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center'
+                                    }}>
+                                      {record.owner.charAt(0).toUpperCase()}
+                                    </div>
+                                    <span>{record.owner}</span>
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <span style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '2px' }}>{subtitle}</span>
+                            )}
                           </div>
                         </div>
 
@@ -363,8 +454,35 @@ export default function DynamicModuleView({
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
                           </button>
                           {activeCardMenuId === record.id && (
-                            <div style={{ position: 'absolute', right: 0, top: '100%', backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', zIndex: 50, padding: '0.25rem' }} onClick={(e) => e.stopPropagation()}>
-                              <button onClick={(e) => { e.stopPropagation(); setActiveCardMenuId(null); onEditClick && onEditClick(record); }} style={{ width: '100%', padding: '0.5rem 0.75rem', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.85rem' }}>Edit</button>
+                            <div
+                              style={{
+                                position: 'absolute', right: 0, top: '100%',
+                                backgroundColor: 'white', border: '1px solid #e2e8f0',
+                                borderRadius: '8px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
+                                zIndex: 50, minWidth: '120px', padding: '0.25rem', marginTop: '4px'
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {onEditClick && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveCardMenuId(null);
+                                    onEditClick(record);
+                                  }}
+                                  style={{
+                                    width: '100%', display: 'flex', alignItems: 'center', gap: '0.5rem',
+                                    padding: '0.5rem 0.75rem', background: 'transparent', border: 'none',
+                                    textAlign: 'left', cursor: 'pointer', fontSize: '0.85rem', color: '#334155',
+                                    borderRadius: '6px', transition: 'all 0.2s'
+                                  }}
+                                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#d9f99d'; e.currentTarget.style.color = '#0f172a'; }}
+                                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#334155'; }}
+                                >
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                  Edit
+                                </button>
+                              )}
                               {onDeleteClick && (
                                 <button
                                   onClick={(e) => {
@@ -376,8 +494,16 @@ export default function DynamicModuleView({
                                       onConfirm: () => onDeleteClick(record)
                                     });
                                   }}
-                                  style={{ width: '100%', padding: '0.5rem 0.75rem', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.85rem', color: '#ef4444' }}
+                                  style={{
+                                    width: '100%', display: 'flex', alignItems: 'center', gap: '0.5rem',
+                                    padding: '0.5rem 0.75rem', background: 'transparent', border: 'none',
+                                    textAlign: 'left', cursor: 'pointer', fontSize: '0.85rem', color: '#ef4444',
+                                    borderRadius: '6px', transition: 'all 0.2s', marginTop: onEditClick ? '0.25rem' : '0'
+                                  }}
+                                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#fef2f2'; }}
+                                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
                                 >
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
                                   Delete
                                 </button>
                               )}
@@ -386,9 +512,34 @@ export default function DynamicModuleView({
                         </div>
                       </div>
 
-                      <div className="card-footer-bottom" style={{ marginTop: '1rem', paddingTop: '0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div className="date-badge" style={{ backgroundColor: '#f1f5f9', color: '#64748b', padding: '0.25rem 0.6rem', borderRadius: '8px', border: 'none', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem', fontWeight: 500 }}>
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                      <div className="card-footer-bottom" style={{ marginTop: '0.75rem', paddingTop: '0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div className="date-badge" style={{
+                          backgroundColor: isCompleted ? '#dcfce7' : (isOverdue ? '#fee2e2' : (isToday ? '#fef3c7' : '#f1f5f9')),
+                          color: isCompleted ? '#15803d' : (isOverdue ? '#b91c1c' : (isToday ? '#b45309' : '#64748b')),
+                          border: isOverdue ? '1px solid rgba(239, 68, 68, 0.2)' : (isToday ? '1px solid rgba(245, 158, 11, 0.25)' : 'none'),
+                          padding: '0.25rem 0.6rem',
+                          borderRadius: '6px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.4rem',
+                          fontSize: '0.75rem',
+                          fontWeight: (isOverdue || isToday) ? 700 : 500
+                        }}>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            {isOverdue ? (
+                              <>
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                              </>
+                            ) : (
+                              <>
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                <line x1="16" y1="2" x2="16" y2="6"></line>
+                                <line x1="8" y1="2" x2="8" y2="6"></line>
+                                <line x1="3" y1="10" x2="21" y2="10"></line>
+                              </>
+                            )}
+                          </svg>
                           {formattedDate}
                         </div>
 
@@ -782,7 +933,151 @@ export default function DynamicModuleView({
         moduleName={moduleName}
         blueprint={blueprint}
       />
+      {/* FLOATING BULK TAG ACTION BAR */}
+      {effectiveSelectedIds.length > 0 && (
+        <div style={{
+          position: 'fixed',
+          bottom: '2rem',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: '#0f172a',
+          color: 'white',
+          padding: '0.85rem 1.5rem',
+          borderRadius: '12px',
+          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.2)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '1.25rem',
+          zIndex: 9999
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <span style={{
+              background: '#334155',
+              color: 'white',
+              width: '22px',
+              height: '22px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: '50%',
+              fontSize: '0.8rem',
+              fontWeight: 700
+            }}>
+              {effectiveSelectedIds.length}
+            </span>
+            <span style={{ fontWeight: 500, fontSize: '0.9rem' }}>{moduleName}s Selected</span>
+          </div>
 
+          <div style={{ width: '1px', height: '20px', background: '#334155' }}></div>
+
+          <div style={{ display: 'flex', gap: '0.75rem', position: 'relative' }}>
+            <button
+              onClick={() => setIsBulkTagPickerOpen(!isBulkTagPickerOpen)}
+              style={{
+                background: 'rgba(255,255,255,0.12)',
+                border: '1px solid rgba(255,255,255,0.2)',
+                color: 'white',
+                padding: '0.4rem 0.85rem',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                fontSize: '0.85rem',
+                fontWeight: 500
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+              Apply Tag
+            </button>
+
+            {isBulkTagPickerOpen && (
+              <div style={{
+                position: 'absolute',
+                bottom: 'calc(100% + 0.5rem)',
+                left: 0,
+                background: 'white',
+                borderRadius: '8px',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.18)',
+                width: '220px',
+                maxHeight: '260px',
+                overflowY: 'auto',
+                border: '1px solid #e2e8f0',
+                color: '#0f172a',
+                zIndex: 10000
+              }}>
+                <div style={{ padding: '0.6rem 0.85rem', borderBottom: '1px solid #f1f5f9', fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase' }}>
+                  Select a Tag
+                </div>
+                {(!tags || tags.length === 0) ? (
+                  <div style={{ padding: '0.85rem', fontSize: '0.8rem', color: '#94a3b8', textAlign: 'center' }}>
+                    No tags available
+                  </div>
+                ) : (
+                  tags.map(tag => (
+                    <div
+                      key={tag.id}
+                      onClick={async () => {
+                        setIsBulkTagPickerOpen(false);
+                        if (onBulkTagApply) {
+                          onBulkTagApply(tag, effectiveSelectedIds);
+                        } else {
+                          // Generic API patch for tags
+                          try {
+                            const { fetchAuthSession } = await import('aws-amplify/auth');
+                            const session = await fetchAuthSession();
+                            const token = session.tokens?.idToken?.toString();
+                            const endpoint = moduleName === 'Task' ? '/api/tasks' : (moduleName === 'Deal' ? '/api/deals' : `/api/${moduleName.toLowerCase()}s`);
+
+                            await Promise.all(effectiveSelectedIds.map(recId => {
+                              const rec = records.find(r => r.id === recId);
+                              let existingTags = [];
+                              try { existingTags = Array.isArray(rec.tags) ? rec.tags : JSON.parse(rec.tags || '[]'); } catch (e) { }
+                              const alreadyHas = existingTags.some(t => t.id === tag.id);
+                              if (alreadyHas) return Promise.resolve();
+                              const newTags = [...existingTags, tag];
+
+                              return fetch(endpoint, {
+                                method: 'PATCH',
+                                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                body: JSON.stringify({ taskId: recId, dealId: recId, accountId: recId, leadId: recId, tags: newTags.map(t => t.id) })
+                              });
+                            }));
+                            setEffectiveSelectedIds([]);
+                            window.location.reload();
+                          } catch (err) {
+                            console.error("Bulk tag apply failed", err);
+                          }
+                        }
+                      }}
+                      style={{
+                        padding: '0.5rem 0.85rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.6rem',
+                        cursor: 'pointer',
+                        fontSize: '0.85rem'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: tag.color || '#3b82f6' }}></span>
+                      <span>{tag.name}</span>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+
+            <button
+              onClick={() => setEffectiveSelectedIds([])}
+              style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '0.85rem' }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

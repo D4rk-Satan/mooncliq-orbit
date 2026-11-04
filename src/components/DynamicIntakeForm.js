@@ -149,14 +149,28 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
         if (startVal && dueVal) {
           const startD = new Date(startVal);
           const dueD = new Date(dueVal);
-          if (dueD <= startD) {
+          const minRequiredDue = new Date(startD.getTime() + 10 * 60000); // Start Time + 10 mins
+
+          if (dueD < minRequiredDue) {
             ctx.addIssue({
               code: z.ZodIssueCode.custom,
-              message: "Due time must be after Start time",
+              message: "Due time must be at least 10 minutes after Start time",
               path: ["dueDateTime"]
             });
           }
         }
+
+
+        const relatedModuleVal = (data.relatedModule || '').trim().toLowerCase();
+        const taskAutomationVal = (data.taskAutomation !== undefined && data.taskAutomation !== null) ? String(data.taskAutomation).trim() : '';
+        if (relatedModuleVal && relatedModuleVal !== 'none' && !taskAutomationVal) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Please select a Task Automation workflow or choose None",
+            path: ["taskAutomation"]
+          });
+        }
+
       }
     });
   }, [visibleFields, systemFieldNames, moduleType]);
@@ -220,7 +234,10 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
         if (f.isSystemField) {
           if (f.name === 'assignedBy') {
             initStandard[f.name] = currentUserName;
-          } else {
+          } else if (f.name === 'priority') {
+            initStandard[f.name] = "Medium";
+          }
+          else {
             initStandard[f.name] = "";
           }
         }
@@ -294,6 +311,7 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
 
           let payloadData = { ...formData };
           // AUTO-BUMP: Agar user form bharte-bharte late ho gaya aur start time past me chala gaya
+          // SMART DURATION PRESERVATION ON SUBMIT:
           if (moduleType === 'Task' && payloadData.startDateTime) {
             const formatLocal = (d) => {
               const yyyy = d.getFullYear();
@@ -305,21 +323,29 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
             };
 
             const now = new Date();
+            now.setSeconds(0, 0);
+
             const startD = new Date(payloadData.startDateTime);
+            const dueD = payloadData.dueDateTime ? new Date(payloadData.dueDateTime) : null;
 
-            // Agar start time past me nikal gaya (e.g. form bharte waqt delay ho gaya)
+            // 1. User ka asli set kiya hua duration (gap) calculate karo
+            let originalDuration = 10 * 60 * 1000; // minimum default: 10 mins
+            if (dueD && !isNaN(dueD.getTime()) && !isNaN(startD.getTime())) {
+              const diff = dueD.getTime() - startD.getTime();
+              if (diff >= 10 * 60 * 1000) {
+                originalDuration = diff; // Asli duration preserve ho gaya
+              }
+            }
+
+            // 2. Agar start time past ho gaya hai, to use "now" par shift karo aur due date ko exactly same duration aage badha do
             if (startD < now) {
-              const originalGap = payloadData.dueDateTime
-                ? (new Date(payloadData.dueDateTime) - startD)
-                : (10 * 60 * 1000);
-
-              const safeGap = Math.max(originalGap, 10 * 60 * 1000); // kam se kam 10 mins
-
               payloadData.startDateTime = formatLocal(now);
-              payloadData.dueDateTime = formatLocal(new Date(now.getTime() + safeGap));
+              payloadData.dueDateTime = formatLocal(new Date(now.getTime() + originalDuration));
+            } else if (dueD && (dueD.getTime() - startD.getTime() < 10 * 60 * 1000)) {
+              // 3. Agar user ne start future rakha par due time kam reh gaya, to start + 10 mins safe guard
+              payloadData.dueDateTime = formatLocal(new Date(startD.getTime() + 10 * 60 * 1000));
             }
           }
-
           // Convert local datetime strings to real UTC ISO strings for server
           if (payloadData.startDateTime && typeof payloadData.startDateTime === 'string') {
             const d = new Date(payloadData.startDateTime);
@@ -566,30 +592,10 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
                                       })()
                                     }
                                     onChange={(name, val, record, mappings) => {
-                                      const correctedVal = handleDateSelectionCorrection(field.name, val);
-                                      if (field.name === 'startDateTime') {
-                                        setIsTimeEditedByUser(true);
-                                        if (correctedVal) {
-                                          const start = new Date(correctedVal);
-                                          if (!isNaN(start.getTime())) {
-                                            const updatedDue = new Date(start.getTime() + 10 * 60000);
-                                            const yyyy = updatedDue.getFullYear();
-                                            const mm = String(updatedDue.getMonth() + 1).padStart(2, '0');
-                                            const dd = String(updatedDue.getDate()).padStart(2, '0');
-                                            const hh = String(updatedDue.getHours()).padStart(2, '0');
-                                            const mins = String(updatedDue.getMinutes()).padStart(2, '0');
-                                            const dueString = `${yyyy}-${mm}-${dd}T${hh}:${mins}`;
-                                            setValue('dueDateTime', dueString, { shouldValidate: true, shouldDirty: true });
-                                            setStandardData(prev => ({ ...prev, dueDateTime: dueString }));
-                                          }
-                                        }
-                                      } else if (field.name === 'dueDateTime') {
-                                        setIsTimeEditedByUser(true);
-                                      }
-
-                                      controllerField.onChange(correctedVal);
-                                      handleFieldChange(field, name, correctedVal, record, mappings);
+                                      controllerField.onChange(val);
+                                      handleFieldChange(field, field.isSystemField ? field.name : field.name, val, record, mappings);
                                     }}
+
                                     onBlur={controllerField.onBlur}
                                     error={fieldErrors?.[field.name] || fieldState.error?.message}
                                     readOnly={fieldReadonlyStates?.[field.name]}
