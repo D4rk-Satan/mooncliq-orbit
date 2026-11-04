@@ -186,6 +186,7 @@ export default function TaskPage() {
               moduleName="Task"
               records={tasks}
               blueprint={blueprint}
+              tags={tags}
               supportKanban={true}
               onRecordClick={(task) => setSelectedTask(task)}
               onEditClick={
