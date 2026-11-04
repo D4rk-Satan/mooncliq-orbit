@@ -160,17 +160,19 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
           }
         }
 
-
+        // Agar user ne koi Related Module chuna hai (aur wo 'none' nahi hai), toh Task Automation workflow chunna compulsory hai
         const relatedModuleVal = (data.relatedModule || '').trim().toLowerCase();
-        const taskAutomationVal = (data.taskAutomation !== undefined && data.taskAutomation !== null) ? String(data.taskAutomation).trim() : '';
-        if (relatedModuleVal && relatedModuleVal !== 'none' && !taskAutomationVal) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: "Please select a Task Automation workflow or choose None",
-            path: ["taskAutomation"]
-          });
-        }
+        const taskAutomationVal = (data.taskAutomation || '').trim();
 
+        if (relatedModuleVal && relatedModuleVal !== 'none') {
+          if (!taskAutomationVal || taskAutomationVal.toLowerCase() === 'none') {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: "Please select an automation workflow for this module",
+              path: ["taskAutomation"]
+            });
+          }
+        }
       }
     });
   }, [visibleFields, systemFieldNames, moduleType]);
@@ -266,6 +268,15 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
       setStandardData((prev) => ({ ...prev, [name]: value }));
     } else {
       setCustomData((prev) => ({ ...prev, [name]: value }));
+    }
+
+    // Agar Related Module khali ya "None" chuna, toh Task Automation ko automatically "None" kar do
+    if (moduleType === 'Task' && name === 'relatedModule') {
+      const valLower = (value || '').toLowerCase().trim();
+      if (!valLower || valLower === 'none') {
+        setValue('taskAutomation', 'None', { shouldValidate: true, shouldDirty: true });
+        setStandardData(prev => ({ ...prev, taskAutomation: 'None' }));
+      }
     }
 
     setTimeout(() => executeScript("onChange", name), 0);
@@ -511,23 +522,32 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
 
                         let dynamicOptions = getDynamicFieldOptions(field, { userInfo, customModules, taskAutomationOptions });
 
+                        const currentRelated = (watch("relatedModule") || '').toLowerCase().trim();
+                        const hasModuleSelected = currentRelated && currentRelated !== 'none';
+
                         if (moduleType === 'Task' && field.name === 'taskAutomation') {
-                          const currentRelated = (watch("relatedModule") || '').toLowerCase().trim();
                           const filtered = allWorkflows.filter(w => {
                             const wfMod = (w.moduleType || '').toLowerCase().trim();
-                            if (currentRelated && currentRelated !== 'none') {
+                            if (hasModuleSelected) {
                               return wfMod === currentRelated || wfMod === 'task' || !wfMod;
                             }
                             return wfMod === 'task' || !wfMod;
                           }).map(w => w.name);
 
                           const sourceList = filtered.length > 0 ? filtered : (allWorkflows.map(w => w.name));
-                          dynamicOptions = ['None', ...sourceList.filter(opt => opt && opt !== 'None')];
+                          // Agar module chuna hai toh asli workflows dikhao, warna 'None'
+                          dynamicOptions = hasModuleSelected
+                            ? sourceList.filter(opt => opt && opt.toLowerCase() !== 'none')
+                            : ['None'];
                         }
+
+                        // Task Automation tabhi mandatory dikhega jab user ne koi Module chuna ho
+                        const isAutomationCompulsory = moduleType === 'Task' && field.name === 'taskAutomation' && hasModuleSelected;
+                        const isMandatory = isAutomationCompulsory || (stateOverride?.isRequired !== undefined ? stateOverride.isRequired : field.isRequired);
 
                         const modifiedField = {
                           ...field,
-                          isRequired: stateOverride?.isRequired !== undefined ? stateOverride.isRequired : field.isRequired,
+                          isRequired: isMandatory,
                           readOnly: (moduleType === 'Task' && field.name === 'assignedBy') || field.readOnly || stateOverride?.isReadonly,
                           options: dynamicOptions
                         };
