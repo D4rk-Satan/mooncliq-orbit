@@ -33,6 +33,26 @@ const EntityEditModal = ({ isOpen, onClose, entity, blueprint, onUpdate, current
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [shakeTrigger, setShakeTrigger] = useState(0);
 
+  const formatForDateTimeInput = (val) => {
+    if (!val) return '';
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return '';
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mins = String(d.getMinutes()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}T${hh}:${mins}`;
+  };
+
+  const getSanitizedEntityData = (ent) => {
+    if (!ent) return {};
+    const data = { ...ent, customData: { ...(ent.customData || {}) } };
+    if (data.startDateTime) data.startDateTime = formatForDateTimeInput(data.startDateTime);
+    if (data.dueDateTime) data.dueDateTime = formatForDateTimeInput(data.dueDateTime);
+    return data;
+  };
+
   useEffect(() => {
     if (isOpen && entity) {
       let initialData = { ...entity, customData: { ...(entity.customData || {}) } };
@@ -122,7 +142,7 @@ const EntityEditModal = ({ isOpen, onClose, entity, blueprint, onUpdate, current
     if (!blueprint?.fields) return { visibleFields: [], orderedSections: [] };
 
     // Stage field hamesha hide karni hai edit modal me
-    const vf = blueprint.fields.filter(f => !f.isHidden && f.name !== 'stage');
+    const vf = blueprint.fields.filter(f => !f.isHidden && f.name !== 'stage' && f.name !== 'assignedBy');
 
     let os = [];
     if (blueprint?.layoutConfig && Array.isArray(blueprint.layoutConfig) && blueprint.layoutConfig.length > 0) {
@@ -221,19 +241,13 @@ const EntityEditModal = ({ isOpen, onClose, entity, blueprint, onUpdate, current
   }, [visibleFields, standardFields]);
 
   // 2. React Hook Form Setup
+  // AB (Pre-formatted & Instant without any flicker):
   const { register, control, handleSubmit, formState: { errors, isDirty }, reset } = useForm({
     mode: 'onTouched',
     reValidateMode: 'onChange',
     resolver: zodResolver(dynamicSchema),
-    defaultValues: { ...(entity || {}), customData: entity?.customData || {} } // Puraana data form me daal diya
+    values: isOpen && entity ? getSanitizedEntityData(entity) : undefined
   });
-
-  useEffect(() => {
-    if (isOpen && entity) {
-      reset({ ...entity, customData: entity?.customData || {} });
-    }
-
-  }, [isOpen, entity, reset]);
 
   useEffect(() => {
     setHasUnsavedChanges(isDirty);

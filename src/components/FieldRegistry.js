@@ -295,9 +295,11 @@ const TextInput = ({ field, value, onChange, onBlur }) => {
 };
 
 // --- NAYA USER INPUT COMPONENT YAHAN START ---
+let cachedUsers = null;
+
 const UserInput = ({ field, value, onChange }) => {
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [users, setUsers] = useState(cachedUsers || []);
+  const [loading, setLoading] = useState(!cachedUsers);
 
   React.useEffect(() => {
     const fetchUsers = async () => {
@@ -309,6 +311,7 @@ const UserInput = ({ field, value, onChange }) => {
         });
         if (res.ok) {
           const data = await res.json();
+          cachedUsers = data;
           setUsers(data);
         }
       } catch (error) {

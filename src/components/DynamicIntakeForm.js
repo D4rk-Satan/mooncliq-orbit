@@ -569,22 +569,26 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
                                         };
 
                                         const now = new Date();
-                                        const todayStart = new Date(now);
-                                        todayStart.setHours(0, 0, 0, 0);
+                                        now.setSeconds(0, 0);
 
-                                        const currentDateTimeString = formatLocal(now);
-                                        const currentStartDate = watch('startDateTime');
+                                        // 1. START TIME: Current time se 1 second pehle ka bhi select nahi hone dega
+                                        if (field.name === 'startDateTime') {
+                                          return formatLocal(now);
+                                        }
 
-                                        if (field.name === 'startDateTime') return formatLocal(todayStart);
-
+                                        // 2. DUE TIME: Base date hamesha 'now' ya 'startDateTime' (jo bhi aage ho) hogi + 10 minutes!
                                         if (field.name === 'dueDateTime') {
-                                          let baseDate;
-                                          if (currentStartDate && currentStartDate > currentDateTimeString) {
-                                            baseDate = new Date(currentStartDate);
-                                          } else {
-                                            baseDate = new Date();
+                                          const currentStartDate = watch('startDateTime');
+                                          let baseDate = new Date(now);
+
+                                          if (currentStartDate) {
+                                            const startD = new Date(currentStartDate);
+                                            if (!isNaN(startD.getTime()) && startD > baseDate) {
+                                              baseDate = startD;
+                                            }
                                           }
-                                          // 10 minutes ka gap add kar diya
+
+                                          // Due date hamesha base se kam se kam 10 minute aage hi rahegi
                                           baseDate.setMinutes(baseDate.getMinutes() + 10);
                                           return formatLocal(baseDate);
                                         }
