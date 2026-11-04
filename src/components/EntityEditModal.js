@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import DynamicField from './FieldRegistry';
 import { getDynamicFieldOptions, isFieldFullWidth } from '../utils/fieldRules';
+import TaskPrioritySelector from './TaskPrioritySelector';
 
 
 import { useBootstrap } from '@/contexts/AppBootstrapContext';
@@ -387,15 +388,30 @@ const EntityEditModal = ({ isOpen, onClose, entity, blueprint, onUpdate, current
                         <Controller
                           name={isStandard ? field.name : `customData.${field.name}`}
                           control={control}
-                          render={({ field: controllerField }) => (
-                            <DynamicField
-                              field={fieldWithOptions}
-                              value={controllerField.value || ''}
-                              onBlur={controllerField.onBlur}
-                              onChange={(name, val) => controllerField.onChange(val)}
-                              error={errors[field.name]?.message || errors.customData?.[field.name]?.message}
-                            />
-                          )}
+                          render={({ field: controllerField }) => {
+                            if (moduleName?.toLowerCase().includes('task') && field.name === 'priority') {
+                              return (
+                                <TaskPrioritySelector
+                                  field={fieldWithOptions}
+                                  value={controllerField.value || 'Medium'}
+                                  onChange={(val) => {
+                                    controllerField.onChange(val);
+                                    handleChange('priority', val, true);
+                                  }}
+                                />
+                              );
+                            }
+
+                            return (
+                              <DynamicField
+                                field={fieldWithOptions}
+                                value={controllerField.value || ''}
+                                onBlur={controllerField.onBlur}
+                                onChange={(name, val) => controllerField.onChange(val)}
+                                error={errors[field.name]?.message || errors.customData?.[field.name]?.message}
+                              />
+                            );
+                          }}
                         />
                       </div>
                     );
