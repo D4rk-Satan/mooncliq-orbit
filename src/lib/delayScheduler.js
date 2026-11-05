@@ -1,5 +1,6 @@
 import prisma from './prisma';
 import { executeBackendWorkflows } from '../utils/workflowEngine';
+import { verifyTaskWork } from './taskVerifier';
 
 // Local dev & server in-memory timers map
 const activeTimers = new Map();
@@ -48,6 +49,49 @@ export async function scheduleTaskDueCheck(task) {
 }
 
 /**
+ * Helper to safely append a system note into task.notes without breaking
+ * existing JSON timeline format or legacy plain-text notes.
+ */
+function appendSystemNote(existingNotes, noteText) {
+  let notesArray = [];
+
+  if (existingNotes) {
+    if (Array.isArray(existingNotes)) {
+      notesArray = [...existingNotes];
+    } else if (typeof existingNotes === 'string') {
+      try {
+        const parsed = JSON.parse(existingNotes);
+        if (Array.isArray(parsed)) {
+          notesArray = parsed;
+        } else {
+          notesArray = [{
+            id: 'legacy-1',
+            text: String(existingNotes),
+            author: 'System Note',
+            createdAt: new Date().toISOString()
+          }];
+        }
+      } catch (e) {
+        notesArray = [{
+          id: 'legacy-1',
+          text: String(existingNotes),
+          author: 'System Note',
+          createdAt: new Date().toISOString()
+        }];
+      }
+    }
+  }
+
+  notesArray.push({
+    id: `sys_${Date.now()}`,
+    text: noteText,
+    author: 'System Automation',
+    createdAt: new Date().toISOString()
+  });
+
+  return JSON.stringify(notesArray);
+}
+/**
  * Runs the audit logic when dueDateTime arrives:
  * If rep completed target -> Completed
  * If not completed -> Overdue
@@ -81,44 +125,36 @@ export async function runTaskAudit(taskId) {
       return; // Custom script ne apna decision khud le liya hai!
     }
 
-    // 2. Default Target Audit (Check if owner moved 10 leads today)
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
+    // 2. Universal Audit Verification (AuditLog se check karo kaam hua ya nahi):
+    const auditResult = await verifyTaskWork(task);
 
-    let movedLeads = 0;
-    if (task.owner) {
-      movedLeads = await prisma.lead.count({
-        where: {
-          organizationId: task.organizationId,
-          owner: task.owner,
-          updatedAt: { gte: todayStart }
-        }
-      });
-    }
-
-    console.log(`[Delay Scheduler] Rep (${task.owner}) leads moved: ${movedLeads}`);
-
-    // Agar 10 ya usse zyada leads move ki hain:
-    if (movedLeads >= 10 && completedStage) {
+    if (auditResult.verified && completedStage) {
+      // Work verified from AuditLog -> Move to Completed
+      const updatedNotes = appendSystemNote(
+        task.notes,
+        `✅ [System Verified]: ${auditResult.summary}`
+      );
       await prisma.task.update({
         where: { id: task.id },
         data: {
           stageId: completedStage.id,
           endDateTime: new Date(),
-          completionSource: 'System Auto-Verified (Target Met)',
-          notes: (task.notes ? task.notes + "\n\n" : "") + 
-                 `🎉 [System Auto-Verified]: Rep moved ${movedLeads} leads before due time. Task Completed!`
+          completionSource: 'System Auto-Verified',
+          notes: updatedNotes
         }
       });
-      console.log(`✅ [Delay Scheduler] Task "${task.taskName}" marked as COMPLETED!`);
+      console.log(`✅ [Delay Scheduler] Task "${task.taskName}" verified & marked as COMPLETED!`);
     } else if (overdueStage) {
-      // Agar target meet nahi hua aur due time nikal gaya:
+      // Work not found or deadline passed -> Move to Overdue
+      const updatedNotes = appendSystemNote(
+        task.notes,
+        `⚠️ [Deadline Reached]: ${auditResult.reason || 'Moved to Overdue at due time.'}`
+      );
       await prisma.task.update({
         where: { id: task.id },
         data: {
           stageId: overdueStage.id,
-          notes: (task.notes ? task.notes + "\n\n" : "") + 
-                 `⚠️ [Target Missed]: Rep only moved ${movedLeads}/10 leads. Moved to Overdue at due time.`
+          notes: updatedNotes
         }
       });
       console.log(`❌ [Delay Scheduler] Task "${task.taskName}" marked as OVERDUE!`);

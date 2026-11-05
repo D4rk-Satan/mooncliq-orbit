@@ -32,6 +32,29 @@ const EntityEditModal = ({ isOpen, onClose, entity, blueprint, onUpdate, current
   const [editData, setEditData] = useState({});
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  const [allWorkflows, setAllWorkflows] = useState([]);
+
+  useEffect(() => {
+    if (isOpen && moduleName?.toLowerCase().includes('task')) {
+      (async () => {
+        try {
+          const { fetchAuthSession } = await import('aws-amplify/auth');
+          const { tokens } = await fetchAuthSession();
+          const token = tokens.idToken.toString();
+          const res = await fetch('/api/workflows', { headers: { Authorization: `Bearer ${token}` } });
+          if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data)) setAllWorkflows(data.filter(w => w.isActive !== false));
+          }
+        } catch (e) {
+          console.error("Failed to fetch workflows in edit modal", e);
+        }
+      })();
+    }
+  }, [isOpen, moduleName]);
+
+
   const [shakeTrigger, setShakeTrigger] = useState(0);
 
   const formatForDateTimeInput = (val) => {
@@ -143,7 +166,7 @@ const EntityEditModal = ({ isOpen, onClose, entity, blueprint, onUpdate, current
     if (!blueprint?.fields) return { visibleFields: [], orderedSections: [] };
 
     // Stage field hamesha hide karni hai edit modal me
-    const vf = blueprint.fields.filter(f => !f.isHidden && f.name !== 'stage' && f.name !== 'assignedBy');
+    const vf = blueprint.fields.filter(f => !f.isHidden && f.name !== 'stage');
 
     let os = [];
     if (blueprint?.layoutConfig && Array.isArray(blueprint.layoutConfig) && blueprint.layoutConfig.length > 0) {
@@ -289,56 +312,60 @@ const EntityEditModal = ({ isOpen, onClose, entity, blueprint, onUpdate, current
           }
         `}</style>
 
-        {/* Unsaved Changes Bar */}
-        {hasUnsavedChanges && (
-          <div style={{
-            position: 'absolute', top: '-60px', left: '50%', transform: 'translateX(-50%)',
-            backgroundColor: '#0f172a', color: 'white', padding: '12px 24px',
-            borderRadius: '30px', display: 'flex', alignItems: 'center', gap: '24px',
-            boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', zIndex: 110, whiteSpace: 'nowrap'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{ width: '8px', height: '8px', backgroundColor: '#f59e0b', borderRadius: '50%' }}></div>
-              <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>Unsaved changes</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <button
-                onClick={() => { setHasUnsavedChanges(false); onClose(); }}
-                disabled={isSaving}
-                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontWeight: 500, padding: '4px 8px', transition: 'color 0.2s' }}
-                onMouseEnter={e => e.target.style.color = 'white'}
-                onMouseLeave={e => e.target.style.color = '#94a3b8'}
-              >
-                Discard
-              </button>
-              <button
-                onClick={handleSubmit(handleSave)}
-                disabled={isSaving}
-                style={{ backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '24px', padding: '6px 16px', cursor: 'pointer', fontWeight: 600, transition: 'background-color 0.2s', display: 'flex', alignItems: 'center', gap: '8px' }}
-                onMouseEnter={e => e.target.style.backgroundColor = '#059669'}
-                onMouseLeave={e => e.target.style.backgroundColor = '#10b981'}
-              >
-
-                {isSaving ? 'Saving...' : 'Save Changes'}
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* Header */}
-        <div style={{ padding: '24px 32px 16px 32px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div style={{ padding: '20px 32px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>EDIT </h2>
+            <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>EDIT</h2>
             <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: '#64748b' }}>
               Last updated {formattedDate}
             </p>
           </div>
-          <button
-            onClick={handleBackdropClick}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '4px' }}
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"></path></svg>
-          </button>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            {/* EXACT SAME ORIGINAL UI PILL (Now cleanly inside header) */}
+            {hasUnsavedChanges && (
+              <div style={{
+                backgroundColor: '#0f172a', color: 'white', padding: '8px 18px',
+                borderRadius: '30px', display: 'flex', alignItems: 'center', gap: '18px',
+                boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', whiteSpace: 'nowrap'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ width: '8px', height: '8px', backgroundColor: '#f59e0b', borderRadius: '50%' }}></div>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>Unsaved changes</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <button
+                    type="button"
+                    onClick={() => { setHasUnsavedChanges(false); onClose(); }}
+                    disabled={isSaving}
+                    style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontWeight: 500, padding: '4px 8px', transition: 'color 0.2s' }}
+                    onMouseEnter={e => e.target.style.color = 'white'}
+                    onMouseLeave={e => e.target.style.color = '#94a3b8'}
+                  >
+                    Discard
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSubmit(handleSave)}
+                    disabled={isSaving}
+                    style={{ backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '24px', padding: '6px 16px', cursor: 'pointer', fontWeight: 600, transition: 'background-color 0.2s', display: 'flex', alignItems: 'center', gap: '8px' }}
+                    onMouseEnter={e => e.target.style.backgroundColor = '#059669'}
+                    onMouseLeave={e => e.target.style.backgroundColor = '#10b981'}
+                  >
+                    {isSaving ? 'Saving...' : 'Save Changes'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <button
+              onClick={handleBackdropClick}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '4px', display: 'flex', alignItems: 'center' }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+            </button>
+          </div>
         </div>
 
         {/* Body / Form */}
@@ -376,11 +403,57 @@ const EntityEditModal = ({ isOpen, onClose, entity, blueprint, onUpdate, current
                   {sectionFields.map(field => {
                     const isStandard = standardFields.includes(field.name);
                     const value = isStandard ? editData[field.name] : editData.customData?.[field.name];
-                    const dynamicOptions = getDynamicFieldOptions(field, { userInfo, customModules });
+                    let dynamicOptions = getDynamicFieldOptions(field, { userInfo, customModules });
+
+                    // 1. Task Automation Dynamic Filter on Edit
+                    if (moduleName?.toLowerCase().includes('task') && field.name === 'taskAutomation') {
+                      const currentRelated = (editData?.relatedModule || '').toLowerCase().trim();
+                      const hasModuleSelected = currentRelated && currentRelated !== 'none';
+
+                      const filtered = allWorkflows.filter(w => {
+                        const wfMod = (w.moduleType || '').toLowerCase().trim();
+                        if (hasModuleSelected) {
+                          return wfMod === currentRelated;
+                        }
+                        return wfMod === 'task';
+                      }).map(w => w.name);
+
+                      dynamicOptions = ['None', ...filtered.filter(opt => opt && opt.toLowerCase() !== 'none')];
+                    }
+
+                    // 2. Strict Task Governance (Pending, Overdue, Completed):
+                    const isTask = moduleName?.toLowerCase().includes('task');
+                    let isReadOnlyField = field.readOnly;
+
+                    if (isTask) {
+                      const stageName = (entity?.stage?.name || entity?.stageName || '').toLowerCase().trim();
+                      const isPending = stageName === 'pending';
+
+                      const currentUserName = userInfo?.nickname || userInfo?.email || '';
+                      const currentUserId = userInfo?.id || '';
+                      const isCreator = editData?.assignedBy === currentUserName || editData?.assignedBy === currentUserId;
+                      const isAdmin = userInfo?.role === 'ADMIN' || userInfo?.role === 'SUPER_ADMIN';
+
+                      // RULE A: Agar task 'Overdue' ya 'Completed' ho chuka hai -> Pura form locked/read-only!
+                      if (!isPending) {
+                        isReadOnlyField = true;
+                      }
+                      // RULE B: Agar Rep khol raha hai (Creator nahi hai) -> Pura form read-only!
+                      else if (!isCreator && !isAdmin) {
+                        isReadOnlyField = true;
+                      }
+                      // RULE C: Agar Creator (Assigned By) hai -> Sirf startDateTime aur assignedBy locked rahenge, BAAKI SAB OPEN!
+                      else if (isCreator && !isAdmin) {
+                        if (field.name === 'startDateTime' || field.name === 'assignedBy') {
+                          isReadOnlyField = true;
+                        }
+                      }
+                    }
 
                     const fieldWithOptions = {
                       ...field,
-                      options: dynamicOptions
+                      options: dynamicOptions,
+                      readOnly: isReadOnlyField
                     };
 
                     return (

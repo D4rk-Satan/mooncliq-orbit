@@ -10,6 +10,7 @@ import { z } from 'zod';
 import { useBootstrap } from "@/contexts/AppBootstrapContext";
 import { isFieldVisible, getDynamicFieldOptions, isFieldFullWidth } from '../utils/fieldRules';
 import TaskPrioritySelector from "./TaskPrioritySelector";
+import SmartDateTimePicker from './SmartDateTimePicker';
 
 export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onClose, onSave }) {
   const { userInfo, customModules } = useBootstrap();
@@ -529,17 +530,19 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
                           const filtered = allWorkflows.filter(w => {
                             const wfMod = (w.moduleType || '').toLowerCase().trim();
                             if (hasModuleSelected) {
-                              return wfMod === currentRelated || wfMod === 'task' || !wfMod;
+                              return wfMod === currentRelated;
                             }
-                            return wfMod === 'task' || !wfMod;
+                            return wfMod === false;
                           }).map(w => w.name);
 
-                          const sourceList = filtered.length > 0 ? filtered : (allWorkflows.map(w => w.name));
-                          // Agar module chuna hai toh asli workflows dikhao, warna 'None'
+                          // Agar matched workflow mila toh list dikhao, warna khali list (koi blind allWorkflows fallback nahi!)
                           dynamicOptions = hasModuleSelected
-                            ? sourceList.filter(opt => opt && opt.toLowerCase() !== 'none')
+                            ? filtered.filter(opt => opt && opt.toLowerCase() !== 'none')
                             : ['None'];
                         }
+
+
+
 
                         // Task Automation tabhi mandatory dikhega jab user ne koi Module chuna ho
                         const isAutomationCompulsory = moduleType === 'Task' && field.name === 'taskAutomation' && hasModuleSelected;
@@ -568,63 +571,48 @@ export default function DynamicIntakeForm({ moduleType, moduleName, isOpen, onCl
                                       handleFieldChange(field, 'priority', val);
                                     }}
                                   />
-                                ) : (
+                                ) :
 
-                                  <DynamicField
-                                    formData={{ ...standardData, ...customData }}
-                                    key={field.id}
-                                    field={modifiedField}
-                                    value={controllerField.value || ''}
-                                    min={
-                                      (() => {
-                                        if (moduleType !== 'Task') return undefined;
+                                  moduleType === 'Task' && (field.name === 'startDateTime' || field.name === 'dueDateTime') ? (
+                                    <SmartDateTimePicker
+                                      label={field.label}
+                                      isRequired={field.isRequired}
+                                      value={controllerField.value}
+                                      isDueDate={field.name === 'dueDateTime'}
+                                      minDateTime={
+                                        field.name === 'dueDateTime'
+                                          ? (() => {
+                                            const st = watch('startDateTime');
+                                            if (!st) return null;
+                                            const d = new Date(st);
+                                            return isNaN(d.getTime()) ? null : new Date(d.getTime() + 10 * 60000).toISOString();
+                                          })()
+                                          : null
+                                      }
+                                      error={fieldErrors?.[field.name] || fieldState.error?.message}
+                                      onChange={(val) => {
+                                        controllerField.onChange(val);
+                                        handleFieldChange(field, field.name, val);
+                                      }}
+                                    />
+                                  ) : (
 
-                                        const formatLocal = (d) => {
-                                          const yyyy = d.getFullYear();
-                                          const mm = String(d.getMonth() + 1).padStart(2, '0');
-                                          const dd = String(d.getDate()).padStart(2, '0');
-                                          const hh = String(d.getHours()).padStart(2, '0');
-                                          const mins = String(d.getMinutes()).padStart(2, '0');
-                                          return `${yyyy}-${mm}-${dd}T${hh}:${mins}`;
-                                        };
+                                    <DynamicField
+                                      formData={{ ...standardData, ...customData }}
+                                      key={field.id}
+                                      field={modifiedField}
+                                      value={controllerField.value || ''}
 
-                                        const now = new Date();
-                                        now.setSeconds(0, 0);
+                                      onChange={(name, val, record, mappings) => {
+                                        controllerField.onChange(val);
+                                        handleFieldChange(field, field.isSystemField ? field.name : field.name, val, record, mappings);
+                                      }}
 
-                                        // 1. START TIME: Current time se 1 second pehle ka bhi select nahi hone dega
-                                        if (field.name === 'startDateTime') {
-                                          return formatLocal(now);
-                                        }
-
-                                        // 2. DUE TIME: Base date hamesha 'now' ya 'startDateTime' (jo bhi aage ho) hogi + 10 minutes!
-                                        if (field.name === 'dueDateTime') {
-                                          const currentStartDate = watch('startDateTime');
-                                          let baseDate = new Date(now);
-
-                                          if (currentStartDate) {
-                                            const startD = new Date(currentStartDate);
-                                            if (!isNaN(startD.getTime()) && startD > baseDate) {
-                                              baseDate = startD;
-                                            }
-                                          }
-
-                                          // Due date hamesha base se kam se kam 10 minute aage hi rahegi
-                                          baseDate.setMinutes(baseDate.getMinutes() + 10);
-                                          return formatLocal(baseDate);
-                                        }
-                                        return undefined;
-                                      })()
-                                    }
-                                    onChange={(name, val, record, mappings) => {
-                                      controllerField.onChange(val);
-                                      handleFieldChange(field, field.isSystemField ? field.name : field.name, val, record, mappings);
-                                    }}
-
-                                    onBlur={controllerField.onBlur}
-                                    error={fieldErrors?.[field.name] || fieldState.error?.message}
-                                    readOnly={fieldReadonlyStates?.[field.name]}
-                                  />
-                                )
+                                      onBlur={controllerField.onBlur}
+                                      error={fieldErrors?.[field.name] || fieldState.error?.message}
+                                      readOnly={fieldReadonlyStates?.[field.name]}
+                                    />
+                                  )
                                 }     </div>
                             )}
                           />

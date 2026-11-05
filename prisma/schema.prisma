@@ -49,32 +49,33 @@ model Profile {
   canExportData       Boolean      @default(false)
   permissions         Json
   avatarUrl           String?
-  nickname            String?      
+  nickname            String?
   onboardingCompleted Boolean      @default(false)
   role                String?
   invitations         Invitation[]
   organization        Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   users               User[]
+
   @@unique([organizationId, nickname])
 }
 
 model User {
-  id             String       @id
-  email          String       @unique
-  organizationId String
-  createdAt      DateTime     @default(now())
-  profileId      String?
-  isActive       Boolean      @default(true)
-  reportsToId    String?      // Manager Hierarchy
+  id                  String       @id
+  email               String       @unique
+  organizationId      String
+  createdAt           DateTime     @default(now())
+  profileId           String?
+  isActive            Boolean      @default(true)
+  reportsToId         String? // Manager Hierarchy
   name                String?
   nickname            String?
   avatarUrl           String?
-  role                String?      // Job title (e.g. Sales Manager)
+  role                String? // Job title (e.g. Sales Manager)
   onboardingCompleted Boolean      @default(false)
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  profile        Profile?     @relation(fields: [profileId], references: [id], onDelete: Cascade)
-  reportsTo      User?        @relation("ManagerHierarchy", fields: [reportsToId], references: [id], onDelete: SetNull)
-  subordinates   User[]       @relation("ManagerHierarchy")
+  organization        Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  profile             Profile?     @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  reportsTo           User?        @relation("ManagerHierarchy", fields: [reportsToId], references: [id], onDelete: SetNull)
+  subordinates        User[]       @relation("ManagerHierarchy")
 }
 
 model Invitation {
@@ -93,19 +94,19 @@ model Invitation {
 }
 
 model Blueprint {
-  id             String       @id @default(uuid())
+  id             String         @id @default(uuid())
   organizationId String
   moduleType     String
-  version        Int          @default(1)
-  name           String       @default("Default Pipeline")
+  version        Int            @default(1)
+  name           String         @default("Default Pipeline")
   layoutConfig   Json?
-  isActive       Boolean      @default(true)
-  updatedAt      DateTime     @default(now()) @updatedAt
+  isActive       Boolean        @default(true)
+  updatedAt      DateTime       @default(now()) @updatedAt
   entryCriteria  Json?
-  executionOrder Int          @default(0)
-  targetField    String       @default("")
+  executionOrder Int            @default(0)
+  targetField    String         @default("")
   accounts       Account[]
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   deals          Deal[]
   fields         Field[]
   leads          Lead[]
@@ -117,21 +118,21 @@ model Blueprint {
 }
 
 model Stage {
-  id                  String       @id @default(uuid())
+  id                  String         @id @default(uuid())
   blueprintId         String
   name                String
   orderIndex          Int
   requiredFields      String[]
   color               String?
-  isSystem            Boolean      @default(false)
+  isSystem            Boolean        @default(false)
   accounts            Account[]
   deals               Deal[]
   leads               Lead[]
   products            Product[]
-  blueprint           Blueprint    @relation(fields: [blueprintId], references: [id], onDelete: Cascade)
+  blueprint           Blueprint      @relation(fields: [blueprintId], references: [id], onDelete: Cascade)
   tasks               Task[]
-  incomingTransitions Transition[] @relation("ToStage")
-  outgoingTransitions Transition[] @relation("FromStages")
+  incomingTransitions Transition[]   @relation("ToStage")
+  outgoingTransitions Transition[]   @relation("FromStages")
   customRecords       CustomRecord[]
 }
 
@@ -206,7 +207,6 @@ model Lead {
   state            String?
   street           String?
   zipCode          String?
-  auditLogs        AuditLog[]
   blueprint        Blueprint    @relation(fields: [blueprintId], references: [id], onDelete: Cascade)
   organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   stage            Stage        @relation(fields: [stageId], references: [id], onDelete: Cascade)
@@ -216,12 +216,17 @@ model Lead {
 model AuditLog {
   id             String       @id @default(uuid())
   organizationId String
-  leadId         String
+  moduleType     String       @default("Lead")
+  leadId         String?      // Purane 278 rows ke data ke liye optional rakha
+  recordId       String?      // Optional banaya taaki purana data break na ho
+  userId         String?
+  userEmail      String?
   actionType     String
-  details        Json
+  details        Json?
   createdAt      DateTime     @default(now())
-  lead           Lead         @relation(fields: [leadId], references: [id], onDelete: Cascade)
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  @@index([organizationId, recordId])
+  @@index([organizationId, userId, createdAt])
 }
 
 model Tag {
@@ -436,49 +441,50 @@ enum TransactionType {
 }
 
 model CustomModule {
-  id             String       @id @default(uuid())
+  id             String   @id @default(uuid())
   organizationId String
-  name           String       // Plural (e.g., "Properties", "Patients")
-  singularName   String       // Singular (e.g., "Property", "Patient")
-  icon           String?      // Sidebar me dikhane ke liye Lucide-react icon ka naam
-  isActive       Boolean      @default(true)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  name           String // Plural (e.g., "Properties", "Patients")
+  singularName   String // Singular (e.g., "Property", "Patient")
+  icon           String? // Sidebar me dikhane ke liye Lucide-react icon ka naam
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  records        CustomRecord[]
+  organization Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  records      CustomRecord[]
 }
 
 model CustomRecord {
-  id               String       @id @default(uuid())
+  id               String    @id @default(uuid())
   organizationId   String
   customModuleId   String
   blueprintId      String
   stageId          String
   owner            String?
-  customData       Json         @default("{}") // All dynamic fields (Address, Price, Disease, etc) will be saved here in JSONB
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
+  customData       Json      @default("{}") // All dynamic fields (Address, Price, Disease, etc) will be saved here in JSONB
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
   lastActivityDate DateTime?
   lastModifiedById String?
 
-  customModule     CustomModule @relation(fields: [customModuleId], references: [id], onDelete: Cascade)
-  blueprint        Blueprint    @relation(fields: [blueprintId], references: [id], onDelete: Cascade)
-  stage            Stage        @relation(fields: [stageId], references: [id], onDelete: Cascade)
-  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customModule CustomModule @relation(fields: [customModuleId], references: [id], onDelete: Cascade)
+  blueprint    Blueprint    @relation(fields: [blueprintId], references: [id], onDelete: Cascade)
+  stage        Stage        @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 }
+
 model Notification {
-  id             String       @id @default(uuid())
+  id             String   @id @default(uuid())
   organizationId String
-  userEmail      String       // Target user email (or '@all' for team alerts)
+  userEmail      String // Target user email (or '@all' for team alerts)
   title          String
   message        String
-  type           String       @default("info") // 'urgent', 'success', 'warning', 'info'
-  actionUrl      String?      // Optional click redirection link
-  isRead         Boolean      @default(false)
-  createdAt      DateTime     @default(now())
+  type           String   @default("info") // 'urgent', 'success', 'warning', 'info'
+  actionUrl      String? // Optional click redirection link
+  isRead         Boolean  @default(false)
+  createdAt      DateTime @default(now())
 
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([organizationId, userEmail, isRead])
   @@index([createdAt])
