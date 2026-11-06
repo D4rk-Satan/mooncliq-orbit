@@ -21,16 +21,50 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
   const [newNoteText, setNewNoteText] = useState("");
   const [isSavingNote, setIsSavingNote] = useState(false);
 
+  const [usersMap, setUsersMap] = useState({});
+
+  // Fetch users map once to resolve any user IDs to nicknames
+  useEffect(() => {
+    const loadUsers = async () => {
+      try {
+        const { fetchAuthSession } = await import('aws-amplify/auth');
+        const session = await fetchAuthSession();
+        const token = session.tokens?.idToken?.toString();
+        if (!token) return;
+
+        const res = await fetch('/api/users', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const list = await res.json();
+          const map = {};
+          list.forEach(u => {
+            const nick = u.nickname || u.profile?.nickname || u.name || u.email?.split('@')[0] || u.email;
+            if (u.id) map[u.id] = nick;
+            if (u.email) map[u.email] = nick;
+          });
+          setUsersMap(map);
+        }
+      } catch (e) {
+        console.error("Error loading users in SlideOverPanel:", e);
+      }
+    };
+    loadUsers();
+  }, []);
+
   // Parse existing notes (handles JSON array or legacy raw string)
   const getTimelineNotes = () => {
     if (!lead || !lead.notes) return [];
     if (Array.isArray(lead.notes)) return lead.notes;
+
+    const fallbackAuthor = lead.owner || lead.assignedByName || (lead.assignedBy && usersMap[lead.assignedBy]) || currentUser?.profile?.nickname || currentUser?.name || 'Team Member';
+
     try {
       const parsed = JSON.parse(lead.notes);
       if (Array.isArray(parsed)) return parsed;
-      return [{ id: 'legacy-1', text: String(lead.notes), author: 'System Note', createdAt: lead.updatedAt || lead.createdAt || new Date().toISOString() }];
+      return [{ id: 'legacy-1', text: String(lead.notes), author: fallbackAuthor, createdAt: lead.updatedAt || lead.createdAt || new Date().toISOString() }];
     } catch (e) {
-      return [{ id: 'legacy-1', text: String(lead.notes), author: 'Legacy Note', createdAt: lead.updatedAt || lead.createdAt || new Date().toISOString() }];
+      return [{ id: 'legacy-1', text: String(lead.notes), author: fallbackAuthor, createdAt: lead.updatedAt || lead.createdAt || new Date().toISOString() }];
     }
   };
 
@@ -303,7 +337,13 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
     if (activeTab === 'Activity') {
       const createdDate = new Date(lead.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
       const updatedDate = new Date(lead.lastActivityDate || lead.updatedAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
-      const modifiedBy = lead.lastModifiedByName || "System";
+      const currentNick = currentUser?.profile?.nickname || currentUser?.profile?.name || currentUser?.name || currentUser?.email?.split('@')[0];
+      const modifiedBy = lead.lastModifiedByName ||
+        usersMap[lead.lastModifiedById] ||
+        (lead.lastModifiedById === currentUser?.id ? currentNick : null) ||
+        lead.owner ||
+        currentNick ||
+        "Team User";
 
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
@@ -358,92 +398,195 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
         'lastmodifieddate',
         'lastmodifiedby',
         'updatedat',
-        'lastactivitydate'
+        'lastactivitydate',
+        'stage',
+        'stageid'
       ];
 
-      const visibleFields = (blueprint?.fields || []).filter(field => {
-        const fName = (field.name || '').toLowerCase();
-        return !EXCLUDED_FIELDS.includes(fName);
-      });
+      // 1. Blueprint ke sections nikalna (LayoutConfig se ya fields ke sectionName se)
+      const allSections = (blueprint?.layoutConfig && Array.isArray(blueprint.layoutConfig) && blueprint.layoutConfig.length > 0)
+        ? [...blueprint.layoutConfig].sort((a, b) => (a.order || 0) - (b.order || 0))
+        : [...new Set((blueprint?.fields || []).map(f => f.sectionName || 'General Information'))].map(name => ({ name, columns: 2 }));
+
+      // 2. Sirf wahi sections aur fields filter karna jisme ASLI DATA hai!
+      const populatedSections = allSections.map(sec => {
+        const secFields = (blueprint?.fields || []).filter(field => {
+          const fName = (field.name || '').toLowerCase();
+          if (EXCLUDED_FIELDS.includes(fName) || (field.isHidden && fName !== 'completionsource')) return false;
+          const sName = field.sectionName || 'General Information';
+          return sName === sec.name;
+        });
+
+        const validFields = [];
+        secFields.forEach(field => {
+          let value = field.name in lead ? lead[field.name] : lead.customData?.[field.name];
+          if (field.name === 'lastModifiedById' && lead.lastModifiedByName) value = lead.lastModifiedByName;
+          // Resolve assignedBy or any User type field from ID to Nickname
+          if (field.name === 'assignedBy' || field.type?.toLowerCase() === 'user') {
+            if (lead.assignedByName && field.name === 'assignedBy') {
+              value = lead.assignedByName;
+            } else if (usersMap[value]) {
+              value = usersMap[value];
+            } else if (currentUser && (value === currentUser.id || value === currentUser.email)) {
+              value = currentUser.profile?.nickname || currentUser.name || currentUser.email?.split('@')[0];
+            }
+          }
+          // Agar value khali ya empty ya "-" hai toh SKIP karo!
+          if (value === undefined || value === null || value === '' || value === '-' || (typeof value === 'object' && Object.keys(value).length === 0)) {
+            return;
+          }
+
+          // Date & Time formatting
+          if (field.type?.toLowerCase() === 'datetime' || field.type?.toLowerCase() === 'date') {
+            try {
+              const dateObj = new Date(value);
+              if (!isNaN(dateObj.getTime())) {
+                value = dateObj.toLocaleString('en-IN', {
+                  day: '2-digit', month: 'short', year: 'numeric',
+                  hour: '2-digit', minute: '2-digit', hour12: true
+                });
+              }
+            } catch (e) { }
+          }
+
+          // Address formatting
+          if (field.type?.toLowerCase() === 'address') {
+            let addrObj = null;
+            try { addrObj = typeof value === 'string' ? JSON.parse(value) : value; } catch (e) { }
+            if (!addrObj && (lead.street || lead.city || lead.state || lead.zipCode)) {
+              addrObj = { street: lead.street, city: lead.city, state: lead.state, zip: lead.zipCode, country: lead.country };
+            }
+            if (addrObj && typeof addrObj === 'object') {
+              const parts = [addrObj.street, addrObj.city, addrObj.state, addrObj.zip ? `PIN: ${addrObj.zip}` : '', addrObj.country].filter(Boolean);
+              if (parts.length === 0) return; // Skip if empty address
+              value = parts.join(', ');
+            }
+          }
+
+          validFields.push({ field, formattedValue: value });
+        });
+
+        return {
+          sectionName: sec.name,
+          columns: sec.columns || 2,
+          fields: validFields
+        };
+      }).filter(sec => sec.fields.length > 0); // AGAR SAARI FIELDS EMPTY HAIN TOH SECTION BHI HIDE!
+
+      if (populatedSections.length === 0) {
+        return (
+          <div style={{ textAlign: 'center', padding: '3rem 1rem', color: '#94a3b8', fontSize: '0.9rem' }}>
+            No populated details available for this record.
+          </div>
+        );
+      }
 
       return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', position: 'relative', paddingBottom: '0' }}>
-          {visibleFields.map(field => {
-            // Check if the property exists on the root object (standard field), otherwise fallback to customData
-            let value = field.name in lead ? lead[field.name] : lead.customData?.[field.name];
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+          {populatedSections.map((sec, secIdx) => (
+            <div key={secIdx} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {/* Section Header */}
+              <div style={{
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                color: '#475569',
+                textTransform: 'uppercase',
+                letterSpacing: '0.06em',
+                borderBottom: '1px solid #f1f5f9',
+                paddingBottom: '0.5rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <span style={{ width: '4px', height: '14px', backgroundColor: '#3b82f6', borderRadius: '2px' }}></span>
+                {sec.sectionName}
+              </div>
 
-            if (field.name === 'lastModifiedById' && lead.lastModifiedByName) {
-              value = lead.lastModifiedByName;
-            }
-
-            if (value === undefined || value === null || value === "") {
-              value = "-";
-            }
-
-
-            if (value !== '-' && (field.type?.toLowerCase() === 'datetime' || field.type?.toLowerCase() === 'date')) {
-              try {
-                const dateObj = new Date(value);
-                if (!isNaN(dateObj.getTime())) {
-                  // en-IN lagane se India format (DD-MMM-YYYY) me aayega
-                  value = dateObj.toLocaleString('en-IN', {
-                    day: '2-digit', month: 'short', year: 'numeric',
-                    hour: '2-digit', minute: '2-digit', hour12: true
-                  });
-                }
-              } catch (e) {
-                // Agar date invalid hui toh raw value hi dikha denge
-              }
-            }
-
-            // Clean format for Address Block
-            if (field.type?.toLowerCase() === 'address') {
-              let addrObj = null;
-              if (value && value !== '-') {
-                try {
-                  addrObj = typeof value === 'string' ? JSON.parse(value) : value;
-                } catch (e) { }
-              } else if (lead.street || lead.city || lead.state || lead.zipCode) {
-                addrObj = { street: lead.street, city: lead.city, state: lead.state, zip: lead.zipCode, country: lead.country };
-              }
-              if (addrObj && typeof addrObj === 'object') {
-                const parts = [addrObj.street, addrObj.city, addrObj.state, addrObj.zip ? `PIN: ${addrObj.zip}` : '', addrObj.country].filter(Boolean);
-                value = parts.length > 0 ? parts.join(', ') : '-';
-              }
-            }
-
-
-
-
-            return (
-              <div key={field.id}>
-                <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#94a3b8', marginBottom: '0.5rem' }}>{field.label}</div>
-                {field.type?.toLowerCase() === 'audio' && value !== '-' ? (
-                  <audio controls src={value} style={{ width: '100%', height: '40px' }} />
-                ) : field.type?.toLowerCase() === 'geolocation' && value !== '-' ? (() => {
-                  let g = null;
-                  try { g = typeof value === 'string' ? JSON.parse(value) : value; } catch (e) { }
-                  if (!g || !g.lat) return <div>{String(value)}</div>;
+              {/* 2-Columns Grid */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: `repeat(${sec.columns || 2}, 1fr)`,
+                gap: '1rem 1.25rem'
+              }}>
+                {sec.fields.map(({ field, formattedValue }) => {
+                  const isFullWidth = field.type?.toLowerCase() === 'address' ||
+                    field.type?.toLowerCase() === 'textarea' ||
+                    field.type?.toLowerCase() === 'geolocation' ||
+                    field.type?.toLowerCase() === 'audio' ||
+                    field.name?.toLowerCase().includes('location') ||
+                    field.fullWidth;
                   return (
-                    <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '0.75rem' }}>
-                      <div style={{ fontSize: '0.9rem', color: '#0f172a', fontWeight: 500 }}>{g.address}</div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem', fontSize: '0.75rem', color: '#64748b' }}>
-                        <span>GPS: {g.lat}, {g.lng} (±{g.accuracy}m)</span>
-                        <a href={`https://www.google.com/maps?q=${g.lat},${g.lng}`} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', fontWeight: 600, textDecoration: 'underline' }}>
-                          Open Map ↗
-                        </a>
+                    <div
+                      key={field.id || field.name}
+                      style={{
+                        gridColumn: isFullWidth ? '1 / -1' : 'auto',
+                        background: '#f8fafc',
+                        padding: '10px 14px',
+                        borderRadius: '10px',
+                        border: '1px solid #f1f5f9'
+                      }}
+                    >
+                      <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', marginBottom: '4px' }}>
+                        {field.label}
+                      </div>
+                      <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#0f172a', wordBreak: 'break-word' }}>
+                        {field.name === 'completionSource' ? (
+                          <div style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            padding: '3px 10px',
+                            borderRadius: '20px',
+                            fontSize: '0.8rem',
+                            fontWeight: 600,
+                            marginTop: '2px',
+                            backgroundColor: String(formattedValue).toLowerCase().includes('system') ? '#ecfdf5' : '#f0f9ff',
+                            color: String(formattedValue).toLowerCase().includes('system') ? '#047857' : '#0369a1',
+                            border: `1px solid ${String(formattedValue).toLowerCase().includes('system') ? '#a7f3d0' : '#bae6fd'}`
+                          }}>
+                            <span>{String(formattedValue).toLowerCase().includes('system') ? '🤖' : '👤'}</span>
+                            <span>{String(formattedValue)}</span>
+                          </div>
+                        ) : (field.type?.toLowerCase() === 'audio' || String(formattedValue).includes('/audio/')) ? (
+                          <audio controls src={formattedValue} style={{ width: '100%', height: '36px', marginTop: '6px' }} />
+                        ) : (field.type?.toLowerCase() === 'geolocation' || field.name?.toLowerCase().includes('location')) ? (() => {
+                          let g = null;
+                          try { g = typeof formattedValue === 'string' ? JSON.parse(formattedValue) : formattedValue; } catch (e) { }
+                          if (g && (g.lat || g.address)) {
+                            return (
+                              <div style={{ marginTop: '6px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px' }}>
+                                {g.address && (
+                                  <div style={{ fontSize: '0.85rem', color: '#0f172a', fontWeight: 500, lineHeight: 1.4 }}>
+                                    📍 {g.address}
+                                  </div>
+                                )}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px', fontSize: '0.75rem', color: '#64748b', flexWrap: 'wrap', gap: '8px' }}>
+                                  {g.lat && <span>GPS: {g.lat}, {g.lng} {g.accuracy ? `(±${g.accuracy}m)` : ''}</span>}
+                                  {g.lat && (
+                                    <a
+                                      href={`https://www.google.com/maps?q=${g.lat},${g.lng}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      style={{ color: '#2563eb', fontWeight: 600, textDecoration: 'underline', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                    >
+                                      Open Map ↗
+                                    </a>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          }
+                          return String(formattedValue);
+                        })() : (
+                          String(formattedValue)
+                        )}
                       </div>
                     </div>
                   );
-                })() : (
-                  <div style={{ fontSize: '1rem', color: '#0f172a', fontWeight: 500, wordBreak: 'break-word' }}>{value}</div>
-                )}
+                })}
               </div>
-            );
-          })}
-          {(!blueprint.fields || blueprint.fields.length === 0) && (
-            <div style={{ color: '#94a3b8', fontSize: '0.9rem', fontStyle: 'italic' }}>No fields configured in blueprint.</div>
-          )}
+            </div>
+          ))}
         </div>
       );
     }
@@ -456,7 +599,7 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
           {/* Top Add Note Box */}
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.25rem' }}>
             <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#0f172a', marginBottom: '0.5rem' }}>
-              Add a Note
+              Add a Comment
             </label>
             <textarea
               value={newNoteText}
@@ -495,15 +638,15 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
                   transition: 'background 0.2s'
                 }}
               >
-                {isSavingNote ? 'Saving...' : '+ Post Note'}
+                {isSavingNote ? 'Saving...' : '+ Post Comment '}
               </button>
             </div>
           </div>
 
           {/* Timeline Feed */}
           <div>
-            <h4 style={{ fontSize: '0.85rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 1rem 0' }}>
-              Timeline Notes ({notesList.length})
+            <h4 style={{ fontSize: '0.85rem', fontWeight: 700, color: '#64748b', letterSpacing: '0.05em', margin: '0 0 1rem 0' }}>
+              Timeline ({notesList.length})
             </h4>
 
             {notesList.length === 0 ? (
@@ -683,11 +826,28 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
                 {getInitials(displayName)}
               </div>
               <div>
-                <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
                   {displayName}
                   <span style={{ fontSize: '0.7rem', fontWeight: 600, color: stageColor, backgroundColor: `${stageColor}15`, padding: '0.2rem 0.6rem', borderRadius: '12px' }}>
                     {stageName}
                   </span>
+                  {lead.completionSource && (
+                    <span style={{
+                      fontSize: '0.7rem',
+                      fontWeight: 600,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '0.2rem 0.6rem',
+                      borderRadius: '12px',
+                      backgroundColor: lead.completionSource.toLowerCase().includes('system') ? '#ecfdf5' : '#f0f9ff',
+                      color: lead.completionSource.toLowerCase().includes('system') ? '#047857' : '#0369a1',
+                      border: `1px solid ${lead.completionSource.toLowerCase().includes('system') ? '#a7f3d0' : '#bae6fd'}`
+                    }}>
+                      <span>{lead.completionSource.toLowerCase().includes('system') ? '🤖' : '👤'}</span>
+                      {lead.completionSource}
+                    </span>
+                  )}
                 </h2>
               </div>
             </div>

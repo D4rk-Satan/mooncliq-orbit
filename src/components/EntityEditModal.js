@@ -32,6 +32,7 @@ const EntityEditModal = ({ isOpen, onClose, entity, blueprint, onUpdate, current
   const [editData, setEditData] = useState({});
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isReady, setIsReady] = useState(false);
 
   const [allWorkflows, setAllWorkflows] = useState([]);
 
@@ -92,7 +93,15 @@ const EntityEditModal = ({ isOpen, onClose, entity, blueprint, onUpdate, current
       }
       setEditData(initialData);
       setHasUnsavedChanges(false);
+      // 200ms micro-delay taaki saari values form me settle ho jayein (Zero Flicker!)
+      const timer = setTimeout(() => setIsReady(true), 200);
+      return () => clearTimeout(timer);
+    } else {
+      setIsReady(false);
     }
+
+
+
   }, [isOpen, entity]);
 
   const handleChange = (name, value, isStandard) => {
@@ -310,6 +319,10 @@ const EntityEditModal = ({ isOpen, onClose, entity, blueprint, onUpdate, current
             60% { transform: translate(calc(-50% - 4px), -50%); }
             80% { transform: translate(calc(-50% + 4px), -50%); }
           }
+            @keyframes bounceDot {
+            0%, 80%, 100% { transform: scale(0.3); opacity: 0.4; }
+            40% { transform: scale(1.15); opacity: 1; }
+          }
         `}</style>
 
 
@@ -369,7 +382,32 @@ const EntityEditModal = ({ isOpen, onClose, entity, blueprint, onUpdate, current
         </div>
 
         {/* Body / Form */}
-        <div style={{ padding: '24px 32px', overflowY: 'auto', flex: 1 }}>
+        {/* Body / Form */}
+        <div style={{ padding: '24px 32px', overflowY: 'auto', flex: 1, position: 'relative', minHeight: '280px' }}>
+          {/* Tri-Color Dots Wave Loader Overlay */}
+          {!isReady && (
+            <div style={{
+              position: 'absolute',
+              inset: 0,
+              backgroundColor: 'rgba(255, 255, 255, 0.85)',
+              backdropFilter: 'blur(4px)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 50,
+              borderRadius: '0 0 12px 12px'
+            }}>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#d8f95c', border: '1px solid #bef264', animation: 'bounceDot 1.4s infinite ease-in-out both', animationDelay: '-0.32s' }}></div>
+                <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#3b82f6', animation: 'bounceDot 1.4s infinite ease-in-out both', animationDelay: '-0.16s' }}></div>
+                <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#0f172a', animation: 'bounceDot 1.4s infinite ease-in-out both' }}></div>
+              </div>
+              <span style={{ marginTop: '12px', fontSize: '0.8rem', fontWeight: 600, color: '#64748b', letterSpacing: '0.02em' }}>
+                Loading details...
+              </span>
+            </div>
+          )}ab
 
           {orderedSections.map((section, idx) => {
             // Is section ke fields nikalna

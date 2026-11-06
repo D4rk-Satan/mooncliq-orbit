@@ -86,7 +86,6 @@ export const POST = withPermission('Task', 'create', async (request, user) => {
 export const GET = withPermission('Task', 'view', async (request, user) => {
   try {
 
-
     let tasks = await prisma.task.findMany({
       where: { organizationId: user.organizationId },
       include: { stage: true },
@@ -114,7 +113,32 @@ export const GET = withPermission('Task', 'view', async (request, user) => {
       });
     }
 
-    return NextResponse.json(tasks);
+    // --- ENRICH WITH HUMAN NICKNAMES (assignedByName & lastModifiedByName) ---
+    const userIds = [...new Set([
+      ...tasks.map(t => t.assignedBy).filter(Boolean),
+      ...tasks.map(t => t.lastModifiedById).filter(Boolean)
+    ])];
+
+    let userMap = {};
+    if (userIds.length > 0) {
+      const dbUsers = await prisma.user.findMany({
+        where: { id: { in: userIds } },
+        include: { profile: true }
+      });
+      dbUsers.forEach(u => {
+        userMap[u.id] = u.profile?.nickname || u.name || u.email?.split('@')[0] || u.email;
+      });
+    }
+
+    const enrichedTasks = tasks.map(t => ({
+      ...t,
+      assignedByName: userMap[t.assignedBy] || t.assignedBy,
+      lastModifiedByName: userMap[t.lastModifiedById] || null
+    }));
+
+    return NextResponse.json(enrichedTasks);
+
+
   } catch (error) {
     console.error("Error fetching tasks:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

@@ -18,14 +18,12 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, refresh
   React.useEffect(() => {
     if (pathname.startsWith('/lead') || pathname.startsWith('/deal') || pathname.startsWith('/account') || pathname.startsWith('/products')) {
       setOpenCategory("SALES & CRM");
-    } else if (pathname.startsWith('/task')) {
+    } else if (pathname.startsWith('/task') || pathname.startsWith('/project')) {
       setOpenCategory("WORK");
-    } else if (pathname.startsWith('/whatsapp') || pathname.startsWith('/campaigns')) {
+    } else if (pathname.startsWith('/whatsapp') || pathname.startsWith('/campaigns') || pathname.startsWith('/dial-pad')) {
       setOpenCategory("COMMUNICATION");
     } else if (pathname.startsWith('/custom-module')) {
       setOpenCategory("CUSTOM MODULES");
-    } else if (pathname.startsWith('/dial-pad') || pathname.startsWith('/project')) {
-      setOpenCategory("UPCOMING");
     }
   }, [pathname]);
 
@@ -92,22 +90,16 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, refresh
     {
       name: "WORK",
       items: [
-        { name: "Task", href: "/task", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg> }
+        { name: "Task", href: "/task", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg> },
+        { name: "Project", href: "/project", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line></svg> }
       ]
     },
     {
       name: "COMMUNICATION",
       items: [
         { name: "Whatsapp", href: "/whatsapp", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg> },
-        { name: "Campaigns", href: "/campaigns", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2L11 13"></path><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg> }
-
-      ]
-    },
-    {
-      name: "UPCOMING",
-      items: [
-        { name: "Dial Pad", href: "/dial-pad", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg> },
-        { name: "Project", href: "/project", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line></svg> },
+        { name: "Campaigns", href: "/campaigns", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2L11 13"></path><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg> },
+        { name: "Dial Pad", href: "/dial-pad", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg> }
       ]
     }
   ];
@@ -130,7 +122,7 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, refresh
           bottom: 0;
           width: 20px;
         }
-      `}</style>.
+      `}</style>
 
 
       {/* Mobile Backdrop (Dark background) */}
@@ -140,28 +132,76 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, refresh
           style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 9998 }}
         ></div>
       )}
-      <aside className={`dashboard-sidebar ${isCollapsed ? 'collapsed' : ''} ${isMobileMenuOpen ? 'mobile-open' : ''}`} style={{ width: isCollapsed ? '72px' : '220px', transition: isMounted ? 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)' : 'none', overflow: 'visible', flexShrink: 0 }}>
-        <div className="sidebar-logo" style={{ display: 'flex', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'space-between', padding: isCollapsed ? '0.75rem 0' : '0.85rem 1rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0, overflow: 'hidden' }}>
-            <img
-              src="/mooncliq-puzzle-only.png"
-              alt="moonCliq"
-              style={{ height: '32px', width: 'auto', objectFit: 'contain', flexShrink: 0 }}
-            />
-
-            {/* Smooth Non-blurry Fixed Width Container */}
+      <aside
+        className={`dashboard-sidebar ${isCollapsed ? 'collapsed' : ''} ${isMobileMenuOpen ? 'mobile-open' : ''}`}
+        style={{
+          width: isCollapsed ? '72px' : '220px',
+          transition: isMounted ? 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)' : 'none',
+          overflow: 'visible',
+          flexShrink: 0,
+          position: 'relative'
+        }}
+      >
+        <div
+          className="sidebar-logo"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: isCollapsed ? 'center' : 'space-between',
+            padding: isCollapsed ? '0.85rem 0' : '0.85rem 1rem',
+            position: 'relative',
+            height: '56px',
+            boxSizing: 'border-box'
+          }}
+        >
+          {/* Logo & Text Container */}
+          {isCollapsed ? (
+            /* Collapsed Mode: Exact 40px square, identical to the nav icon buttons below */
+            <div
+              onClick={toggleSidebar}
+              style={{
+                width: '40px',
+                height: '40px',
+                margin: '0 auto',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer'
+              }}
+              title="Click to expand sidebar"
+            >
+              <img
+                src="/mooncliq-puzzle-only.png"
+                alt="moonCliq"
+                style={{
+                  height: '32px',
+                  width: '32px',
+                  objectFit: 'contain',
+                  transform: 'translateX(2px)' /* Visual balance with the top-right puzzle tab */
+                }}
+              />
+            </div>
+          ) : (
+            /* Expanded Mode: Full Logo + Text */
             <div
               style={{
-                width: isCollapsed ? 0 : '120px',
-                opacity: isCollapsed ? 0 : 1,
-                transform: 'translateZ(0)',
-                transition: 'opacity 0.2s ease 0.08s, width 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                overflow: 'hidden',
-                whiteSpace: 'nowrap',
                 display: 'flex',
-                alignItems: 'center'
+                alignItems: 'center',
+                gap: '0.65rem',
+                minWidth: 0,
+                userSelect: 'none'
               }}
             >
+              <img
+                src="/mooncliq-puzzle-only.png"
+                alt="moonCliq"
+                style={{
+                  height: '32px',
+                  width: '32px',
+                  objectFit: 'contain',
+                  flexShrink: 0
+                }}
+              />
               <img
                 src="/mooncliq-text-only.png"
                 alt="moonCliq CRM"
@@ -174,21 +214,68 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, refresh
                 }}
               />
             </div>
-          </div>
+          )}
+
+          {/* Sleek Toggle Button (Collapsed me Right-Border Floating Pill, Expanded me Header Button) */}
           <button
             onClick={toggleSidebar}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem', color: '#6b7280', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
-            title="Toggle Sidebar"
+            style={isCollapsed ? {
+              position: 'absolute',
+              right: '-11px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              width: '22px',
+              height: '22px',
+              borderRadius: '50%',
+              backgroundColor: '#ffffff',
+              border: '1px solid #e2e8f0',
+              boxShadow: '0 2px 5px rgba(0,0,0,0.08)',
+              color: '#475569',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 0,
+              zIndex: 100,
+              transition: 'background-color 0.2s, transform 0.2s'
+            } : {
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: '0.25rem',
+              color: '#6b7280',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              borderRadius: '6px',
+              transition: 'color 0.2s'
+            }}
+            title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: isCollapsed ? 'rotate(180deg)' : 'none', transition: 'transform 0.3s' }}>
+            <svg
+              width={isCollapsed ? "13" : "18"}
+              height={isCollapsed ? "13" : "18"}
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{
+                transform: isCollapsed ? 'rotate(180deg)' : 'none',
+                transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+              }}
+            >
               <polyline points="15 18 9 12 15 6"></polyline>
             </svg>
           </button>
         </div>
+
         <nav suppressHydrationWarning className="sidebar-nav" style={{ padding: '0.5rem 0', flex: 1, overflow: isCollapsed ? 'visible' : 'auto' }}>
           {categories.map((category, idx) => (
             <React.Fragment key={idx}>
-              {category.name === "UPCOMING" && isMounted && customModules.length > 0 && (() => {
+              {category.name === "COMMUNICATION" && isMounted && customModules.length > 0 && (() => {
                 const visibleCustomModules = customModules.filter(mod => hasPermission(userInfo, mod.name, 'view'));
                 if (visibleCustomModules.length === 0) return null;
 
@@ -342,6 +429,8 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, refresh
                 if (visibleItems.length === 0) return null;
 
                 const isCatOpen = openCategory === category.name || category.name === "OVERVIEW";
+                const isCategoryActive = visibleItems.some(item => pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href + '/')));
+                const showLimeHighlight = !isCatOpen && isCategoryActive && category.name !== "OVERVIEW";
 
                 return (
                   <div style={{ marginBottom: isCollapsed ? '0.5rem' : '1rem' }}>
@@ -350,21 +439,25 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, refresh
                       <div
                         onClick={() => category.name !== "OVERVIEW" && setOpenCategory(openCategory === category.name ? "" : category.name)}
                         style={{
-                          padding: '0.5rem 1.5rem',
+                          padding: showLimeHighlight ? '0.45rem 1rem' : '0.5rem 1.5rem',
+                          margin: showLimeHighlight ? '0.2rem 0.75rem' : '0',
+                          borderRadius: showLimeHighlight ? '8px' : '0',
+                          backgroundColor: showLimeHighlight ? '#d8f95c' : 'transparent',
                           fontSize: '0.75rem',
-                          fontWeight: '600',
-                          color: isCatOpen ? '#475569' : '#9ca3af',
+                          fontWeight: showLimeHighlight ? '700' : '600',
+                          color: showLimeHighlight ? '#111827' : (isCatOpen ? '#475569' : '#9ca3af'),
                           letterSpacing: '0.05em',
                           cursor: category.name === "OVERVIEW" ? 'default' : 'pointer',
                           display: 'flex',
                           justifyContent: 'space-between',
                           alignItems: 'center',
-                          userSelect: 'none'
+                          userSelect: 'none',
+                          transition: 'all 0.2s ease'
                         }}
                       >
                         <span>{category.name}</span>
                         {category.name !== "OVERVIEW" && (
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: isCatOpen ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.2s', color: '#9ca3af' }}>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: isCatOpen ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.2s', color: showLimeHighlight ? '#111827' : '#9ca3af' }}>
                             <polyline points="6 9 12 15 18 9"></polyline>
                           </svg>
                         )}

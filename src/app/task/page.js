@@ -171,6 +171,19 @@ export default function TaskPage() {
     }
   };
 
+  // Navigation index & handlers for SlideOverPanel (< and > arrows)
+  const selectedIndex = tasks.findIndex(t => t.id === selectedTask?.id);
+  const hasPrev = selectedIndex > 0;
+  const hasNext = selectedIndex !== -1 && selectedIndex < tasks.length - 1;
+
+  const handleNext = () => {
+    if (hasNext) setSelectedTask(tasks[selectedIndex + 1]);
+  };
+
+  const handlePrev = () => {
+    if (hasPrev) setSelectedTask(tasks[selectedIndex - 1]);
+  };
+
   return (
     <>
 
@@ -245,6 +258,11 @@ export default function TaskPage() {
           } : null
         }
         onDeleteClick={hasPermission(currentUser, 'Task', 'delete') ? handleDeleteTask : null}
+        onNext={handleNext}
+        onPrev={handlePrev}
+        hasNext={hasNext}
+        hasPrev={hasPrev}
+
       />
 
       <EntityEditModal
