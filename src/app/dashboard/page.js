@@ -6,6 +6,7 @@ import Sidebar from "../../components/Sidebar";
 import { fetchAuthSession } from 'aws-amplify/auth';
 import { useEffect } from 'react';
 import GlobalLoader from "../../components/ui/GlobalLoader";
+import DhanterasCelebration from "../../components/DhanterasCelebration";
 
 
 // ---- 1. Top KPI Cards ----
@@ -636,6 +637,9 @@ export default function Dashboard() {
         lead={selectedRecord}
         blueprint={selectedRecordType === 'Lead' ? leadBlueprint : taskBlueprint}
       />
+
+      {/* Festive Dhanteras Fullscreen Celebration */}
+      <DhanterasCelebration />
     </>
   );
 }
