@@ -118,6 +118,17 @@ export async function runTaskAudit(taskId) {
     const completedStage = stages.find(s => s.name?.toLowerCase() === 'completed');
     const overdueStage = stages.find(s => s.name?.toLowerCase() === 'overdue');
 
+    // BOSS RULE: Agar task generic hai (koi Related Module nahi aur koi Automation Workflow nahi),
+    // toh system task ko touch nahi karega, wo 'Pending' me hi rahega!
+    const hasRelatedModule = task.relatedModule && task.relatedModule.toLowerCase() !== 'none';
+    const hasAutomation = task.taskAutomation && task.taskAutomation.toLowerCase() !== 'none';
+
+    if (!hasRelatedModule && !hasAutomation) {
+      console.log(`[Delay Scheduler] Task "${task.taskName}" is a Generic Standalone task (None / None). Leaving in current stage.`);
+      return; // ⛔ Yahi se return! Na Completed me jayega, na Overdue me, na koi note dalegi!
+    }
+
+
     // 1. Agar task me koi custom Task Automation attached hai to use execute karo
     if (task.taskAutomation && task.taskAutomation !== 'None') {
       console.log(`[Delay Scheduler] Executing assigned Task Automation: ${task.taskAutomation}`);

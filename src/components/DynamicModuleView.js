@@ -9,6 +9,7 @@ import ImportModal from "./ImportModal";
 import ExportModal from "./ExportModal";
 import { hasPermission, canExport } from "../lib/permissions";
 import NotificationBell from './NotificationBell';
+import SmartDateTimePicker from './SmartDateTimePicker';
 
 
 const getColumnColor = (color) => color || "#e2e8f0";
@@ -86,6 +87,17 @@ export default function DynamicModuleView({
   const [fbValue, setFbValue] = useState('');
   const filterBuilderRef = useRef(null);
 
+  // Selected filter field ki detail nikalna
+  const selectedFieldObj = fbField === 'stage'
+    ? { name: 'stage', label: 'Stage', type: 'stage' }
+    : (blueprint?.fields || []).find(f => f.name === fbField);
+  const selectedFieldType = (selectedFieldObj?.type || '').toLowerCase();
+  const isDateField = selectedFieldType === 'date' || selectedFieldType === 'datetime' || fbField.toLowerCase().includes('date') || fbField.toLowerCase().includes('time');
+  const isDropdownField = selectedFieldType === 'select' || selectedFieldType === 'radio' || selectedFieldType === 'stage' || selectedFieldObj?.options?.length > 0;
+
+
+
+
   // Column States
   const defaultCols = ['firstName', 'companyName', 'email', 'owner', 'stage', 'createdAt'];
   const [visibleColumns, setVisibleColumns] = useState([]);
@@ -117,6 +129,9 @@ export default function DynamicModuleView({
 
   useEffect(() => {
     function handleClickOutsideFB(event) {
+      if (event.target.closest('[data-smart-portal="true"]') || event.target.closest('.smart-picker-portal')) {
+        return;
+      }
       if (filterBuilderRef.current && !filterBuilderRef.current.contains(event.target)) {
         setIsFilterBuilderOpen(false);
       }
@@ -217,12 +232,32 @@ export default function DynamicModuleView({
     if (activeFilters.length === 0) return true;
 
     const evaluateFilter = (filter) => {
-      const isCustom = !(blueprint?.fields?.find(f => f.name === filter.field) === undefined) && !['firstName', 'lastName', 'email', 'phone', 'owner', 'stage', 'name'].includes(filter.field);
-      let recordValue = isCustom ? (cData[filter.field] || '') : (record[filter.field] || '');
-      if (filter.field === 'stage') recordValue = record.stage?.name || '';
+      // 1. Root record me dekho pehle (taskName, dealName, priority, owner), fir customData me
+      let recordValue = '';
+      if (filter.field === 'stage') {
+        recordValue = record.stage?.name || '';
+      } else {
+        recordValue = record[filter.field] !== undefined ? record[filter.field] : (cData[filter.field] || '');
+      }
 
-      let lVal = String(recordValue).toLowerCase();
-      let fVal = String(filter.value).toLowerCase();
+      // 2. Date Comparison Logic
+      if (filter.operator === 'before' || filter.operator === 'after' || (filter.operator === 'is' && filter.value && /^\d{4}-\d{2}-\d{2}/.test(filter.value))) {
+        if (!recordValue) return false;
+        const rDate = new Date(recordValue);
+        const fDate = new Date(filter.value);
+        if (isNaN(rDate.getTime()) || isNaN(fDate.getTime())) return false;
+
+        const rDateOnly = rDate.toISOString().split('T')[0];
+        const fDateOnly = fDate.toISOString().split('T')[0];
+
+        if (filter.operator === 'is') return rDateOnly === fDateOnly;
+        if (filter.operator === 'before') return rDateOnly < fDateOnly;
+        if (filter.operator === 'after') return rDateOnly > fDateOnly;
+      }
+
+      // 3. String & Dropdown Comparison Logic
+      let lVal = String(recordValue).toLowerCase().trim();
+      let fVal = String(filter.value).toLowerCase().trim();
 
       switch (filter.operator) {
         case 'is': return lVal === fVal;
@@ -231,8 +266,6 @@ export default function DynamicModuleView({
         case 'notContains': return !lVal.includes(fVal);
         case 'startsWith': return lVal.startsWith(fVal);
         case 'endsWith': return lVal.endsWith(fVal);
-        case 'isEmpty': return lVal === '' || lVal === 'undefined' || lVal === 'null';
-        case 'isNotEmpty': return lVal !== '' && lVal !== 'undefined' && lVal !== 'null';
         default: return true;
       }
     };
@@ -337,7 +370,16 @@ export default function DynamicModuleView({
 
                   const subtitle = record.customData?.industry || record.email || moduleName;
                   let recordTags = [];
-                  try { recordTags = Array.isArray(record.tags) ? record.tags : JSON.parse(record.tags || "[]"); } catch (e) { }
+                  let rawTags = record.tags;
+                  if (!rawTags && record.customData) {
+                    const cD = typeof record.customData === 'string' ? JSON.parse(record.customData || '{}') : record.customData;
+                    rawTags = cD?.tags;
+                  }
+                  try {
+                    const parsed = Array.isArray(rawTags) ? rawTags : JSON.parse(rawTags || "[]");
+                    // Agar sirf IDs aayi hain toh tags list se name aur color resolve karo
+                    recordTags = parsed.map(t => typeof t === 'string' ? (tags?.find(masterTag => masterTag.id === t) || { name: t, color: '#3b82f6' }) : t);
+                  } catch (e) { }
 
                   // Smart Due Date & Time in IST with AM/PM
                   const isTask = moduleName === 'Task';
@@ -376,15 +418,15 @@ export default function DynamicModuleView({
                   return (
                     <div
                       key={record.id}
-                      className={`kanban-card ${selectedRecordIds.includes(record.id) ? 'selected' : ''}`}
+                      className={`kanban-card ${effectiveSelectedIds.includes(record.id) ? 'selected' : ''}`}
                       onClick={() => onRecordClick && onRecordClick(record)}
                       draggable="true"
                       onDragStart={(e) => e.dataTransfer.setData("recordId", record.id)}
-                      style={{ border: selectedRecordIds.includes(record.id) ? '2px solid var(--primary)' : '1px solid transparent', backgroundColor: '#ffffff', borderRadius: '16px', padding: '1rem', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}
+                      style={{ border: effectiveSelectedIds.includes(record.id) ? '2px solid var(--primary)' : '1px solid transparent', backgroundColor: '#ffffff', borderRadius: '16px', padding: '1rem', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}
                     >
                       <div className="card-header-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
-                          <input type="checkbox" checked={selectedRecordIds.includes(record.id)} onChange={(e) => toggleRecordSelection(record.id, e)} onClick={(e) => e.stopPropagation()} style={{ marginTop: '6px' }} />
+                          <input type="checkbox" checked={effectiveSelectedIds.includes(record.id)} onChange={(e) => toggleRecordSelection(record.id, e)} onClick={(e) => e.stopPropagation()} style={{ marginTop: '6px' }} />
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                             <h4 style={{ margin: 0, fontSize: '0.95rem', color: '#111827', fontWeight: 600 }}>{title}</h4>
 
@@ -721,9 +763,71 @@ export default function DynamicModuleView({
               {isFilterBuilderOpen && (
                 <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: '8px', width: '320px', backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', zIndex: 50, padding: '1rem' }}>
                   <div style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '12px' }}>Add Filter</div>
-                  <CustomDropdown value={fbField} placeholder="Select Field..." onChange={(val) => { setFbField(val); setFbValue(''); setFbOperator('contains'); }} options={[{ value: 'stage', label: 'Stage' }, ...(blueprint?.fields || []).map(f => ({ value: f.name, label: f.label }))]} />
-                  {fbField && <CustomDropdown value={fbOperator} placeholder="Select Operator..." onChange={(val) => setFbOperator(val)} options={[{ value: 'contains', label: 'Contains' }, { value: 'is', label: 'Is' }]} />}
-                  {fbField && <input type="text" placeholder="Value..." value={fbValue} onChange={(e) => setFbValue(e.target.value)} style={{ width: '100%', padding: '8px', marginTop: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', outline: 'none' }} />}
+                  <CustomDropdown
+                    value={fbField}
+                    placeholder="Select Field..."
+                    onChange={(val) => {
+                      setFbField(val);
+                      setFbValue('');
+                      const fObj = val === 'stage' ? { type: 'stage' } : (blueprint?.fields || []).find(f => f.name === val);
+                      const fType = (fObj?.type || '').toLowerCase();
+                      const isDt = fType === 'date' || fType === 'datetime' || val.toLowerCase().includes('date');
+                      const isDrop = fType === 'select' || fType === 'radio' || fType === 'stage';
+                      setFbOperator(isDt || isDrop ? 'is' : 'contains');
+                    }}
+                    options={[{ value: 'stage', label: 'Stage' }, ...(blueprint?.fields || []).map(f => ({ value: f.name, label: f.label }))]}
+                  />
+
+                  {/* 1. DYNAMIC OPERATORS */}
+                  {fbField && (
+                    <CustomDropdown
+                      value={fbOperator}
+                      placeholder="Select Operator..."
+                      onChange={(val) => setFbOperator(val)}
+                      options={
+                        isDateField
+                          ? [{ value: 'is', label: 'On Date' }, { value: 'before', label: 'Before' }, { value: 'after', label: 'After' }]
+                          : isDropdownField
+                            ? [{ value: 'is', label: 'Is' }, { value: 'isNot', label: 'Is Not' }]
+                            : [{ value: 'contains', label: 'Contains' }, { value: 'is', label: 'Is' }, { value: 'startsWith', label: 'Starts With' }]
+                      }
+                    />
+                  )}
+
+                  {/* 2. DYNAMIC VALUE INPUT */}
+                  {fbField && (
+                    isDateField ? (
+                      <div style={{ marginTop: '8px' }}>
+                        <SmartDateTimePicker
+                          label=""
+                          value={fbValue}
+                          onChange={(val) => setFbValue(val)}
+                          mode={selectedFieldType === 'datetime' || fbField.toLowerCase().includes('time') ? 'datetime' : 'date'}
+                          allowPast={true}
+                        />
+                      </div>
+                    ) : isDropdownField ? (
+                      <CustomDropdown
+                        value={fbValue}
+                        placeholder={`Select ${selectedFieldObj?.label || 'Option'}...`}
+                        onChange={(val) => setFbValue(val)}
+                        options={
+                          fbField === 'stage'
+                            ? (blueprint?.stages || []).map(s => ({ value: s.name, label: s.name }))
+                            : (selectedFieldObj?.options || []).map(opt => ({ value: opt, label: opt }))
+                        }
+                      />
+                    ) : (
+                      <input
+                        type="text"
+                        placeholder="Value..."
+                        value={fbValue}
+                        onChange={(e) => setFbValue(e.target.value)}
+                        style={{ width: '100%', padding: '8px', marginTop: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', outline: 'none' }}
+                      />
+                    )
+                  )}
+
                   <button onClick={addFilter} style={{ marginTop: '8px', padding: '8px', width: '100%', backgroundColor: '#d9f99d', borderRadius: '6px', cursor: 'pointer', border: 'none', fontWeight: 600 }}>Apply Filter</button>
                 </div>
               )}
@@ -1037,10 +1141,21 @@ export default function DynamicModuleView({
                               if (alreadyHas) return Promise.resolve();
                               const newTags = [...existingTags, tag];
 
+                              const modLower = (moduleName || '').toLowerCase();
+                              // Task ke liye pura tag object save karo taaki name aur color mile, Leads/Deals ke liye IDs
+                              let payload = {
+                                tags: modLower.includes('task') ? newTags : newTags.map(t => t.id)
+                              };
+
+                              if (modLower.includes('task')) payload.taskId = recId;
+                              else if (modLower.includes('deal')) payload.dealId = recId;
+                              else if (modLower.includes('account')) payload.accountId = recId;
+                              else payload.leadId = recId;
+
                               return fetch(endpoint, {
                                 method: 'PATCH',
                                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                                body: JSON.stringify({ taskId: recId, dealId: recId, accountId: recId, leadId: recId, tags: newTags.map(t => t.id) })
+                                body: JSON.stringify(payload)
                               });
                             }));
                             setEffectiveSelectedIds([]);

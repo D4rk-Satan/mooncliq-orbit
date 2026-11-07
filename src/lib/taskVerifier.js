@@ -49,49 +49,58 @@ export async function verifyTaskWork(task) {
     }
 
     // -------------------------------------------------------------
-    // SCENARIO 2: Target-Based Task (Audit count check)
+    // SCENARIO 2: Target-Based Task (Agar workflow me target set ho)
     // -------------------------------------------------------------
-    if (task.taskAutomation && task.taskAutomation !== 'None') {
-      const repActivitiesCount = await prisma.auditLog.count({
-        where: {
-          organizationId: task.organizationId,
-          OR: [
-            ...(task.owner ? [{ userEmail: task.owner }, { userId: task.owner }] : [])
-          ],
-          createdAt: {
-            gte: startTime,
-            lte: endTime
-          }
-        }
-      });
+    const hasAutomation = task.taskAutomation && task.taskAutomation.toLowerCase() !== 'none';
 
-      const target = 10;
-      if (repActivitiesCount >= target) {
-        return {
-          verified: true,
-          summary: `Target Met: Rep completed ${repActivitiesCount}/${target} actions.`,
-          count: repActivitiesCount
-        };
-      } else {
-        return {
-          verified: false,
-          reason: `Target Missed: Rep only completed ${repActivitiesCount}/${target} actions.`,
-          count: repActivitiesCount
-        };
+    if (hasAutomation) {
+      // Workflow configuration se target read karo (default 1 action agar target specific task hai)
+      let target = null;
+      if (typeof task.customData === 'object' && task.customData?.targetCount) {
+        target = Number(task.customData.targetCount);
+      }
+
+      // Agar target specify kiya gaya hai tabhi count check karo
+      if (target && target > 0) {
+        const repActivitiesCount = await prisma.auditLog.count({
+          where: {
+            organizationId: task.organizationId,
+            OR: [
+              ...(task.owner ? [{ userEmail: task.owner }, { userId: task.owner }] : [])
+            ],
+            createdAt: {
+              gte: startTime,
+              lte: endTime
+            }
+          }
+        });
+
+        if (repActivitiesCount >= target) {
+          return {
+            verified: true,
+            summary: `Target Met: Rep completed ${repActivitiesCount}/${target} actions.`,
+            count: repActivitiesCount
+          };
+        } else {
+          return {
+            verified: false,
+            reason: `Target Missed: Rep only completed ${repActivitiesCount}/${target} actions.`,
+            count: repActivitiesCount
+          };
+        }
       }
     }
 
     // -------------------------------------------------------------
-    // SCENARIO 3: Generic Standalone Task (No linked module & No target)
+    // SCENARIO 3: Generic Standalone Task (None / None)
     // -------------------------------------------------------------
+    // Generic task ko auto-verify nahi karna! Rep/User khud manually karega.
     return {
-      verified: true,
-      summary: 'Generic task - Completed as assigned.'
+      verified: false,
+      reason: 'Standalone task without automated verification criteria.'
     };
-
   } catch (error) {
     console.error("[TaskVerifier] Error verifying task:", error);
     return { verified: false, reason: 'Verification error occurred' };
   }
 }
-

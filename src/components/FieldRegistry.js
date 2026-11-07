@@ -6,7 +6,7 @@ import { Parser } from 'expr-eval';
 import Button from './ui/Button';
 import countries from '../utils/countries.json';
 import countriesData from '../utils/countries.json';
-
+import SmartDateTimePicker from './SmartDateTimePicker';
 
 // image upload field (Max 4 Images, Manual Upload)
 const ImageUploadInput = ({ field, value, onChange }) => {
@@ -686,23 +686,39 @@ const SelectInput = ({ field, value, onChange }) => (
 );
 
 // Renders a date input
-const DateInput = ({ field, value, onChange, min }) => (
-  <div className="form-group">
-    <label className="form-label" htmlFor={field.name}>
-      {field.label} {field.isRequired && <span className="text-red-500">*</span>}
-    </label>
-    <input
-      type={field.name.toLowerCase().includes('time') ? 'datetime-local' : 'date'}
-      id={field.name}
-      name={field.name}
-      required={field.isRequired}
-      value={value || ''}
-      min={min}
-      onChange={(e) => onChange(field.name, e.target.value)}
-      className="form-input"
-    />
-  </div>
-);
+const DateInput = ({ field, value, onChange, min, formData }) => {
+  const isTimeField = field.type === 'datetime' || field.name.toLowerCase().includes('time');
+  const isDueDate = field.name.toLowerCase().includes('due');
+
+  // Dynamic minDateTime for Due Date based on Start Date in the same form
+  let minDateTime = min || null;
+  if (isDueDate && formData) {
+    const startDateVal = formData.startDate || formData.startDateTime || formData.start_date;
+    if (startDateVal) {
+      const d = new Date(startDateVal);
+      if (!isNaN(d.getTime())) {
+        d.setMinutes(d.getMinutes() + 10);
+        minDateTime = d.toISOString();
+      }
+    }
+  }
+
+  return (
+    <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+      <SmartDateTimePicker
+        label={field.label}
+        value={value || ''}
+        onChange={(newVal) => onChange(field.name, newVal)}
+        isRequired={field.isRequired}
+        mode={isTimeField ? 'datetime' : 'date'}
+        allowPast={true}
+        isDueDate={isDueDate}
+        minDateTime={minDateTime}
+        disabled={field.disabled || field.readOnly}
+      />
+    </div>
+  );
+};
 
 // Renders a checkbox input
 const CheckboxInput = ({ field, value, onChange }) => (

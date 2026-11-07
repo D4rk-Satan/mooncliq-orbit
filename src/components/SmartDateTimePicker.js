@@ -17,8 +17,13 @@ export default function SmartDateTimePicker({
   isRequired = false,
   minDateTime = null, // e.g. Start Date + 10 mins for Due Date
   isDueDate = false,
-  error = null
+  error = null,
+  mode = 'datetime',     // 'datetime' ya 'date'
+  allowPast = false,     // true hone par purani date allow hogi (Leads/Deals ke liye)
+  disabled = false,
+  readOnly = false
 }) {
+  const isInputLocked = disabled || readOnly;
   const [isOpen, setIsOpen] = useState(false);
   const [coords, setCoords] = useState({ top: 0, left: 0, width: 0 });
   const [mounted, setMounted] = useState(false);
@@ -70,9 +75,9 @@ export default function SmartDateTimePicker({
   const updatePosition = () => {
     if (buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
-      const popoverWidth = 490;
+      const popoverWidth = mode === 'date' ? 290 : 490;
       let left = rect.left;
-      
+
       if (isDueDate || (left + popoverWidth > window.innerWidth)) {
         left = Math.max(10, rect.right - popoverWidth);
       }
@@ -86,6 +91,7 @@ export default function SmartDateTimePicker({
   };
 
   const handleToggle = () => {
+    if (disabled || readOnly) return;
     if (!isOpen) {
       updatePosition();
     }
@@ -137,19 +143,24 @@ export default function SmartDateTimePicker({
     }
   }, [value, minDateTime, isDueDate]);
 
-  const emitChange = (dateObj, h, m) => {
+  const emitChange = (dateObj, h = selectedHour, m = selectedMin) => {
     const d = new Date(dateObj);
-    d.setHours(h, m, 0, 0);
-
     const yyyy = d.getFullYear();
     const mm = String(d.getMonth() + 1).padStart(2, '0');
     const dd = String(d.getDate()).padStart(2, '0');
+
+    if (mode === 'date') {
+      onChange(`${yyyy}-${mm}-${dd}`);
+      return;
+    }
+
+    d.setHours(h, m, 0, 0);
     const hh = String(h).padStart(2, '0');
     const mins = String(m).padStart(2, '0');
     onChange(`${yyyy}-${mm}-${dd}T${hh}:${mins}`);
   };
 
-  const isTodaySelected = 
+  const isTodaySelected =
     selectedDate.getFullYear() === currentYear &&
     selectedDate.getMonth() === currentMonth &&
     selectedDate.getDate() === currentDay;
@@ -164,6 +175,7 @@ export default function SmartDateTimePicker({
   };
 
   const isDayDisabled = (day) => {
+    if (allowPast) return false;
     const target = new Date(viewYear, viewMonth, day, 23, 59, 59);
     if (minDateTime) {
       const minD = new Date(minDateTime);
@@ -176,14 +188,15 @@ export default function SmartDateTimePicker({
 
   // Determine effective minimum bound
   const minBoundaryDate = minDateTime ? new Date(minDateTime) : null;
-  const isSameDayAsMin = minBoundaryDate && 
+  const isSameDayAsMin = minBoundaryDate &&
     selectedDate.getFullYear() === minBoundaryDate.getFullYear() &&
     selectedDate.getMonth() === minBoundaryDate.getMonth() &&
     selectedDate.getDate() === minBoundaryDate.getDate();
 
   // Starting Hour calculation
+  // Starting Hour calculation
   let startingHour = 0;
-  if (isTodaySelected) {
+  if (isTodaySelected && !allowPast) {
     startingHour = currentHour;
   }
   if (isSameDayAsMin) {
@@ -197,7 +210,7 @@ export default function SmartDateTimePicker({
 
   // Minimum allowed minute for selected hour
   let minAllowedMinute = 0;
-  if (isTodaySelected && selectedHour === currentHour) {
+  if (isTodaySelected && selectedHour === currentHour && !allowPast) {
     minAllowedMinute = currentMin;
   }
   if (isSameDayAsMin && selectedHour === minBoundaryDate.getHours()) {
@@ -246,11 +259,16 @@ export default function SmartDateTimePicker({
           </div>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <span style={{ fontSize: '0.9rem', fontWeight: 700, color: value ? '#0f172a' : '#94a3b8' }}>
-              {value ? format12Hr(selectedHour, selectedMin) : (isDueDate ? 'Select Due Time' : 'Select Start Time')}
+              {mode === 'date'
+                ? (value ? selectedDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Select date')
+                : (value ? format12Hr(selectedHour, selectedMin) : 'Select time')
+              }
             </span>
-            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>
-              {value ? selectedDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Pick Date'}
-            </span>
+            {mode !== 'date' && (
+              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>
+                {value ? selectedDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Pick Date'}
+              </span>
+            )}
           </div>
         </div>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
@@ -259,12 +277,13 @@ export default function SmartDateTimePicker({
       {/* REACT PORTAL: Floats cleanly over entire screen / modal */}
       {mounted && isOpen && createPortal(
         <div
+          data-smart-portal="true"
           ref={popoverRef}
           style={{
             position: 'absolute',
             top: `${coords.top}px`,
             left: `${coords.left}px`,
-            width: '490px',
+            width: mode === 'date' ? '290px' : '490px',
             maxWidth: '96vw',
             background: '#ffffff',
             border: '1px solid #e2e8f0',
@@ -272,8 +291,8 @@ export default function SmartDateTimePicker({
             boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.25), 0 0 1px 1px rgba(0,0,0,0.05)',
             padding: '1.15rem',
             zIndex: 999999,
-            display: 'grid',
-            gridTemplateColumns: '240px 1fr',
+            display: mode === 'date' ? 'block' : 'grid',
+            gridTemplateColumns: mode === 'date' ? '1fr' : '240px 1fr',
             gap: '1.25rem'
           }}
         >
@@ -315,6 +334,11 @@ export default function SmartDateTimePicker({
                     onClick={() => {
                       const newD = new Date(viewYear, viewMonth, day);
                       setSelectedDate(newD);
+                      if (mode === 'date') {
+                        emitChange(newD);
+                        setIsOpen(false);
+                        return;
+                      }
                       let adjustedH = selectedHour;
                       let adjustedM = selectedMin;
                       if (minBoundaryDate && newD.toDateString() === minBoundaryDate.toDateString()) {
@@ -346,122 +370,127 @@ export default function SmartDateTimePicker({
           </div>
 
           {/* RIGHT: EXACT TIME SELECTOR */}
-          <div style={{ borderLeft: '1px solid #f1f5f9', paddingLeft: '1.25rem', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: '8px' }}>
-              {isDueDate ? 'Set Due Time (Min +10m)' : 'Select Exact Time'}
-            </div>
+          {mode !== 'date' && (
+            <div style={{ borderLeft: '1px solid #f1f5f9', paddingLeft: '1.25rem', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: '8px' }}>
+                {isDueDate ? 'Set Due Time (Min +10m)' : 'Select Exact Time'}
+              </div>
 
-            {/* Exact Hour & Minute Steppers */}
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '12px' }}>
-              {/* Hour Select */}
-              <select
-                value={selectedHour}
-                onChange={(e) => {
-                  const h = Number(e.target.value);
-                  setSelectedHour(h);
-                  let m = selectedMin;
-                  if (isSameDayAsMin && h === minBoundaryDate.getHours() && m < minBoundaryDate.getMinutes()) {
-                    m = minBoundaryDate.getMinutes();
+              {/* Exact Hour & Minute Steppers */}
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '12px' }}>
+                {/* Hour Select */}
+                <select
+                  value={selectedHour}
+                  onChange={(e) => {
+                    const h = Number(e.target.value);
+                    setSelectedHour(h);
+                    let m = selectedMin;
+                    if (isSameDayAsMin && h === minBoundaryDate.getHours() && m < minBoundaryDate.getMinutes()) {
+                      m = minBoundaryDate.getMinutes();
+                      setSelectedMin(m);
+                    }
+                    emitChange(selectedDate, h, m);
+                  }}
+                  style={{
+                    flex: 1, padding: '7px 8px', borderRadius: '8px', border: '1.5px solid #e2e8f0',
+                    fontSize: '0.85rem', fontWeight: 700, color: '#0f172a', background: '#f8fafc', outline: 'none'
+                  }}
+                >
+                  {hoursList.map(h => (
+                    <option key={h} value={h}>
+                      {format12Hr(h, 0).split(' ')[0]} {h >= 12 ? 'PM' : 'AM'}
+                    </option>
+                  ))}
+                </select>
+
+                <span style={{ fontWeight: 800, color: '#64748b' }}>:</span>
+
+                {/* Exact Minute Input (Type or Step) */}
+                <input
+                  type="number"
+                  min={minAllowedMinute}
+                  max={59}
+                  value={selectedMin}
+                  onKeyDown={(e) => {
+                    e.stopPropagation();
+                  }}
+                  onChange={(e) => {
+                    const raw = e.target.value;
+                    if (raw === '') {
+                      setSelectedMin('');
+                      return;
+                    }
+                    let m = parseInt(raw, 10);
+                    if (isNaN(m)) return;
+                    if (m > 59) m = 59;
                     setSelectedMin(m);
-                  }
-                  emitChange(selectedDate, h, m);
-                }}
-                style={{
-                  flex: 1, padding: '7px 8px', borderRadius: '8px', border: '1.5px solid #e2e8f0',
-                  fontSize: '0.85rem', fontWeight: 700, color: '#0f172a', background: '#f8fafc', outline: 'none'
-                }}
-              >
-                {hoursList.map(h => (
-                  <option key={h} value={h}>
-                    {format12Hr(h, 0).split(' ')[0]} {h >= 12 ? 'PM' : 'AM'}
-                  </option>
-                ))}
-              </select>
-
-              <span style={{ fontWeight: 800, color: '#64748b' }}>:</span>
-
-              {/* Exact Minute Input (Type or Step) */}
-              <input
-                type="number"
-                min={minAllowedMinute}
-                max={59}
-                value={selectedMin}
-                onKeyDown={(e) => {
-                  e.stopPropagation();
-                }}
-                onChange={(e) => {
-                  const raw = e.target.value;
-                  if (raw === '') {
-                    setSelectedMin('');
-                    return;
-                  }
-                  let m = parseInt(raw, 10);
-                  if (isNaN(m)) return;
-                  if (m > 59) m = 59;
-                  setSelectedMin(m);
-                  if (m >= minAllowedMinute) {
+                    if (m >= minAllowedMinute) {
+                      emitChange(selectedDate, selectedHour, m);
+                    }
+                  }}
+                  onBlur={() => {
+                    let m = parseInt(selectedMin, 10);
+                    if (isNaN(m) || m < minAllowedMinute) {
+                      m = minAllowedMinute;
+                    } else if (m > 59) {
+                      m = 59;
+                    }
+                    setSelectedMin(m);
                     emitChange(selectedDate, selectedHour, m);
-                  }
-                }}
-                onBlur={() => {
-                  let m = parseInt(selectedMin, 10);
-                  if (isNaN(m) || m < minAllowedMinute) {
-                    m = minAllowedMinute;
-                  } else if (m > 59) {
-                    m = 59;
-                  }
-                  setSelectedMin(m);
-                  emitChange(selectedDate, selectedHour, m);
-                }}
-                style={{
-                  width: '60px', padding: '7px 8px', borderRadius: '8px', border: '1.5px solid #e2e8f0',
-                  fontSize: '0.85rem', fontWeight: 700, color: '#0f172a', background: '#f8fafc', textAlign: 'center', outline: 'none'
-                }}
-              />
-            </div>
+                  }}
+                  style={{
+                    width: '60px', padding: '7px 8px', borderRadius: '8px', border: '1.5px solid #e2e8f0',
+                    fontSize: '0.85rem', fontWeight: 700, color: '#0f172a', background: '#f8fafc', textAlign: 'center', outline: 'none'
+                  }}
+                />
+              </div>
 
-            {/* Quick Presets */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', marginBottom: '12px' }}>
-              {!isDueDate && (
+              {/* Quick Presets */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', marginBottom: '12px' }}>
+                {!isDueDate && (
+                  <button
+                    type="button"
+                    onClick={() => applyPreset('now')}
+                    style={{ padding: '6px 0', background: '#f1f5f9', border: 'none', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700, color: '#475569', cursor: 'pointer' }}
+                  >Now</button>
+                )}
+
                 <button
                   type="button"
-                  onClick={() => applyPreset('now')}
+                  onClick={() => applyPreset('+15m')}
                   style={{ padding: '6px 0', background: '#f1f5f9', border: 'none', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700, color: '#475569', cursor: 'pointer' }}
-                >Now</button>
-              )}
+                >+15m</button>
 
-              <button
-                type="button"
-                onClick={() => applyPreset('+15m')}
-                style={{ padding: '6px 0', background: '#f1f5f9', border: 'none', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700, color: '#475569', cursor: 'pointer' }}
-              >+15m</button>
+                <button
+                  type="button"
+                  onClick={() => applyPreset('+30m')}
+                  style={{ padding: '6px 0', background: '#f1f5f9', border: 'none', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700, color: '#475569', cursor: 'pointer' }}
+                >+30m</button>
 
-              <button
-                type="button"
-                onClick={() => applyPreset('+30m')}
-                style={{ padding: '6px 0', background: '#f1f5f9', border: 'none', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700, color: '#475569', cursor: 'pointer' }}
-              >+30m</button>
+                <button
+                  type="button"
+                  onClick={() => applyPreset('+1h')}
+                  style={{ padding: '6px 0', background: '#f1f5f9', border: 'none', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700, color: '#475569', cursor: 'pointer' }}
+                >+1 Hour</button>
+              </div>
 
-              <button
-                type="button"
-                onClick={() => applyPreset('+1h')}
-                style={{ padding: '6px 0', background: '#f1f5f9', border: 'none', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700, color: '#475569', cursor: 'pointer' }}
-              >+1 Hour</button>
+              <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    emitChange(selectedDate, selectedHour, selectedMin);
+                    setIsOpen(false);
+                  }}
+                  style={{ background: '#2563eb', color: '#fff', border: 'none', padding: '6px 16px', borderRadius: '8px', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer' }}
+                >Done</button>
+              </div>
+
             </div>
 
-            <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'flex-end' }}>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  emitChange(selectedDate, selectedHour, selectedMin);
-                  setIsOpen(false);
-                }}
-                style={{ background: '#2563eb', color: '#fff', border: 'none', padding: '6px 16px', borderRadius: '8px', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer' }}
-              >Done</button>
-            </div>
-          </div>
+          )}
+
         </div>,
         document.body
       )}

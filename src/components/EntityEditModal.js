@@ -174,8 +174,15 @@ const EntityEditModal = ({ isOpen, onClose, entity, blueprint, onUpdate, current
   const { visibleFields, orderedSections } = useMemo(() => {
     if (!blueprint?.fields) return { visibleFields: [], orderedSections: [] };
 
-    // Stage field hamesha hide karni hai edit modal me
-    const vf = blueprint.fields.filter(f => !f.isHidden && f.name !== 'stage');
+    // Stage aur Task ke system fields edit modal se hide karne hain (as per matrix)
+    const EXCLUDED_EDIT_FIELDS = ['stage', 'completionsource', 'createdat', 'lastactivitydate', 'lastmodifiedbyid', 'lastmodifiedby', 'enddatetime'];
+    const vf = blueprint.fields.filter(f => {
+      if (f.isHidden) return false;
+      const fNameLower = (f.name || '').toLowerCase();
+      if (EXCLUDED_EDIT_FIELDS.includes(fNameLower)) return false;
+      return true;
+    });
+
 
     let os = [];
     if (blueprint?.layoutConfig && Array.isArray(blueprint.layoutConfig) && blueprint.layoutConfig.length > 0) {
@@ -270,12 +277,48 @@ const EntityEditModal = ({ isOpen, onClose, entity, blueprint, onUpdate, current
     return z.object({
       ...schemaObj,
       customData: z.object(customDataSchema).optional()
+    }).superRefine((data, ctx) => {
+      const isTaskModule = (moduleName || blueprint?.moduleType || '').toLowerCase().includes('task');
+      if (isTaskModule) {
+        const startVal = data.startDateTime;
+        const dueVal = data.dueDateTime;
+
+        // 1. Due Date must be >= Start Date + 10 mins
+        if (startVal && dueVal) {
+          const startD = new Date(startVal);
+          const dueD = new Date(dueVal);
+          const minRequiredDue = new Date(startD.getTime() + 10 * 60000);
+
+          if (dueD < minRequiredDue) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: "Due time must be at least 10 minutes after Start time",
+              path: ["dueDateTime"]
+            });
+          }
+        }
+
+        // 2. Strict Task Automation Check:
+        // Agar user ne Related Module select kiya hai (None nahi hai), toh Task Automation compulsory hai!
+        const relatedModuleVal = (data.relatedModule || '').trim().toLowerCase();
+        const taskAutomationVal = (data.taskAutomation || '').trim();
+
+        if (relatedModuleVal && relatedModuleVal !== 'none') {
+          if (!taskAutomationVal || taskAutomationVal.toLowerCase() === 'none') {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: "Please select an automation workflow for this module",
+              path: ["taskAutomation"]
+            });
+          }
+        }
+      }
     });
-  }, [visibleFields, standardFields]);
+  }, [visibleFields, standardFields, moduleName, blueprint]);
 
   // 2. React Hook Form Setup
   // AB (Pre-formatted & Instant without any flicker):
-  const { register, control, handleSubmit, formState: { errors, isDirty }, reset } = useForm({
+  const { register, control, handleSubmit, formState: { errors, isDirty }, reset, watch, setValue } = useForm({
     mode: 'onTouched',
     reValidateMode: 'onChange',
     resolver: zodResolver(dynamicSchema),
@@ -327,60 +370,70 @@ const EntityEditModal = ({ isOpen, onClose, entity, blueprint, onUpdate, current
 
 
         {/* Header */}
-        <div style={{ padding: '20px 32px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>EDIT</h2>
-            <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: '#64748b' }}>
-              Last updated {formattedDate}
-            </p>
-          </div>
+        {/* Check if current task is in completed stage */}
+        {(() => {
+          const isTask = (moduleName || blueprint?.moduleType || '').toLowerCase().includes('task');
+          const currentStageObj = blueprint?.stages?.find(s => s.id === (entity?.stageId || entity?.stage?.id));
+          const stageName = (entity?.stage?.name || entity?.stageName || currentStageObj?.name || '').toLowerCase().trim();
+          const isTaskCompleted = isTask && stageName === 'completed';
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            {/* EXACT SAME ORIGINAL UI PILL (Now cleanly inside header) */}
-            {hasUnsavedChanges && (
-              <div style={{
-                backgroundColor: '#0f172a', color: 'white', padding: '8px 18px',
-                borderRadius: '30px', display: 'flex', alignItems: 'center', gap: '18px',
-                boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', whiteSpace: 'nowrap'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <div style={{ width: '8px', height: '8px', backgroundColor: '#f59e0b', borderRadius: '50%' }}></div>
-                  <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>Unsaved changes</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <button
-                    type="button"
-                    onClick={() => { setHasUnsavedChanges(false); onClose(); }}
-                    disabled={isSaving}
-                    style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontWeight: 500, padding: '4px 8px', transition: 'color 0.2s' }}
-                    onMouseEnter={e => e.target.style.color = 'white'}
-                    onMouseLeave={e => e.target.style.color = '#94a3b8'}
-                  >
-                    Discard
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSubmit(handleSave)}
-                    disabled={isSaving}
-                    style={{ backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '24px', padding: '6px 16px', cursor: 'pointer', fontWeight: 600, transition: 'background-color 0.2s', display: 'flex', alignItems: 'center', gap: '8px' }}
-                    onMouseEnter={e => e.target.style.backgroundColor = '#059669'}
-                    onMouseLeave={e => e.target.style.backgroundColor = '#10b981'}
-                  >
-                    {isSaving ? 'Saving...' : 'Save Changes'}
-                  </button>
-                </div>
+          return (
+            <div style={{ padding: '20px 32px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>EDIT</h2>
+                <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: '#64748b' }}>
+                  Last updated {formattedDate}
+                </p>
               </div>
-            )}
 
-            <button
-              onClick={handleBackdropClick}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '4px', display: 'flex', alignItems: 'center' }}
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"></path></svg>
-            </button>
-          </div>
-        </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                {/* EXACT SAME ORIGINAL UI PILL (Hide entirely if Task is Completed) */}
 
+                <div style={{
+                  backgroundColor: '#0f172a', color: 'white', padding: '8px 18px',
+                  borderRadius: '30px', display: 'flex', alignItems: 'center', gap: '18px',
+                  boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', whiteSpace: 'nowrap'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ width: '8px', height: '8px', backgroundColor: '#f59e0b', borderRadius: '50%' }}></div>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>Unsaved changes</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <button
+                      type="button"
+                      onClick={() => { setHasUnsavedChanges(false); onClose(); }}
+                      disabled={isSaving}
+                      style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontWeight: 500, padding: '4px 8px', transition: 'color 0.2s' }}
+                      onMouseEnter={e => e.target.style.color = 'white'}
+                      onMouseLeave={e => e.target.style.color = '#94a3b8'}
+                    >
+                      Discard
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSubmit(handleSave)}
+                      disabled={isSaving}
+                      style={{ backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '24px', padding: '6px 16px', cursor: 'pointer', fontWeight: 600, transition: 'background-color 0.2s', display: 'flex', alignItems: 'center', gap: '8px' }}
+                      onMouseEnter={e => e.target.style.backgroundColor = '#059669'}
+                      onMouseLeave={e => e.target.style.backgroundColor = '#10b981'}
+                    >
+                      {isSaving ? 'Saving...' : 'Save Changes'}
+                    </button>
+                  </div>
+                </div>
+
+
+
+                <button
+                  onClick={handleBackdropClick}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '4px', display: 'flex', alignItems: 'center' }}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+                </button>
+              </div>
+            </div>
+          );
+        })()}
         {/* Body / Form */}
         {/* Body / Form */}
         <div style={{ padding: '24px 32px', overflowY: 'auto', flex: 1, position: 'relative', minHeight: '280px' }}>
@@ -407,7 +460,7 @@ const EntityEditModal = ({ isOpen, onClose, entity, blueprint, onUpdate, current
                 Loading details...
               </span>
             </div>
-          )}ab
+          )}
 
           {orderedSections.map((section, idx) => {
             // Is section ke fields nikalna
@@ -460,31 +513,46 @@ const EntityEditModal = ({ isOpen, onClose, entity, blueprint, onUpdate, current
                     }
 
                     // 2. Strict Task Governance (Pending, Overdue, Completed):
-                    const isTask = moduleName?.toLowerCase().includes('task');
+                    // 2. Matrix Task Governance (Org Admin, Creator, Assignee, Other):
+                    const isTask = (moduleName || blueprint?.moduleType || '').toLowerCase().includes('task');
                     let isReadOnlyField = field.readOnly;
 
                     if (isTask) {
-                      const stageName = (entity?.stage?.name || entity?.stageName || '').toLowerCase().trim();
-                      const isPending = stageName === 'pending';
+                      const currentStageObj = blueprint?.stages?.find(s => s.id === (entity?.stageId || entity?.stage?.id));
+                      const stageName = (entity?.stage?.name || entity?.stageName || currentStageObj?.name || '').toLowerCase().trim();
+                      const isCompleted = stageName === 'completed';
 
-                      const currentUserName = userInfo?.nickname || userInfo?.email || '';
-                      const currentUserId = userInfo?.id || '';
-                      const isCreator = editData?.assignedBy === currentUserName || editData?.assignedBy === currentUserId;
-                      const isAdmin = userInfo?.role === 'ADMIN' || userInfo?.role === 'SUPER_ADMIN';
+                      // User Identity Checks
+                      const currentUserId = userInfo?.id || currentUser?.id || '';
+                      const currentUserEmail = (userInfo?.email || currentUser?.email || '').toLowerCase();
+                      const currentNick = (userInfo?.nickname || currentUser?.profile?.nickname || '').toLowerCase();
 
-                      // RULE A: Agar task 'Overdue' ya 'Completed' ho chuka hai -> Pura form locked/read-only!
-                      if (!isPending) {
+                      const isAdmin = userInfo?.role === 'ADMIN' || userInfo?.role === 'SUPER_ADMIN' || currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPER_ADMIN';
+
+                      // Check if current user is Creator (assignedBy)
+                      const taskAssignedBy = String(editData?.assignedBy || entity?.assignedBy || '').toLowerCase();
+                      const isCreator = taskAssignedBy && (
+                        taskAssignedBy === currentUserId.toLowerCase() ||
+                        taskAssignedBy === currentUserEmail ||
+                        taskAssignedBy === currentNick
+                      );
+
+                      // MATRIX RULE 1: Completed status me sabhi ke liye form STRICTLY READ-ONLY
+                      if (isCompleted) {
                         isReadOnlyField = true;
                       }
-                      // RULE B: Agar Rep khol raha hai (Creator nahi hai) -> Pura form read-only!
-                      else if (!isCreator && !isAdmin) {
+                      // MATRIX RULE 2: Immutable Fields hamesha READ-ONLY (Assigned By, End Date)
+                      else if (field.name === 'assignedBy' || field.name === 'endDateTime') {
                         isReadOnlyField = true;
                       }
-                      // RULE C: Agar Creator (Assigned By) hai -> Sirf startDateTime aur assignedBy locked rahenge, BAAKI SAB OPEN!
-                      else if (isCreator && !isAdmin) {
-                        if (field.name === 'startDateTime' || field.name === 'assignedBy') {
-                          isReadOnlyField = true;
-                        }
+                      // MATRIX RULE 3: Pending / Overdue me SIRF Admin aur Creator hi edit kar sakte hain
+                      // Assignee (owner) aur Other members ke liye STRICTLY READ-ONLY
+                      else if (!isAdmin && !isCreator) {
+                        isReadOnlyField = true;
+                      }
+                      // MATRIX RULE 4: Admin aur Creator baaki saari fields edit kar sakte hain!
+                      else {
+                        isReadOnlyField = false;
                       }
                     }
 
@@ -505,7 +573,9 @@ const EntityEditModal = ({ isOpen, onClose, entity, blueprint, onUpdate, current
                                 <TaskPrioritySelector
                                   field={fieldWithOptions}
                                   value={controllerField.value || 'Medium'}
+                                  readOnly={isReadOnlyField}
                                   onChange={(val) => {
+                                    if (isReadOnlyField) return;
                                     controllerField.onChange(val);
                                     handleChange('priority', val, true);
                                   }}
@@ -517,8 +587,23 @@ const EntityEditModal = ({ isOpen, onClose, entity, blueprint, onUpdate, current
                               <DynamicField
                                 field={fieldWithOptions}
                                 value={controllerField.value || ''}
+                                readOnly={isReadOnlyField}
                                 onBlur={controllerField.onBlur}
-                                onChange={(name, val) => controllerField.onChange(val)}
+                                onChange={(name, val) => {
+                                  if (isReadOnlyField) return;
+                                  controllerField.onChange(val);
+                                  handleChange(field.name, val, isStandard);
+
+                                  // Agar user ne Related Module ko 'None' kiya, toh taskAutomation ko turant 'None' reset karo
+                                  const isTask = (moduleName || blueprint?.moduleType || '').toLowerCase().includes('task');
+                                  if (isTask && field.name === 'relatedModule') {
+                                    const valLower = (val || '').toLowerCase().trim();
+                                    if (!valLower || valLower === 'none') {
+                                      setValue('taskAutomation', 'None', { shouldValidate: true, shouldDirty: true });
+                                      handleChange('taskAutomation', 'None', true);
+                                    }
+                                  }
+                                }}
                                 error={errors[field.name]?.message || errors.customData?.[field.name]?.message}
                               />
                             );

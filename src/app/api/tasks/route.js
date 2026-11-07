@@ -68,6 +68,20 @@ export const POST = withPermission('Task', 'create', async (request, user) => {
       }
     });
 
+    // Create Audit Log for Task Creation
+    await prisma.auditLog.create({
+      data: {
+        organizationId: user.organizationId,
+        moduleType: 'Task',
+        recordId: task.id,
+        userId: user.id,
+        userEmail: user.email,
+        actionType: 'TASK_CREATED',
+        details: { taskName: task.taskName, priority: task.priority, stageId: task.stageId }
+      }
+    });
+
+
     await executeBiDirectionalSync(user.organizationId, 'Task', task, blueprintId);
 
     // Execute Backend Workflows (Async)
@@ -154,9 +168,51 @@ export const PATCH = withPermission('Task', 'edit', async (request, user) => {
 
     if (!taskId) return NextResponse.json({ error: "Missing taskId" }, { status: 400 });
 
+    // Fetch existing task to check permissions & stage
+    const existingTask = await prisma.task.findUnique({
+      where: { id: taskId, organizationId: user.organizationId },
+      include: { stage: true }
+    });
+    if (!existingTask) return NextResponse.json({ error: "Task not found" }, { status: 404 });
+
+    // Enforce Permission Matrix: Admin & Creator can edit; Assignee & Others are strictly Read-only
+    const isAdmin = user.role === 'ADMIN' || user.role === 'SUPER_ADMIN';
+    const userNick = (user.profile?.nickname || user.nickname || '').toLowerCase();
+    const userEmail = (user.email || '').toLowerCase();
+    const taskAssignedBy = String(existingTask.assignedBy || '').toLowerCase();
+    const isCreator = Boolean(
+      taskAssignedBy && (
+        taskAssignedBy === user.id.toLowerCase() ||
+        taskAssignedBy === userEmail ||
+        taskAssignedBy === userNick
+      )
+    );
+
+    // If not Admin and not Creator, only stage transitions or notes can be touched (Blueprint operations)
+    if (!isAdmin && !isCreator) {
+      const allowedKeys = ['stageId', 'notes', 'transitionId', 'tags'];
+      const attemptedKeys = Object.keys(standardFields).filter(k => !allowedKeys.includes(k));
+      if (attemptedKeys.length > 0) {
+        return NextResponse.json({
+          error: "Permission Denied: Only Org Admin or Creator can edit this task"
+        }, { status: 403 });
+      }
+    }
+
     let updateData = { ...standardFields };
     if (stageId) updateData.stageId = stageId;
     if (customData) updateData.customData = customData;
+
+    // Save tags inside customData for Tasks
+    if (tags !== undefined) {
+      let currentCustom = {};
+      try {
+        currentCustom = typeof updateData.customData === 'string'
+          ? JSON.parse(updateData.customData || '{}')
+          : (updateData.customData || {});
+      } catch (e) { currentCustom = {}; }
+      updateData.customData = { ...currentCustom, tags };
+    }
 
     // Format dates correctly for Prisma
     if (updateData.startDateTime) updateData.startDateTime = new Date(updateData.startDateTime);
@@ -184,6 +240,22 @@ export const PATCH = withPermission('Task', 'edit', async (request, user) => {
       }
     }
 
+
+    // Create Audit Log for Task Modification
+    await prisma.auditLog.create({
+      data: {
+        organizationId: user.organizationId,
+        moduleType: 'Task',
+        recordId: taskId,
+        userId: user.id,
+        userEmail: user.email,
+        actionType: 'TASK_UPDATED',
+        details: updateData
+      }
+    });
+    // Update who modified the task
+    updateData.lastModifiedById = user.id;
+
     const updatedTask = await prisma.task.update({
       where: { id: taskId },
       data: updateData,
@@ -197,7 +269,14 @@ export const PATCH = withPermission('Task', 'edit', async (request, user) => {
     // Re-lock Exact-Time Delay Trigger if Due Date was changed or updated
     scheduleTaskDueCheck(updatedTask);
 
-    return NextResponse.json(updatedTask);
+    const displayName = user.profile?.nickname || user.name || user.email?.split('@')[0] || user.email;
+
+    return NextResponse.json({
+      ...updatedTask,
+      lastModifiedByName: displayName
+    });
+
+
   } catch (error) {
     console.error("Error updating Task:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

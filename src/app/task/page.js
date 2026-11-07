@@ -142,6 +142,26 @@ export default function TaskPage() {
   };
 
 
+
+
+  const canUserDeleteTask = (task) => {
+    if (!currentUser || !task) return false;
+    const isAdmin = currentUser.role === 'ADMIN' || currentUser.role === 'SUPER_ADMIN';
+    const currentUserId = currentUser.id || '';
+    const currentUserEmail = (currentUser.email || '').toLowerCase();
+    const currentNick = (currentUser.profile?.nickname || '').toLowerCase();
+
+    const taskAssignedBy = String(task.assignedBy || '').toLowerCase();
+    const isCreator = taskAssignedBy && (
+      taskAssignedBy === currentUserId.toLowerCase() ||
+      taskAssignedBy === currentUserEmail ||
+      taskAssignedBy === currentNick
+    );
+
+    return isAdmin || isCreator;
+  };
+
+
   const handleDeleteTask = async (taskToDelete) => {
     try {
       const token = await getAuthToken();
@@ -216,7 +236,7 @@ export default function TaskPage() {
                 ) : null
               )}
               currentUser={currentUser}
-              onDeleteClick={hasPermission(currentUser, 'Task', 'delete') ? handleDeleteTask : null}
+              onDeleteClick={selectedTask && canUserDeleteTask(selectedTask) && hasPermission(currentUser, 'Task', 'delete') ? handleDeleteTask : null}
             />
           )}
         </div>
@@ -257,7 +277,7 @@ export default function TaskPage() {
             setIsEditModalOpen(true);
           } : null
         }
-        onDeleteClick={hasPermission(currentUser, 'Task', 'delete') ? handleDeleteTask : null}
+        onDeleteClick={(task) => canUserDeleteTask(task) && hasPermission(currentUser, 'Task', 'delete') ? handleDeleteTask(task) : null}
         onNext={handleNext}
         onPrev={handlePrev}
         hasNext={hasNext}
