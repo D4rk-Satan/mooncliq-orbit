@@ -387,40 +387,42 @@ const EntityEditModal = ({ isOpen, onClose, entity, blueprint, onUpdate, current
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                {/* EXACT SAME ORIGINAL UI PILL (Hide entirely if Task is Completed) */}
-
-                <div style={{
-                  backgroundColor: '#0f172a', color: 'white', padding: '8px 18px',
-                  borderRadius: '30px', display: 'flex', alignItems: 'center', gap: '18px',
-                  boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', whiteSpace: 'nowrap'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div style={{ width: '8px', height: '8px', backgroundColor: '#f59e0b', borderRadius: '50%' }}></div>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>Unsaved changes</span>
+                {/* Show Save/Discard Pill ONLY when there are actual unsaved changes and task is not completed */}
+                {hasUnsavedChanges && !isTaskCompleted && (
+                  <div style={{
+                    backgroundColor: '#0f172a', color: 'white', padding: '8px 18px',
+                    borderRadius: '30px', display: 'flex', alignItems: 'center', gap: '18px',
+                    boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', whiteSpace: 'nowrap',
+                    animation: 'fadeIn 0.2s ease-in-out'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ width: '8px', height: '8px', backgroundColor: '#f59e0b', borderRadius: '50%' }}></div>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>Unsaved changes</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <button
+                        type="button"
+                        onClick={() => { setHasUnsavedChanges(false); onClose(); }}
+                        disabled={isSaving}
+                        style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontWeight: 500, padding: '4px 8px', transition: 'color 0.2s' }}
+                        onMouseEnter={e => e.target.style.color = 'white'}
+                        onMouseLeave={e => e.target.style.color = '#94a3b8'}
+                      >
+                        Discard
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSubmit(handleSave)}
+                        disabled={isSaving}
+                        style={{ backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '24px', padding: '6px 16px', cursor: 'pointer', fontWeight: 600, transition: 'background-color 0.2s', display: 'flex', alignItems: 'center', gap: '8px' }}
+                        onMouseEnter={e => e.target.style.backgroundColor = '#059669'}
+                        onMouseLeave={e => e.target.style.backgroundColor = '#10b981'}
+                      >
+                        {isSaving ? 'Saving...' : 'Save Changes'}
+                      </button>
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <button
-                      type="button"
-                      onClick={() => { setHasUnsavedChanges(false); onClose(); }}
-                      disabled={isSaving}
-                      style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontWeight: 500, padding: '4px 8px', transition: 'color 0.2s' }}
-                      onMouseEnter={e => e.target.style.color = 'white'}
-                      onMouseLeave={e => e.target.style.color = '#94a3b8'}
-                    >
-                      Discard
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleSubmit(handleSave)}
-                      disabled={isSaving}
-                      style={{ backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '24px', padding: '6px 16px', cursor: 'pointer', fontWeight: 600, transition: 'background-color 0.2s', display: 'flex', alignItems: 'center', gap: '8px' }}
-                      onMouseEnter={e => e.target.style.backgroundColor = '#059669'}
-                      onMouseLeave={e => e.target.style.backgroundColor = '#10b981'}
-                    >
-                      {isSaving ? 'Saving...' : 'Save Changes'}
-                    </button>
-                  </div>
-                </div>
+                )}
 
 
 
