@@ -7,13 +7,22 @@ export async function DELETE(request, context) {
     try {
       const { id } = await context.params;
 
-      // Check task existence and ownership
+      // Check task existence, ownership, and stage
       const task = await prisma.task.findUnique({
-        where: { id, organizationId: user.organizationId }
+        where: { id, organizationId: user.organizationId },
+        include: { stage: true }
       });
 
       if (!task) {
         return NextResponse.json({ error: "Task not found" }, { status: 404 });
+      }
+
+      // IRON RULE: Completed tasks can NEVER be deleted by anyone!
+      const isCompleted = task.stage?.name?.toLowerCase() === 'completed';
+      if (isCompleted) {
+        return NextResponse.json({
+          error: "Action Denied: Completed tasks are permanently locked and cannot be deleted"
+        }, { status: 403 });
       }
 
       const isAdmin = user.role === 'ADMIN' || user.role === 'SUPER_ADMIN';

@@ -898,17 +898,30 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
             )}
             {onDeleteClick && (() => {
               const isTask = (blueprint?.moduleType || '').toLowerCase().includes('task');
+              const currentStageObj = blueprint?.stages?.find(s => s.id === (lead?.stageId || lead?.stage?.id));
+              const currentStageName = (lead?.stage?.name || lead?.stageName || currentStageObj?.name || '').toLowerCase().trim();
+              const isCompleted = isTask && currentStageName === 'completed';
+
               const currentUserId = currentUser?.id || '';
               const currentUserEmail = (currentUser?.email || '').toLowerCase();
               const currentNick = (currentUser?.profile?.nickname || '').toLowerCase();
               const isAdmin = currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPER_ADMIN';
               const taskAssignedBy = String(lead?.assignedBy || '').toLowerCase();
               const isCreator = taskAssignedBy && (taskAssignedBy === currentUserId.toLowerCase() || taskAssignedBy === currentUserEmail || taskAssignedBy === currentNick);
-              const hasDeletePermission = !isTask || isAdmin || isCreator;
+
+              // If task is completed -> NO ONE can delete. Otherwise Admin or Creator can delete.
+              const hasDeletePermission = !isTask ? true : (!isCompleted && (isAdmin || isCreator));
 
               return (
                 <button
                   onClick={() => {
+                    if (isCompleted) {
+                      toast.error("Action Denied: Completed tasks are permanently locked and cannot be deleted.", {
+                        icon: '🔒',
+                        duration: 4000
+                      });
+                      return;
+                    }
                     if (!hasDeletePermission) {
                       toast.error("Permission Denied: Only Task Creator or Org Admin can delete this task.", {
                         icon: '🔒',
@@ -922,7 +935,7 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
                       onConfirm: () => onDeleteClick(lead)
                     });
                   }}
-                  title={!hasDeletePermission ? "Only Creator or Admin can delete" : "Delete record"}
+                  title={isCompleted ? "Completed tasks cannot be deleted" : (!hasDeletePermission ? "Only Creator or Admin can delete" : "Delete record")}
                   style={{
                     display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0 1.25rem', height: '36px',
                     borderRadius: '18px',

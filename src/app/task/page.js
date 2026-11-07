@@ -144,8 +144,19 @@ export default function TaskPage() {
 
 
 
+  const isTaskCompleted = (task) => {
+    if (!task) return false;
+    const stageObj = blueprint?.stages?.find(s => s.id === (task.stageId || task.stage?.id));
+    const stageName = (task.stage?.name || task.stageName || stageObj?.name || '').toLowerCase().trim();
+    return stageName === 'completed';
+  };
+
   const canUserDeleteTask = (task) => {
     if (!currentUser || !task) return false;
+
+    // Boss Rule: Completed task CANNOT be deleted by anyone!
+    if (isTaskCompleted(task)) return false;
+
     const isAdmin = currentUser.role === 'ADMIN' || currentUser.role === 'SUPER_ADMIN';
     const currentUserId = currentUser.id || '';
     const currentUserEmail = (currentUser.email || '').toLowerCase();
@@ -165,6 +176,16 @@ export default function TaskPage() {
   const handleDeleteTask = async (taskToDelete) => {
 
     // Permission Matrix Check: Only Admin or Creator can delete
+    // 1. Completed check
+    if (isTaskCompleted(taskToDelete)) {
+      toast.error("Action Denied: Completed tasks are permanently locked and cannot be deleted.", {
+        icon: '🔒',
+        duration: 4000
+      });
+      return;
+    }
+
+    // 2. Permission Matrix Check: Only Admin or Creator can delete
     if (!canUserDeleteTask(taskToDelete)) {
       toast.error("Permission Denied: Only the Task Creator or Org Admin can delete this task.", {
         icon: '🔒',
