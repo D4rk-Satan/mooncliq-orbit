@@ -4,7 +4,7 @@ import { getAuthUser } from '../../../lib/auth';
 import { executeBiDirectionalSync } from '../../../lib/syncLookups';
 import { executeBackendWorkflows } from '../../../utils/workflowEngine';
 import { withPermission } from '../../../lib/rbac';
-import { scheduleTaskDueCheck } from '../../../lib/delayScheduler';
+import { scheduleTaskDueCheck, scheduleTaskAlert } from '../../../lib/delayScheduler';
 
 export const POST = withPermission('Task', 'create', async (request, user) => {
   try {
@@ -89,6 +89,7 @@ export const POST = withPermission('Task', 'create', async (request, user) => {
 
     // Lock Exact-Time Delay Trigger for Due Date
     scheduleTaskDueCheck(task);
+    scheduleTaskAlert(task);
 
     return NextResponse.json(task);
   } catch (error) {
@@ -232,11 +233,17 @@ export const PATCH = withPermission('Task', 'edit', async (request, user) => {
     }
 
     // Auto-fill End Date & Completion Source if stage is changed to 'Completed'
+    let isTransitioningToCompleted = false;
     if (updateData.stageId) {
       const newStage = await prisma.stage.findUnique({ where: { id: updateData.stageId } });
       if (newStage && newStage.name === 'Completed') {
         updateData.endDateTime = new Date();
         updateData.completionSource = 'Manually marked';
+        // Only trigger repeat spawn if it was NOT already completed before
+        const prevStageName = existingTask.stage?.name?.toLowerCase() || '';
+        if (prevStageName !== 'completed') {
+          isTransitioningToCompleted = true;
+        }
       }
     }
 
@@ -268,14 +275,128 @@ export const PATCH = withPermission('Task', 'edit', async (request, user) => {
 
     // Re-lock Exact-Time Delay Trigger if Due Date was changed or updated
     scheduleTaskDueCheck(updatedTask);
+    scheduleTaskAlert(updatedTask);
+
+    // 🔁 RECURRING TASK GENERATOR: If completed and has repeat configured
+    let spawnedTask = null;
+    const repeatRule = (updatedTask.repeat || existingTask.repeat || '').toLowerCase().trim();
+
+    if (isTransitioningToCompleted && repeatRule && repeatRule !== 'none') {
+      try {
+        const calculateNextDate = (baseDate, rule) => {
+          if (!baseDate) return null;
+          const d = new Date(baseDate);
+          if (isNaN(d.getTime())) return null;
+
+          if (rule === 'daily') d.setDate(d.getDate() + 1);
+          else if (rule === 'weekly') d.setDate(d.getDate() + 7);
+          else if (rule === 'monthly') d.setMonth(d.getMonth() + 1);
+          else if (rule === 'yearly') d.setFullYear(d.getFullYear() + 1);
+          return d;
+        };
+
+        const nextStart = calculateNextDate(existingTask.startDateTime || new Date(), repeatRule);
+        const nextDue = calculateNextDate(existingTask.dueDateTime || new Date(), repeatRule);
+
+        // Find or create 'Recurring' tag for this organization
+        let recurringTag = await prisma.tag.findFirst({
+          where: {
+            organizationId: user.organizationId,
+            moduleType: 'Task',
+            name: { equals: 'Recurring', mode: 'insensitive' }
+          }
+        });
+
+        if (!recurringTag) {
+          recurringTag = await prisma.tag.create({
+            data: {
+              organizationId: user.organizationId,
+              moduleType: 'Task',
+              name: 'Recurring',
+              color: '#6366f1' // Professional indigo
+            }
+          });
+        }
+
+        // Prepare existing tags + append Recurring tag ID
+        let childCustom = {};
+        try {
+          childCustom = typeof existingTask.customData === 'string'
+            ? JSON.parse(existingTask.customData || '{}')
+            : (existingTask.customData || {});
+        } catch (e) { childCustom = {}; }
+
+        const existingTagIds = Array.isArray(childCustom.tags) ? childCustom.tags : [];
+        const nextTags = Array.from(new Set([...existingTagIds, recurringTag.id]));
+        childCustom.tags = nextTags;
+
+        // Initial stage (Pending / orderIndex 0)
+        let initialStage = await prisma.stage.findFirst({
+          where: { blueprintId: existingTask.blueprintId, orderIndex: 0 }
+        });
+        if (!initialStage) {
+          initialStage = await prisma.stage.findFirst({
+            where: { blueprintId: existingTask.blueprintId, name: 'Pending' }
+          });
+        }
+
+        if (initialStage && nextDue) {
+          spawnedTask = await prisma.task.create({
+            data: {
+              organizationId: user.organizationId,
+              blueprintId: existingTask.blueprintId,
+              stageId: initialStage.id,
+              taskName: existingTask.taskName,
+              startDateTime: nextStart,
+              dueDateTime: nextDue,
+              repeat: existingTask.repeat,
+              alert: existingTask.alert,
+              notes: existingTask.notes,
+              owner: existingTask.owner,
+              assignedBy: existingTask.assignedBy || user.id,
+              priority: existingTask.priority,
+              relatedModule: existingTask.relatedModule,
+              relatedRecordId: existingTask.relatedRecordId,
+              taskAutomation: existingTask.taskAutomation,
+              customData: childCustom
+            },
+            include: { stage: true }
+          });
+
+          // Schedule exact due check for new task
+          scheduleTaskDueCheck(spawnedTask);
+          scheduleTaskAlert(spawnedTask);
+
+          // Audit log for recurring spawn
+          await prisma.auditLog.create({
+            data: {
+              organizationId: user.organizationId,
+              moduleType: 'Task',
+              recordId: spawnedTask.id,
+              userId: user.id,
+              userEmail: user.email,
+              actionType: 'TASK_RECURRED',
+              details: {
+                parentTaskId: existingTask.id,
+                taskName: spawnedTask.taskName,
+                repeatRule: existingTask.repeat,
+                nextDue: nextDue
+              }
+            }
+          });
+        }
+      } catch (err) {
+        console.error("Failed to auto-spawn recurring task:", err);
+      }
+    }
 
     const displayName = user.profile?.nickname || user.name || user.email?.split('@')[0] || user.email;
 
     return NextResponse.json({
       ...updatedTask,
-      lastModifiedByName: displayName
+      lastModifiedByName: displayName,
+      spawnedTask: spawnedTask || null
     });
-
 
   } catch (error) {
     console.error("Error updating Task:", error);

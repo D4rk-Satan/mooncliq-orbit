@@ -114,13 +114,32 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, refresh
           visibility: visible !important;
           pointer-events: auto !important;
         }
-        .mini-group-wrapper::after {
+               .mini-group-wrapper::after {
           content: '';
           position: absolute;
           right: -15px;
           top: 0;
           bottom: 0;
           width: 20px;
+        }
+
+        /* 🚀 BUTTERY SMOOTH CSS GRID ACCORDION (Zero Jumps, Zero Lag) */
+        .accordion-collapse {
+          display: grid;
+          grid-template-rows: 0fr;
+          transition: grid-template-rows 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .accordion-collapse.open {
+          grid-template-rows: 1fr;
+        }
+        .accordion-inner {
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
+        }
+
+        .category-chevron {
+          transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
         }
       `}</style>
 
@@ -136,7 +155,7 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, refresh
         className={`dashboard-sidebar ${isCollapsed ? 'collapsed' : ''} ${isMobileMenuOpen ? 'mobile-open' : ''}`}
         style={{
           width: isCollapsed ? '72px' : '220px',
-          transition: isMounted ? 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)' : 'none',
+          transition: isMounted ? 'width 0.35s cubic-bezier(0.16, 1, 0.3, 1)' : 'none',
           overflow: 'visible',
           flexShrink: 0,
           position: 'relative'
@@ -302,33 +321,38 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, refresh
                           }}
                         >
                           <span>CUSTOM MODULES</span>
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: openCategory === "CUSTOM MODULES" ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.2s' }}>
+                          <svg className="category-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: openCategory === "CUSTOM MODULES" ? 'rotate(0deg)' : 'rotate(-90deg)' }}>
                             <polyline points="6 9 12 15 18 9"></polyline>
                           </svg>
                         </div>
-                        {openCategory === "CUSTOM MODULES" && visibleCustomModules.map((mod) => (
-                          <Link
-                            key={mod.id}
-                            href={`/custom-module/${mod.id}`}
-                            onClick={() => setIsMobileMenuOpen && setIsMobileMenuOpen(false)}
-                            className={`nav-item ${pathname === `/custom-module/${mod.id}` ? "active" : ""}`}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '0.6rem',
-                              textDecoration: 'none',
-                              justifyContent: 'flex-start',
-                              padding: '0.4rem 1.25rem',
-                              margin: '0.15rem 0.75rem',
-                              fontSize: '0.85rem',
-                              fontWeight: '500'
-                            }}
-                            title={mod.name}
-                          >
-                            <DynamicLucideIcon name={mod.icon} />
-                            <span style={{ whiteSpace: 'nowrap' }}>{mod.name}</span>
-                          </Link>
-                        ))}
+
+                        <div className={`accordion-collapse ${openCategory === "CUSTOM MODULES" ? 'open' : ''}`}>
+                          <div className="accordion-inner">
+                            {visibleCustomModules.map((mod) => (
+                              <Link
+                                key={mod.id}
+                                href={`/custom-module/${mod.id}`}
+                                onClick={() => setIsMobileMenuOpen && setIsMobileMenuOpen(false)}
+                                className={`nav-item ${pathname === `/custom-module/${mod.id}` ? "active" : ""}`}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '0.6rem',
+                                  textDecoration: 'none',
+                                  justifyContent: 'flex-start',
+                                  padding: '0.4rem 1.25rem',
+                                  margin: '0.15rem 0.75rem',
+                                  fontSize: '0.85rem',
+                                  fontWeight: '500'
+                                }}
+                                title={mod.name}
+                              >
+                                <DynamicLucideIcon name={mod.icon} />
+                                <span style={{ whiteSpace: 'nowrap' }}>{mod.name}</span>
+                              </Link>
+                            ))}
+                          </div>
+                        </div>
                       </>
                     ) : (
                       /* Collapsed Mini Mode - Flyout Menu on Hover */
@@ -456,43 +480,45 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, refresh
                         }}
                       >
                         <span>{category.name}</span>
+
                         {category.name !== "OVERVIEW" && (
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: isCatOpen ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.2s', color: showLimeHighlight ? '#111827' : '#9ca3af' }}>
+                          <svg className="category-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: isCatOpen ? 'rotate(0deg)' : 'rotate(-90deg)', color: showLimeHighlight ? '#111827' : '#9ca3af' }}>
                             <polyline points="6 9 12 15 18 9"></polyline>
                           </svg>
                         )}
                       </div>
                     )}
 
-                    {/* 1. Full Expanded Mode Items */}
-                    {!isCollapsed && isCatOpen && (
-                      <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        {visibleItems.map((item, itemIdx) => (
-                          <Link
-                            key={itemIdx}
-                            href={item.href}
-                            onClick={() => setIsMobileMenuOpen && setIsMobileMenuOpen(false)}
-                            className={`nav-item ${pathname === item.href ? "active" : ""}`}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '0.6rem',
-                              textDecoration: 'none',
-                              padding: '0.4rem 1.25rem',
-                              margin: '0.15rem 0.75rem',
-                              fontSize: '0.85rem',
-                              fontWeight: '500'
-                            }}
-                          >
-                            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} title={item.name}>
-                              {item.icon}
-                            </span>
-                            <span style={{ whiteSpace: 'nowrap' }}>{item.name}</span>
-                          </Link>
-                        ))}
+                    {/* 1. Full Expanded Mode Items with Buttery Smooth CSS Grid Accordion */}
+                    {!isCollapsed && (
+                      <div className={`accordion-collapse ${isCatOpen ? 'open' : ''}`}>
+                        <div className="accordion-inner">
+                          {visibleItems.map((item, itemIdx) => (
+                            <Link
+                              key={itemIdx}
+                              href={item.href}
+                              onClick={() => setIsMobileMenuOpen && setIsMobileMenuOpen(false)}
+                              className={`nav-item ${pathname === item.href ? "active" : ""}`}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.6rem',
+                                textDecoration: 'none',
+                                padding: '0.4rem 1.25rem',
+                                margin: '0.15rem 0.75rem',
+                                fontSize: '0.85rem',
+                                fontWeight: '500'
+                              }}
+                            >
+                              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} title={item.name}>
+                                {item.icon}
+                              </span>
+                              <span style={{ whiteSpace: 'nowrap' }}>{item.name}</span>
+                            </Link>
+                          ))}
+                        </div>
                       </div>
                     )}
-
                     {/* 2. Mini Collapsed Mode (Hover Floating Flyout) */}
                     {isCollapsed && (
                       <div

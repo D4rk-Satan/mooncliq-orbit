@@ -81,9 +81,44 @@ export default function TaskPage() {
   };
 
   const handleTaskUpdate = (updatedTask) => {
-    setTasks(prev => prev.map(t => t.id === updatedTask.id ? updatedTask : t));
+    setTasks(prev => {
+      // 1. Update completed/modified task
+      let nextTasks = prev.map(t => t.id === updatedTask.id ? updatedTask : t);
+
+      // 2. If a new recurring cycle task was auto-spawned, add it immediately to Pending!
+      if (updatedTask.spawnedTask) {
+        const spawned = updatedTask.spawnedTask;
+        // Avoid duplicates if already present
+        if (!nextTasks.some(t => t.id === spawned.id)) {
+          nextTasks = [spawned, ...nextTasks];
+        }
+      }
+      return nextTasks;
+    });
+
     if (selectedTask && selectedTask.id === updatedTask.id) {
       setSelectedTask(updatedTask);
+    }
+
+    // 3. If recurring task was spawned, refresh tags & show toast notification
+    if (updatedTask.spawnedTask) {
+      const nextDueFormatted = updatedTask.spawnedTask.dueDateTime
+        ? new Date(updatedTask.spawnedTask.dueDateTime).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+        : 'next cycle';
+
+      toast.success(`Recurring task generated for ${nextDueFormatted}!`, {
+        icon: '🔁',
+        duration: 4500
+      });
+
+      // Quick fetch to sync newly created 'Recurring' tag in memory
+      (async () => {
+        try {
+          const token = await getAuthToken();
+          const tagsRes = await fetch('/api/tags?moduleType=Task', { headers: { Authorization: `Bearer ${token}` } });
+          if (tagsRes.ok) setTags(await tagsRes.json());
+        } catch (e) { }
+      })();
     }
   };
 
