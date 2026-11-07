@@ -12,7 +12,7 @@ import DynamicModuleView from "@/components/DynamicModuleView";
 import EntityEditModal from "@/components/EntityEditModal";
 import GlobalLoader from "../../components/ui/GlobalLoader";
 import { hasPermission } from "../../lib/permissions";
-
+import toast from "react-hot-toast";
 
 export default function TaskPage() {
   const [tasks, setTasks] = useState([]);
@@ -163,6 +163,16 @@ export default function TaskPage() {
 
 
   const handleDeleteTask = async (taskToDelete) => {
+
+    // Permission Matrix Check: Only Admin or Creator can delete
+    if (!canUserDeleteTask(taskToDelete)) {
+      toast.error("Permission Denied: Only the Task Creator or Org Admin can delete this task.", {
+        icon: '🔒',
+        duration: 4000
+      });
+      return;
+    }
+
     try {
       const token = await getAuthToken();
       const res = await fetch(`/api/tasks/${taskToDelete.id}`, {
@@ -236,7 +246,7 @@ export default function TaskPage() {
                 ) : null
               )}
               currentUser={currentUser}
-              onDeleteClick={selectedTask && canUserDeleteTask(selectedTask) && hasPermission(currentUser, 'Task', 'delete') ? handleDeleteTask : null}
+              onDeleteClick={hasPermission(currentUser, 'Task', 'delete') ? handleDeleteTask : null}
             />
           )}
         </div>
@@ -277,7 +287,7 @@ export default function TaskPage() {
             setIsEditModalOpen(true);
           } : null
         }
-        onDeleteClick={(task) => canUserDeleteTask(task) && hasPermission(currentUser, 'Task', 'delete') ? handleDeleteTask(task) : null}
+        onDeleteClick={hasPermission(currentUser, 'Task', 'delete') ? handleDeleteTask : null}
         onNext={handleNext}
         onPrev={handlePrev}
         hasNext={hasNext}

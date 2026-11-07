@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import DynamicField from "./FieldRegistry";
 import { evaluateExecutionCriteria } from "../utils/ruleEngine";
 import { useConfirm } from "../contexts/ConfirmContext";
+import toast from "react-hot-toast";
 
 export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags = [], currentUser, onTransition, onLeadUpdate, pendingTransition, onEditClick, onDeleteClick, onNext, onPrev, hasNext, hasPrev }) {
   const { showConfirm } = useConfirm();
@@ -895,21 +896,54 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
                 Edit
               </button>
             )}
-            {onDeleteClick && (
-              <button
-                onClick={() => {
-                  showConfirm({
-                    title: "Delete Record",
-                    message: `Are you sure you want to permanently delete this ${blueprint?.moduleType || 'record'}?`,
-                    onConfirm: () => onDeleteClick(lead)
-                  });
-                }}
-                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0 1.25rem', height: '36px', borderRadius: '18px', border: '1px solid #f87171', backgroundColor: '#fef2f2', color: '#ef4444', fontWeight: 600, cursor: 'pointer', fontSize: '0.9rem' }}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-                Delete
-              </button>
-            )}
+            {onDeleteClick && (() => {
+              const isTask = (blueprint?.moduleType || '').toLowerCase().includes('task');
+              const currentUserId = currentUser?.id || '';
+              const currentUserEmail = (currentUser?.email || '').toLowerCase();
+              const currentNick = (currentUser?.profile?.nickname || '').toLowerCase();
+              const isAdmin = currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPER_ADMIN';
+              const taskAssignedBy = String(lead?.assignedBy || '').toLowerCase();
+              const isCreator = taskAssignedBy && (taskAssignedBy === currentUserId.toLowerCase() || taskAssignedBy === currentUserEmail || taskAssignedBy === currentNick);
+              const hasDeletePermission = !isTask || isAdmin || isCreator;
+
+              return (
+                <button
+                  onClick={() => {
+                    if (!hasDeletePermission) {
+                      toast.error("Permission Denied: Only Task Creator or Org Admin can delete this task.", {
+                        icon: '🔒',
+                        duration: 4000
+                      });
+                      return;
+                    }
+                    showConfirm({
+                      title: "Delete Record",
+                      message: `Are you sure you want to permanently delete this ${blueprint?.moduleType || 'record'}?`,
+                      onConfirm: () => onDeleteClick(lead)
+                    });
+                  }}
+                  title={!hasDeletePermission ? "Only Creator or Admin can delete" : "Delete record"}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0 1.25rem', height: '36px',
+                    borderRadius: '18px',
+                    border: hasDeletePermission ? '1px solid #f87171' : '1px solid #cbd5e1',
+                    backgroundColor: hasDeletePermission ? '#fef2f2' : '#f1f5f9',
+                    color: hasDeletePermission ? '#ef4444' : '#94a3b8',
+                    fontWeight: 600,
+                    cursor: hasDeletePermission ? 'pointer' : 'not-allowed',
+                    fontSize: '0.9rem',
+                    opacity: hasDeletePermission ? 1 : 0.7
+                  }}
+                >
+                  {hasDeletePermission ? (
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                  ) : (
+                    <span>🔒</span>
+                  )}
+                  Delete
+                </button>
+              );
+            })()}
           </div>
 
           <div style={{ display: 'flex', gap: '1.5rem', borderBottom: '1px solid #e2e8f0', flexWrap: 'wrap' }}>

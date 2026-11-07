@@ -380,7 +380,45 @@ const EntityEditModal = ({ isOpen, onClose, entity, blueprint, onUpdate, current
           return (
             <div style={{ padding: '20px 32px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>EDIT</h2>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    {(() => {
+                      if (!isTask) return 'EDIT';
+                      if (isTaskCompleted) return 'VIEW (COMPLETED)';
+                      const currentUserId = userInfo?.id || currentUser?.id || '';
+                      const currentUserEmail = (userInfo?.email || currentUser?.email || '').toLowerCase();
+                      const currentNick = (userInfo?.nickname || currentUser?.profile?.nickname || '').toLowerCase();
+                      const isAdmin = userInfo?.role === 'ADMIN' || userInfo?.role === 'SUPER_ADMIN' || currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPER_ADMIN';
+                      const taskAssignedBy = String(editData?.assignedBy || entity?.assignedBy || '').toLowerCase();
+                      const isCreator = taskAssignedBy && (taskAssignedBy === currentUserId.toLowerCase() || taskAssignedBy === currentUserEmail || taskAssignedBy === currentNick);
+                      return (!isAdmin && !isCreator) ? 'VIEW ONLY' : 'EDIT';
+                    })()}
+                  </h2>
+                  {isTask && (() => {
+                    const currentUserId = userInfo?.id || currentUser?.id || '';
+                    const currentUserEmail = (userInfo?.email || currentUser?.email || '').toLowerCase();
+                    const currentNick = (userInfo?.nickname || currentUser?.profile?.nickname || '').toLowerCase();
+                    const isAdmin = userInfo?.role === 'ADMIN' || userInfo?.role === 'SUPER_ADMIN' || currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPER_ADMIN';
+                    const taskAssignedBy = String(editData?.assignedBy || entity?.assignedBy || '').toLowerCase();
+                    const isCreator = taskAssignedBy && (taskAssignedBy === currentUserId.toLowerCase() || taskAssignedBy === currentUserEmail || taskAssignedBy === currentNick);
+
+                    if (isTaskCompleted) {
+                      return (
+                        <span style={{ fontSize: '11px', fontWeight: 600, color: '#047857', backgroundColor: '#dcfce7', padding: '2px 8px', borderRadius: '12px' }}>
+                          🔒 Completed
+                        </span>
+                      );
+                    }
+                    if (!isAdmin && !isCreator) {
+                      return (
+                        <span style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', backgroundColor: '#f1f5f9', border: '1px solid #e2e8f0', padding: '2px 8px', borderRadius: '12px' }}>
+                          🔒 Read-Only
+                        </span>
+                      );
+                    }
+                    return null;
+                  })()}
+                </div>
                 <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: '#64748b' }}>
                   Last updated {formattedDate}
                 </p>
