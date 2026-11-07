@@ -11,7 +11,13 @@ import { useBootstrap } from "../contexts/AppBootstrapContext";
 export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, refreshKey }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('mooncliq_sidebar_collapsed');
+      if (saved !== null) return saved === 'true';
+    }
+    return false;
+  });
   const [isMounted, setIsMounted] = useState(false);
   const [openCategory, setOpenCategory] = useState("SALES & CRM");
   // Active route par aate hi uska category automatically open rahe
@@ -45,14 +51,7 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, refresh
   }, [refreshKey, refreshBootstrap]);
 
   React.useEffect(() => {
-    const saved = localStorage.getItem('mooncliq_sidebar_collapsed');
-    if (saved !== null) {
-      setIsCollapsed(saved === 'true');
-    }
-    const timer = setTimeout(() => {
-      setIsMounted(true);
-    }, 50);
-    return () => clearTimeout(timer);
+    setIsMounted(true);
   }, []);
 
   const toggleSidebar = () => {
@@ -173,67 +172,85 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, refresh
             boxSizing: 'border-box'
           }}
         >
-          {/* Logo & Text Container */}
-          {isCollapsed ? (
-            /* Collapsed Mode: Exact 40px square, identical to the nav icon buttons below */
-            <div
-              onClick={toggleSidebar}
+          {/* Logo & Text Container with Seamless Morph */}
+          <div
+            onClick={isCollapsed ? toggleSidebar : undefined}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.65rem',
+              overflow: 'hidden',
+              userSelect: 'none',
+              cursor: isCollapsed ? 'pointer' : 'default',
+              width: isCollapsed ? '40px' : 'auto',
+              margin: isCollapsed ? '0 auto' : '0',
+              justifyContent: isCollapsed ? 'center' : 'flex-start',
+              transition: 'width 0.35s cubic-bezier(0.16, 1, 0.3, 1)'
+            }}
+            title={isCollapsed ? "Click to expand sidebar" : undefined}
+          >
+            <img
+              src="/mooncliq-puzzle-only.png"
+              alt="moonCliq"
               style={{
-                width: '40px',
-                height: '40px',
-                margin: '0 auto',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer'
+                height: '32px',
+                width: '32px',
+                objectFit: 'contain',
+                flexShrink: 0,
+                transform: isCollapsed ? 'translateX(2px)' : 'none',
+                transition: 'transform 0.35s cubic-bezier(0.16, 1, 0.3, 1)'
               }}
-              title="Click to expand sidebar"
-            >
-              <img
-                src="/mooncliq-puzzle-only.png"
-                alt="moonCliq"
-                style={{
-                  height: '32px',
-                  width: '32px',
-                  objectFit: 'contain',
-                  transform: 'translateX(2px)' /* Visual balance with the top-right puzzle tab */
-                }}
-              />
-            </div>
+            />
+            <img
+              src="/mooncliq-text-only.png"
+              alt="moonCliq CRM"
+              style={{
+                height: '26px',
+                width: 'auto',
+                objectFit: 'contain',
+                imageRendering: '-webkit-optimize-contrast',
+                display: 'block',
+                opacity: isCollapsed ? 0 : 1,
+                transform: isCollapsed ? 'translateX(-15px)' : 'translateX(0)',
+                transition: 'opacity 0.2s ease, transform 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
+                pointerEvents: isCollapsed ? 'none' : 'auto'
+              }}
+            />
+          </div>
           ) : (
-            /* Expanded Mode: Full Logo + Text */
-            <div
+          /* Expanded Mode: Full Logo + Text */
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.65rem',
+              minWidth: 0,
+              userSelect: 'none'
+            }}
+          >
+            <img
+              src="/mooncliq-puzzle-only.png"
+              alt="moonCliq"
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.65rem',
-                minWidth: 0,
-                userSelect: 'none'
+                height: '32px',
+                width: '32px',
+                objectFit: 'contain',
+                flexShrink: 0
               }}
-            >
-              <img
-                src="/mooncliq-puzzle-only.png"
-                alt="moonCliq"
-                style={{
-                  height: '32px',
-                  width: '32px',
-                  objectFit: 'contain',
-                  flexShrink: 0
-                }}
-              />
-              <img
-                src="/mooncliq-text-only.png"
-                alt="moonCliq CRM"
-                style={{
-                  height: '26px',
-                  width: 'auto',
-                  objectFit: 'contain',
-                  imageRendering: '-webkit-optimize-contrast',
-                  display: 'block'
-                }}
-              />
-            </div>
-          )}
+            />
+            <img
+              src="/mooncliq-text-only.png"
+              alt="moonCliq CRM"
+              style={{
+                height: '26px',
+                width: 'auto',
+                objectFit: 'contain',
+                imageRendering: '-webkit-optimize-contrast',
+                display: 'block'
+              }}
+            />
+          </div>
+
 
           {/* Sleek Toggle Button (Collapsed me Right-Border Floating Pill, Expanded me Header Button) */}
           <button
