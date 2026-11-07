@@ -19,6 +19,11 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, refresh
     return false;
   });
   const [isMounted, setIsMounted] = useState(false);
+
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const [openCategory, setOpenCategory] = useState("SALES & CRM");
   // Active route par aate hi uska category automatically open rahe
   React.useEffect(() => {
@@ -173,7 +178,7 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, refresh
           }}
         >
           {/* Logo & Text Container with Seamless Morph */}
-          <div
+          {/* <div
             onClick={isCollapsed ? toggleSidebar : undefined}
             style={{
               display: 'flex',
@@ -216,17 +221,22 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, refresh
                 pointerEvents: isCollapsed ? 'none' : 'auto'
               }}
             />
-          </div>
-          ) : (
-          /* Expanded Mode: Full Logo + Text */
+          </div> */}
+
+
+          {/* Logo & Text Container */}
           <div
+            onClick={isCollapsed ? toggleSidebar : undefined}
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '0.65rem',
-              minWidth: 0,
-              userSelect: 'none'
+              gap: isCollapsed ? '0' : '0.65rem',
+              userSelect: 'none',
+              cursor: isCollapsed ? 'pointer' : 'default',
+              width: isCollapsed ? '100%' : 'auto',
+              justifyContent: isCollapsed ? 'center' : 'flex-start'
             }}
+            title={isCollapsed ? "Click to expand sidebar" : undefined}
           >
             <img
               src="/mooncliq-puzzle-only.png"
@@ -238,17 +248,19 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, refresh
                 flexShrink: 0
               }}
             />
-            <img
-              src="/mooncliq-text-only.png"
-              alt="moonCliq CRM"
-              style={{
-                height: '26px',
-                width: 'auto',
-                objectFit: 'contain',
-                imageRendering: '-webkit-optimize-contrast',
-                display: 'block'
-              }}
-            />
+            {!isCollapsed && (
+              <img
+                src="/mooncliq-text-only.png"
+                alt="moonCliq CRM"
+                style={{
+                  height: '26px',
+                  width: 'auto',
+                  objectFit: 'contain',
+                  imageRendering: '-webkit-optimize-contrast',
+                  display: 'block'
+                }}
+              />
+            )}
           </div>
 
 
@@ -343,7 +355,10 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, refresh
                           </svg>
                         </div>
 
-                        <div className={`accordion-collapse ${openCategory === "CUSTOM MODULES" ? 'open' : ''}`}>
+                        <div
+                          className={`accordion-collapse ${openCategory === "CUSTOM MODULES" ? 'open' : ''}`}
+                          style={{ transition: isMounted ? undefined : 'none' }}
+                        >
                           <div className="accordion-inner">
                             {visibleCustomModules.map((mod) => (
                               <Link
@@ -508,7 +523,10 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, refresh
 
                     {/* 1. Full Expanded Mode Items with Buttery Smooth CSS Grid Accordion */}
                     {!isCollapsed && (
-                      <div className={`accordion-collapse ${isCatOpen ? 'open' : ''}`}>
+                      <div
+                        className={`accordion-collapse ${isCatOpen ? 'open' : ''}`}
+                        style={{ transition: isMounted ? undefined : 'none' }}
+                      >
                         <div className="accordion-inner">
                           {visibleItems.map((item, itemIdx) => (
                             <Link
