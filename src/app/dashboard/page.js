@@ -6,7 +6,7 @@ import Sidebar from "../../components/Sidebar";
 import { fetchAuthSession } from 'aws-amplify/auth';
 import { useEffect } from 'react';
 import GlobalLoader from "../../components/ui/GlobalLoader";
-import KaliChaudasCelebration from "../../components/KaliChaudasCelebration";
+import SaalMubarakCelebration from "../../components/SaalMubarakCelebration";
 
 
 // ---- 1. Top KPI Cards ----
@@ -638,8 +638,8 @@ export default function Dashboard() {
         blueprint={selectedRecordType === 'Lead' ? leadBlueprint : taskBlueprint}
       />
 
-      {/* Festive Kali Chaudas Fullscreen Celebration */}
-      <KaliChaudasCelebration />
+      {/* Festive Saal Mubarak Fullscreen Celebration */}
+      <SaalMubarakCelebration />
     </>
   );
 }
