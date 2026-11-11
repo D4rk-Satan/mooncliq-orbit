@@ -1,10 +1,35 @@
-// Placeholder file for task automation cron route
-// Please paste your code here
 import { NextResponse } from 'next/server';
 import prisma from '../../../../lib/prisma';
 import { runScriptInLambda } from '../../../../lib/lambdaExecutor';
 
 export const dynamic = 'force-dynamic';
+
+function appendSystemNote(existingNotes, noteText) {
+    let notesArray = [];
+    if (existingNotes) {
+        if (Array.isArray(existingNotes)) {
+            notesArray = [...existingNotes];
+        } else if (typeof existingNotes === 'string') {
+            try {
+                const parsed = JSON.parse(existingNotes);
+                if (Array.isArray(parsed)) {
+                    notesArray = parsed;
+                } else {
+                    notesArray = [{ id: 'legacy-1', text: String(existingNotes), author: 'System Note', createdAt: new Date().toISOString() }];
+                }
+            } catch (e) {
+                notesArray = [{ id: 'legacy-1', text: String(existingNotes), author: 'System Note', createdAt: new Date().toISOString() }];
+            }
+        }
+    }
+    notesArray.push({
+        id: `sys_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+        text: noteText,
+        author: 'System Automation',
+        createdAt: new Date().toISOString()
+    });
+    return JSON.stringify(notesArray);
+}
 
 export async function GET(request) {
     try {
@@ -24,13 +49,14 @@ export async function GET(request) {
         const results = {
             timestamp: now.toISOString(),
             tasksMarkedOverdue: 0,
+            tasksAutomated: 0,
             scheduledWorkflowsRun: 0,
             errors: []
         };
 
-        // 2. Core Overdue Transition:
-        // Find all incomplete tasks whose due date has passed
-        const overdueCandidates = await prisma.task.findMany({
+        // 2. Task Lifecycle Automation & Overdue Transition:
+        // Find all tasks where: Due Date & Time < now AND Status != Completed AND Status != Overdue
+        const candidateTasks = await prisma.task.findMany({
             where: {
                 dueDateTime: {
                     lt: now
@@ -51,25 +77,94 @@ export async function GET(request) {
             }
         });
 
-        for (const task of overdueCandidates) {
+        for (const task of candidateTasks) {
             try {
-                // Find 'Overdue' stage for this task's blueprint
-                const overdueStage = task.blueprint?.stages?.find(
-                    s => s.name?.toLowerCase() === 'overdue'
-                );
+                const hasRelated = Boolean(task.relatedModule && task.relatedModule.trim().toLowerCase() !== 'none');
+                const hasAutomation = Boolean(task.taskAutomation && task.taskAutomation.trim().toLowerCase() !== 'none');
 
-                if (overdueStage && overdueStage.id !== task.stageId) {
-                    await prisma.task.update({
-                        where: { id: task.id },
-                        data: {
-                            stageId: overdueStage.id,
-                            lastActivityDate: now
+                // Case-2: Related Module == selected AND Task Automation == selected
+                if (hasRelated && hasAutomation) {
+                    const specificWorkflow = await prisma.workflowRule.findFirst({
+                        where: {
+                            organizationId: task.organizationId,
+                            name: task.taskAutomation,
+                            isActive: true
                         }
                     });
-                    results.tasksMarkedOverdue += 1;
+
+                    if (specificWorkflow && specificWorkflow.code) {
+                        console.log(`[Cron Engine] Running Task Automation "${specificWorkflow.name}" for Task ${task.id}`);
+                        await runScriptInLambda(specificWorkflow.code, {
+                            record: task,
+                            event: 'DueTimeReached',
+                            taskAutomation: task.taskAutomation
+                        });
+
+                        // Re-fetch task to check if the script updated the stage
+                        const updatedTask = await prisma.task.findUnique({
+                            where: { id: task.id },
+                            include: { stage: true }
+                        });
+
+                        // Safety Fallback: If script did NOT update the stage, auto-complete to prevent infinite loops
+                        if (updatedTask && updatedTask.stageId === task.stageId) {
+                            const completedStage = task.blueprint?.stages?.find(s => s.name?.toLowerCase() === 'completed');
+                            if (completedStage) {
+                                await prisma.task.update({
+                                    where: { id: task.id },
+                                    data: {
+                                        stageId: completedStage.id,
+                                        endDateTime: now,
+                                        completionSource: 'Automatic',
+                                        notes: appendSystemNote(task.notes, `✅ [Automatic Completed]: Automation "${task.taskAutomation}" executed.`)
+                                    }
+                                });
+                            }
+                        } else if (updatedTask && !updatedTask.completionSource) {
+                            // If script moved stage, ensure completionSource is marked Automatic
+                            await prisma.task.update({
+                                where: { id: task.id },
+                                data: { completionSource: 'Automatic' }
+                            });
+                        }
+
+                        results.tasksAutomated += 1;
+                    } else {
+                        // Fallback if automation script missing: move to Overdue
+                        const overdueStage = task.blueprint?.stages?.find(s => s.name?.toLowerCase() === 'overdue');
+                        if (overdueStage && overdueStage.id !== task.stageId) {
+                            await prisma.task.update({
+                                where: { id: task.id },
+                                data: {
+                                    stageId: overdueStage.id,
+                                    completionSource: 'Automatic',
+                                    lastActivityDate: now,
+                                    notes: appendSystemNote(task.notes, `⚠️ [Automatic Overdue]: Automation "${task.taskAutomation}" script not found or inactive.`)
+                                }
+                            });
+                            results.tasksMarkedOverdue += 1;
+                        }
+                    }
+                } 
+                // Case-1 (none/none), Case-3 (selected/none), Case-4 (none/selected):
+                // All move to Overdue with completionSource = 'Automatic'
+                else {
+                    const overdueStage = task.blueprint?.stages?.find(s => s.name?.toLowerCase() === 'overdue');
+                    if (overdueStage && overdueStage.id !== task.stageId) {
+                        await prisma.task.update({
+                            where: { id: task.id },
+                            data: {
+                                stageId: overdueStage.id,
+                                completionSource: 'Automatic',
+                                lastActivityDate: now,
+                                notes: appendSystemNote(task.notes, `⚠️ [Automatic Overdue]: Due date passed.`)
+                            }
+                        });
+                        results.tasksMarkedOverdue += 1;
+                    }
                 }
             } catch (err) {
-                console.error(`Error marking task ${task.id} as overdue:`, err);
+                console.error(`Error processing task ${task.id} in cron:`, err);
                 results.errors.push(`Task ${task.id}: ${err.message}`);
             }
         }

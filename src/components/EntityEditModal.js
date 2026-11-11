@@ -525,7 +525,8 @@ const EntityEditModal = ({ isOpen, onClose, entity, blueprint, onUpdate, current
                   <span style={{ width: '4px', height: '14px', backgroundColor: '#3b82f6', borderRadius: '2px' }}></span>
                   {section.name}
                 </div>
-                {/*  {sectionFields.map(field => {
+                <div style={{ display: 'grid', gridTemplateColumns: typeof window !== 'undefined' && window.innerWidth < 768 ? '1fr' : `repeat(${section.columns || 2}, 1fr)`, gap: '20px' }}>
+                  {/*  {sectionFields.map(field => {
                     const isStandard = standardFields.includes(field.name);
                     const value = isStandard ? editData[field.name] : editData.customData?.[field.name];
 
@@ -542,135 +543,135 @@ const EntityEditModal = ({ isOpen, onClose, entity, blueprint, onUpdate, current
                               error={errors[field.name]?.message || errors.customData?.[field.name]?.message} */}
 
 
-                {sectionFields.map(field => {
-                  const isStandard = standardFields.includes(field.name);
-                  const value = isStandard ? editData[field.name] : editData.customData?.[field.name];
-                  let dynamicOptions = getDynamicFieldOptions(field, { userInfo, customModules });
+                  {sectionFields.map(field => {
+                    const isStandard = standardFields.includes(field.name);
+                    const value = isStandard ? editData[field.name] : editData.customData?.[field.name];
+                    let dynamicOptions = getDynamicFieldOptions(field, { userInfo, customModules });
 
-                  // 1. Task Automation Dynamic Filter on Edit
-                  if (moduleName?.toLowerCase().includes('task') && field.name === 'taskAutomation') {
-                    const currentRelated = (editData?.relatedModule || '').toLowerCase().trim();
-                    const hasModuleSelected = currentRelated && currentRelated !== 'none';
+                    // 1. Task Automation Dynamic Filter on Edit
+                    if (moduleName?.toLowerCase().includes('task') && field.name === 'taskAutomation') {
+                      const currentRelated = (editData?.relatedModule || '').toLowerCase().trim();
+                      const hasModuleSelected = currentRelated && currentRelated !== 'none';
 
-                    const filtered = allWorkflows.filter(w => {
-                      const wfMod = (w.moduleType || '').toLowerCase().trim();
-                      if (hasModuleSelected) {
-                        return wfMod === currentRelated;
+                      const filtered = allWorkflows.filter(w => {
+                        const wfMod = (w.moduleType || '').toLowerCase().trim();
+                        if (hasModuleSelected) {
+                          return wfMod === currentRelated;
+                        }
+                        return wfMod === 'task';
+                      }).map(w => w.name);
+
+                      dynamicOptions = ['None', ...filtered.filter(opt => opt && opt.toLowerCase() !== 'none')];
+                    }
+
+                    // 2. Strict Task Governance (Pending, Overdue, Completed):
+                    // 2. Matrix Task Governance (Org Admin, Creator, Assignee, Other):
+                    const isTask = (moduleName || blueprint?.moduleType || '').toLowerCase().includes('task');
+                    let isReadOnlyField = field.readOnly;
+
+                    if (isTask) {
+                      const currentStageObj = blueprint?.stages?.find(s => s.id === (entity?.stageId || entity?.stage?.id));
+                      const stageName = (entity?.stage?.name || entity?.stageName || currentStageObj?.name || '').toLowerCase().trim();
+                      const isCompleted = stageName === 'completed';
+
+                      // User Identity Checks
+                      const currentUserId = userInfo?.id || currentUser?.id || '';
+                      const currentUserEmail = (userInfo?.email || currentUser?.email || '').toLowerCase();
+                      const currentNick = (userInfo?.nickname || currentUser?.profile?.nickname || '').toLowerCase();
+
+                      const isAdmin = userInfo?.role === 'ADMIN' || userInfo?.role === 'SUPER_ADMIN' || currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPER_ADMIN';
+
+                      // Check if current user is Creator (assignedBy)
+                      const taskAssignedBy = String(editData?.assignedBy || entity?.assignedBy || '').toLowerCase();
+                      const isCreator = taskAssignedBy && (
+                        taskAssignedBy === currentUserId.toLowerCase() ||
+                        taskAssignedBy === currentUserEmail ||
+                        taskAssignedBy === currentNick
+                      );
+
+                      // MATRIX RULE 1: Completed status me sabhi ke liye form STRICTLY READ-ONLY
+                      if (isCompleted) {
+                        isReadOnlyField = true;
                       }
-                      return wfMod === 'task';
-                    }).map(w => w.name);
-
-                    dynamicOptions = ['None', ...filtered.filter(opt => opt && opt.toLowerCase() !== 'none')];
-                  }
-
-                  // 2. Strict Task Governance (Pending, Overdue, Completed):
-                  // 2. Matrix Task Governance (Org Admin, Creator, Assignee, Other):
-                  const isTask = (moduleName || blueprint?.moduleType || '').toLowerCase().includes('task');
-                  let isReadOnlyField = field.readOnly;
-
-                  if (isTask) {
-                    const currentStageObj = blueprint?.stages?.find(s => s.id === (entity?.stageId || entity?.stage?.id));
-                    const stageName = (entity?.stage?.name || entity?.stageName || currentStageObj?.name || '').toLowerCase().trim();
-                    const isCompleted = stageName === 'completed';
-
-                    // User Identity Checks
-                    const currentUserId = userInfo?.id || currentUser?.id || '';
-                    const currentUserEmail = (userInfo?.email || currentUser?.email || '').toLowerCase();
-                    const currentNick = (userInfo?.nickname || currentUser?.profile?.nickname || '').toLowerCase();
-
-                    const isAdmin = userInfo?.role === 'ADMIN' || userInfo?.role === 'SUPER_ADMIN' || currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPER_ADMIN';
-
-                    // Check if current user is Creator (assignedBy)
-                    const taskAssignedBy = String(editData?.assignedBy || entity?.assignedBy || '').toLowerCase();
-                    const isCreator = taskAssignedBy && (
-                      taskAssignedBy === currentUserId.toLowerCase() ||
-                      taskAssignedBy === currentUserEmail ||
-                      taskAssignedBy === currentNick
-                    );
-
-                    // MATRIX RULE 1: Completed status me sabhi ke liye form STRICTLY READ-ONLY
-                    if (isCompleted) {
-                      isReadOnlyField = true;
+                      // MATRIX RULE 2: Immutable Fields hamesha READ-ONLY (Assigned By, End Date)
+                      else if (field.name === 'assignedBy' || field.name === 'endDateTime') {
+                        isReadOnlyField = true;
+                      }
+                      // MATRIX RULE 3: Pending / Overdue me SIRF Admin aur Creator hi edit kar sakte hain
+                      // Assignee (owner) aur Other members ke liye STRICTLY READ-ONLY
+                      else if (!isAdmin && !isCreator) {
+                        isReadOnlyField = true;
+                      }
+                      // MATRIX RULE 4: Admin aur Creator baaki saari fields edit kar sakte hain!
+                      else {
+                        isReadOnlyField = false;
+                      }
                     }
-                    // MATRIX RULE 2: Immutable Fields hamesha READ-ONLY (Assigned By, End Date)
-                    else if (field.name === 'assignedBy' || field.name === 'endDateTime') {
-                      isReadOnlyField = true;
-                    }
-                    // MATRIX RULE 3: Pending / Overdue me SIRF Admin aur Creator hi edit kar sakte hain
-                    // Assignee (owner) aur Other members ke liye STRICTLY READ-ONLY
-                    else if (!isAdmin && !isCreator) {
-                      isReadOnlyField = true;
-                    }
-                    // MATRIX RULE 4: Admin aur Creator baaki saari fields edit kar sakte hain!
-                    else {
-                      isReadOnlyField = false;
-                    }
-                  }
 
-                  const fieldWithOptions = {
-                    ...field,
-                    options: dynamicOptions,
-                    readOnly: isReadOnlyField
-                  };
+                    const fieldWithOptions = {
+                      ...field,
+                      options: dynamicOptions,
+                      readOnly: isReadOnlyField
+                    };
 
-                  return (
-                    <div key={field.name} style={{ gridColumn: isFieldFullWidth(field) ? '1 / -1' : 'auto' }}>
-                      <Controller
-                        name={isStandard ? field.name : `customData.${field.name}`}
-                        control={control}
-                        render={({ field: controllerField }) => {
-                          if (moduleName?.toLowerCase().includes('task') && field.name === 'priority') {
+                    return (
+                      <div key={field.name} style={{ gridColumn: isFieldFullWidth(field) ? '1 / -1' : 'auto' }}>
+                        <Controller
+                          name={isStandard ? field.name : `customData.${field.name}`}
+                          control={control}
+                          render={({ field: controllerField }) => {
+                            if (moduleName?.toLowerCase().includes('task') && field.name === 'priority') {
+                              return (
+                                <TaskPrioritySelector
+                                  field={fieldWithOptions}
+                                  value={controllerField.value || 'Medium'}
+                                  readOnly={isReadOnlyField}
+                                  onChange={(val) => {
+                                    if (isReadOnlyField) return;
+                                    controllerField.onChange(val);
+                                    handleChange('priority', val, true);
+                                  }}
+                                />
+                              );
+                            }
+
                             return (
-                              <TaskPrioritySelector
+                              <DynamicField
                                 field={fieldWithOptions}
-                                value={controllerField.value || 'Medium'}
+                                value={controllerField.value || ''}
                                 readOnly={isReadOnlyField}
-                                onChange={(val) => {
+                                onBlur={controllerField.onBlur}
+                                onChange={(name, val) => {
                                   if (isReadOnlyField) return;
                                   controllerField.onChange(val);
-                                  handleChange('priority', val, true);
+                                  handleChange(field.name, val, isStandard);
+
+                                  // Agar user ne Related Module ko 'None' kiya, toh taskAutomation ko turant 'None' reset karo
+                                  const isTask = (moduleName || blueprint?.moduleType || '').toLowerCase().includes('task');
+                                  if (isTask && field.name === 'relatedModule') {
+                                    const valLower = (val || '').toLowerCase().trim();
+                                    if (!valLower || valLower === 'none') {
+                                      setValue('taskAutomation', 'None', { shouldValidate: true, shouldDirty: true });
+                                      handleChange('taskAutomation', 'None', true);
+                                    }
+                                  }
                                 }}
+                                error={errors[field.name]?.message || errors.customData?.[field.name]?.message}
                               />
                             );
-                          }
+                          }}
+                        />
+                      </div>
+                    );
 
-                          return (
-                            <DynamicField
-                              field={fieldWithOptions}
-                              value={controllerField.value || ''}
-                              readOnly={isReadOnlyField}
-                              onBlur={controllerField.onBlur}
-                              onChange={(name, val) => {
-                                if (isReadOnlyField) return;
-                                controllerField.onChange(val);
-                                handleChange(field.name, val, isStandard);
-
-                                // Agar user ne Related Module ko 'None' kiya, toh taskAutomation ko turant 'None' reset karo
-                                const isTask = (moduleName || blueprint?.moduleType || '').toLowerCase().includes('task');
-                                if (isTask && field.name === 'relatedModule') {
-                                  const valLower = (val || '').toLowerCase().trim();
-                                  if (!valLower || valLower === 'none') {
-                                    setValue('taskAutomation', 'None', { shouldValidate: true, shouldDirty: true });
-                                    handleChange('taskAutomation', 'None', true);
-                                  }
-                                }
-                              }}
-                              error={errors[field.name]?.message || errors.customData?.[field.name]?.message}
-                            />
-                          );
-                        }}
-                      />
-                    </div>
-                  );
-
-                })}
-
+                  })}
+                </div>
               </div>
 
             );
           })}
-
         </div>
+
 
       </div >
     </>

@@ -232,15 +232,18 @@ export const PATCH = withPermission('Task', 'edit', async (request, user) => {
       }
     }
 
-    // Auto-fill End Date & Completion Source if stage is changed to 'Completed'
+    // Auto-fill End Date & Completion Source if stage is changed manually
     let isTransitioningToCompleted = false;
     if (updateData.stageId) {
       const newStage = await prisma.stage.findUnique({ where: { id: updateData.stageId } });
+      const prevStageName = existingTask.stage?.name?.toLowerCase() || '';
+      
+      // Whenever a user updates the stage manually, set completionSource = 'Manual'
+      updateData.completionSource = 'Manual';
+
       if (newStage && newStage.name === 'Completed') {
         updateData.endDateTime = new Date();
-        updateData.completionSource = 'Manually marked';
         // Only trigger repeat spawn if it was NOT already completed before
-        const prevStageName = existingTask.stage?.name?.toLowerCase() || '';
         if (prevStageName !== 'completed') {
           isTransitioningToCompleted = true;
         }

@@ -19,6 +19,13 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
   const [localTags, setLocalTags] = useState([]);
   const [activeTab, setActiveTab] = useState('Details');
 
+  // Paginated Activity Logs State (10 records per page, lazy-loaded on Activity Tab click)
+  const [activityLogs, setActivityLogs] = useState([]);
+  const [activityPage, setActivityPage] = useState(1);
+  const [hasMoreActivity, setHasMoreActivity] = useState(false);
+  const [isLoadingActivity, setIsLoadingActivity] = useState(false);
+  const [totalActivityCount, setTotalActivityCount] = useState(0);
+
   const [newNoteText, setNewNoteText] = useState("");
   const [isSavingNote, setIsSavingNote] = useState(false);
 
@@ -52,6 +59,57 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
     };
     loadUsers();
   }, []);
+
+  // Fetch paginated audit history when user switches to 'Activity' tab (Lazy-load 10 records)
+  useEffect(() => {
+    if (activeTab === 'Activity' && lead?.id) {
+      // If no logs yet for this record, fetch page 1
+      fetchActivityLogs(1, true);
+    }
+  }, [activeTab, lead?.id]);
+
+  const fetchActivityLogs = async (pageNum = 1, isReset = false) => {
+    if (!lead?.id) return;
+    setIsLoadingActivity(true);
+    try {
+      const { fetchAuthSession } = await import('aws-amplify/auth');
+      const session = await fetchAuthSession();
+      const token = session.tokens?.idToken?.toString();
+      if (!token) return;
+
+      const res = await fetch(`/api/audit-logs?recordId=${lead.id}&page=${pageNum}&limit=10`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setActivityLogs(prev => isReset ? data.logs : [...prev, ...data.logs]);
+        setTotalActivityCount(data.totalCount || 0);
+        setHasMoreActivity(data.hasMore || false);
+        setActivityPage(pageNum);
+      }
+    } catch (err) {
+      console.error("Failed to load audit activity logs:", err);
+    } finally {
+      setIsLoadingActivity(false);
+    }
+  };
+
+  const handleLoadMoreActivity = () => {
+    if (!isLoadingActivity && hasMoreActivity) {
+      fetchActivityLogs(activityPage + 1, false);
+    }
+  };
+
+  // Helper to get human friendly action labels and colors
+  const getActionBadge = (actionType) => {
+    const act = (actionType || '').toUpperCase();
+    if (act.includes('CREATE')) return { label: 'Created', color: '#10b981', bg: '#ecfdf5', icon: '✨' };
+    if (act.includes('DELETE')) return { label: 'Deleted', color: '#ef4444', bg: '#fef2f2', icon: '🗑️' };
+    if (act.includes('RECURR')) return { label: 'Recurred', color: '#6366f1', bg: '#e0e7ff', icon: '🔁' };
+    if (act.includes('STAGE') || act.includes('TRANSITION')) return { label: 'Stage Changed', color: '#8b5cf6', bg: '#f5f3ff', icon: '🔄' };
+    return { label: 'Updated', color: '#3b82f6', bg: '#eff6ff', icon: '✏️' };
+  };
 
   // Parse existing notes (handles JSON array or legacy raw string)
   const getTimelineNotes = () => {
@@ -364,27 +422,140 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
             </div>
           </div>
 
-          {/* Basic Timeline */}
+          {/* Real-time Paginated Audit Trail Timeline */}
           <div>
-            <h3 style={{ fontSize: '1rem', fontWeight: 600, color: '#0f172a', marginBottom: '1.5rem', marginTop: 0 }}>Timeline</h3>
-
-            <div style={{ position: 'relative', paddingLeft: '1.5rem', borderLeft: '2px solid #e2e8f0', marginLeft: '0.5rem', display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
-
-              {/* Event 1 (Latest) */}
-              <div style={{ position: 'relative' }}>
-                <div style={{ position: 'absolute', left: '-1.85rem', top: '0.25rem', width: '12px', height: '12px', borderRadius: '50%', background: '#3b82f6', border: '2px solid #fff' }}></div>
-                <div style={{ fontSize: '0.9rem', color: '#0f172a', fontWeight: 500 }}>Record Updated</div>
-                <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.3rem' }}>by <strong>{modifiedBy}</strong> on {updatedDate}</div>
-              </div>
-
-              {/* Event 2 (Creation) */}
-              <div style={{ position: 'relative' }}>
-                <div style={{ position: 'absolute', left: '-1.85rem', top: '0.25rem', width: '12px', height: '12px', borderRadius: '50%', background: '#10b981', border: '2px solid #fff' }}></div>
-                <div style={{ fontSize: '0.9rem', color: '#0f172a', fontWeight: 500 }}>Record Created</div>
-                <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.3rem' }}>on {createdDate}</div>
-              </div>
-
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: 600, color: '#0f172a', margin: 0 }}>
+                Activity History {totalActivityCount > 0 ? `(${totalActivityCount})` : ''}
+              </h3>
+              {isLoadingActivity && (
+                <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Refreshing history...</span>
+              )}
             </div>
+
+            {isLoadingActivity && activityLogs.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '2rem 1rem', color: '#94a3b8' }}>
+                <div style={{ display: 'inline-block', width: '20px', height: '20px', border: '2px solid #e2e8f0', borderTopColor: '#3b82f6', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                <p style={{ marginTop: '0.5rem', fontSize: '0.85rem' }}>Loading activity logs...</p>
+              </div>
+            ) : activityLogs.length === 0 ? (
+              /* Fallback to default creation & update timestamps if no audit logs found */
+              <div style={{ position: 'relative', paddingLeft: '1.5rem', borderLeft: '2px solid #e2e8f0', marginLeft: '0.5rem', display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
+                <div style={{ position: 'relative' }}>
+                  <div style={{ position: 'absolute', left: '-1.85rem', top: '0.25rem', width: '12px', height: '12px', borderRadius: '50%', background: '#3b82f6', border: '2px solid #fff' }}></div>
+                  <div style={{ fontSize: '0.9rem', color: '#0f172a', fontWeight: 500 }}>Record Updated</div>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.3rem' }}>by <strong>{modifiedBy}</strong> on {updatedDate}</div>
+                </div>
+                <div style={{ position: 'relative' }}>
+                  <div style={{ position: 'absolute', left: '-1.85rem', top: '0.25rem', width: '12px', height: '12px', borderRadius: '50%', background: '#10b981', border: '2px solid #fff' }}></div>
+                  <div style={{ fontSize: '0.9rem', color: '#0f172a', fontWeight: 500 }}>Record Created</div>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.3rem' }}>on {createdDate}</div>
+                </div>
+              </div>
+            ) : (
+              /* Live Dynamic Audit Trail (Latest on Top, 10 per batch) */
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                <div style={{ position: 'relative', paddingLeft: '1.5rem', borderLeft: '2px solid #e2e8f0', marginLeft: '0.5rem', display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
+                  {activityLogs.map((log, lIdx) => {
+                    const badge = getActionBadge(log.actionType);
+                    let formattedLogDate = log.createdAt;
+                    try {
+                      formattedLogDate = new Date(log.createdAt).toLocaleString('en-IN', {
+                        day: '2-digit', month: 'short', year: 'numeric',
+                        hour: '2-digit', minute: '2-digit', hour12: true
+                      });
+                    } catch (e) { }
+
+                    // Format modified fields snippet if available in details
+                    let changeSummary = null;
+                    if (log.details && typeof log.details === 'object') {
+                      const keys = Object.keys(log.details).filter(k => !['customData', 'stageId', 'taskId', 'leadId', 'dealId'].includes(k));
+                      if (keys.length > 0) {
+                        changeSummary = keys.slice(0, 3).map(k => `${k}: ${String(log.details[k])}`).join(', ');
+                        if (keys.length > 3) changeSummary += ` (+${keys.length - 3} more)`;
+                      } else if (log.details.stageId) {
+                        changeSummary = `Stage updated`;
+                      }
+                    }
+
+                    return (
+                      <div key={log.id || lIdx} style={{ position: 'relative' }}>
+                        {/* Dot on Timeline */}
+                        <div style={{
+                          position: 'absolute', left: '-1.85rem', top: '0.25rem',
+                          width: '12px', height: '12px', borderRadius: '50%',
+                          background: badge.color, border: '2px solid #fff'
+                        }}></div>
+
+                        {/* Event Content */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                          <span style={{
+                            fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '12px',
+                            background: badge.bg, color: badge.color, display: 'inline-flex', alignItems: 'center', gap: '4px'
+                          }}>
+                            <span>{badge.icon}</span>
+                            {badge.label}
+                          </span>
+                          <span style={{ fontSize: '0.9rem', color: '#0f172a', fontWeight: 600 }}>
+                            by {log.authorName}
+                          </span>
+                        </div>
+
+                        {changeSummary && (
+                          <div style={{ fontSize: '0.8rem', color: '#475569', marginTop: '0.35rem', background: '#f8fafc', padding: '4px 8px', borderRadius: '6px', border: '1px solid #f1f5f9', display: 'inline-block' }}>
+                            {changeSummary}
+                          </div>
+                        )}
+
+                        <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.3rem' }}>
+                          {formattedLogDate}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Load More Button for Pagination (10 per batch) */}
+                {hasMoreActivity && (
+                  <div style={{ textAlign: 'center', paddingTop: '1rem' }}>
+                    <button
+                      type="button"
+                      onClick={handleLoadMoreActivity}
+                      disabled={isLoadingActivity}
+                      style={{
+                        padding: '8px 18px',
+                        borderRadius: '20px',
+                        background: '#ffffff',
+                        border: '1px solid #cbd5e1',
+                        color: '#0f172a',
+                        fontSize: '0.85rem',
+                        fontWeight: 600,
+                        cursor: isLoadingActivity ? 'not-allowed' : 'pointer',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                        transition: 'all 0.2s',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                      onMouseLeave={e => e.currentTarget.style.backgroundColor = '#ffffff'}
+                    >
+                      {isLoadingActivity ? (
+                        <span>Loading next 10...</span>
+                      ) : (
+                        <span>Load older activity ({activityLogs.length} of {totalActivityCount}) ↓</span>
+                      )}
+                    </button>
+                  </div>
+                )}
+
+                {!hasMoreActivity && activityLogs.length >= 10 && (
+                  <div style={{ textAlign: 'center', fontSize: '0.75rem', color: '#94a3b8', paddingTop: '0.5rem' }}>
+                    ✨ Reached beginning of record history
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       );
@@ -541,11 +712,11 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
                             fontSize: '0.8rem',
                             fontWeight: 600,
                             marginTop: '2px',
-                            backgroundColor: String(formattedValue).toLowerCase().includes('system') ? '#ecfdf5' : '#f0f9ff',
-                            color: String(formattedValue).toLowerCase().includes('system') ? '#047857' : '#0369a1',
-                            border: `1px solid ${String(formattedValue).toLowerCase().includes('system') ? '#a7f3d0' : '#bae6fd'}`
+                            backgroundColor: (String(formattedValue).toLowerCase().includes('auto') || String(formattedValue).toLowerCase().includes('system')) ? '#ecfdf5' : '#f0f9ff',
+                            color: (String(formattedValue).toLowerCase().includes('auto') || String(formattedValue).toLowerCase().includes('system')) ? '#047857' : '#0369a1',
+                            border: `1px solid ${(String(formattedValue).toLowerCase().includes('auto') || String(formattedValue).toLowerCase().includes('system')) ? '#a7f3d0' : '#bae6fd'}`
                           }}>
-                            <span>{String(formattedValue).toLowerCase().includes('system') ? '🤖' : '👤'}</span>
+                            <span>{(String(formattedValue).toLowerCase().includes('auto') || String(formattedValue).toLowerCase().includes('system')) ? '🤖' : '👤'}</span>
                             <span>{String(formattedValue)}</span>
                           </div>
                         ) : (field.type?.toLowerCase() === 'audio' || String(formattedValue).includes('/audio/')) ? (
@@ -718,6 +889,370 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
       );
     }
 
+    if (activeTab === 'Files') {
+      // Extract all file/audio/image assets from current record
+      const extractedAssets = [];
+
+      // 1. Scan standard and customData fields
+      const scanField = (fieldName, fieldLabel, val) => {
+        if (!val || typeof val !== 'string') return;
+        const lowerVal = val.toLowerCase();
+        
+        // Audio files
+        if (lowerVal.endsWith('.mp3') || lowerVal.endsWith('.wav') || lowerVal.endsWith('.webm') || lowerVal.endsWith('.ogg') || lowerVal.endsWith('.m4a') || lowerVal.includes('/audio/')) {
+          extractedAssets.push({
+            type: 'audio',
+            name: fieldLabel || fieldName || 'Voice Note',
+            url: val,
+            icon: '🎙️'
+          });
+        }
+        // Image files
+        else if (lowerVal.endsWith('.jpg') || lowerVal.endsWith('.jpeg') || lowerVal.endsWith('.png') || lowerVal.endsWith('.webp') || lowerVal.endsWith('.svg') || lowerVal.includes('/products/') || lowerVal.includes('/avatars/') || lowerVal.includes('/logos/')) {
+          extractedAssets.push({
+            type: 'image',
+            name: fieldLabel || fieldName || 'Image Attachment',
+            url: val,
+            icon: '🖼️'
+          });
+        }
+        // Document / PDF / Sheet files
+        else if (lowerVal.endsWith('.pdf') || lowerVal.endsWith('.xlsx') || lowerVal.endsWith('.xls') || lowerVal.endsWith('.csv') || lowerVal.endsWith('.doc') || lowerVal.endsWith('.docx')) {
+          extractedAssets.push({
+            type: 'document',
+            name: fieldLabel || fieldName || 'Document',
+            url: val,
+            icon: lowerVal.endsWith('.pdf') ? '📄' : '📊'
+          });
+        }
+      };
+
+      // Scan root fields
+      Object.entries(lead || {}).forEach(([k, v]) => {
+        if (k !== 'customData') scanField(k, k, v);
+      });
+
+      // Scan customData fields
+      if (lead?.customData && typeof lead.customData === 'object') {
+        Object.entries(lead.customData).forEach(([k, v]) => {
+          scanField(k, k, v);
+        });
+      }
+
+      // Scan blueprint fields to get human labels if available
+      if (blueprint?.fields) {
+        blueprint.fields.forEach(f => {
+          if (f.type?.toLowerCase() === 'audio' || f.type?.toLowerCase() === 'image' || f.type?.toLowerCase() === 'file') {
+            const rawVal = lead[f.name] || lead.customData?.[f.name];
+            if (rawVal && typeof rawVal === 'string') {
+              const existing = extractedAssets.find(a => a.url === rawVal);
+              if (existing) {
+                existing.name = f.label || existing.name;
+              }
+            }
+          }
+        });
+      }
+
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {/* Header Summary */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem' }}>
+            <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>📁</span>
+              <span>Attachments & Media ({extractedAssets.length})</span>
+            </h4>
+            <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+              Read-only Viewer
+            </span>
+          </div>
+
+          {extractedAssets.length === 0 ? (
+            <div style={{
+              textAlign: 'center',
+              padding: '3.5rem 1.5rem',
+              background: '#f8fafc',
+              border: '1px dashed #cbd5e1',
+              borderRadius: '12px',
+              color: '#94a3b8'
+            }}>
+              <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📂</div>
+              <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 600, color: '#64748b' }}>No media or files attached</p>
+              <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem' }}>Audio recordings, product images, or documents attached to this record will appear here.</p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {extractedAssets.map((asset, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    background: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '12px',
+                    padding: '1rem',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.75rem'
+                  }}
+                >
+                  {/* Top Bar: Title & Action Link */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '1.2rem' }}>{asset.icon}</span>
+                      <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#0f172a' }}>
+                        {asset.name}
+                      </span>
+                    </div>
+
+                    <a
+                      href={asset.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        color: '#2563eb',
+                        textDecoration: 'none',
+                        background: '#eff6ff',
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      <span>Open ↗</span>
+                    </a>
+                  </div>
+
+                  {/* Inline Audio Player for Audio Files */}
+                  {asset.type === 'audio' && (
+                    <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
+                      <audio controls src={asset.url} style={{ width: '100%', height: '36px' }} />
+                    </div>
+                  )}
+
+                  {/* Image Thumbnail Preview */}
+                  {asset.type === 'image' && (
+                    <div style={{ borderRadius: '8px', overflow: 'hidden', background: '#f8fafc', border: '1px solid #f1f5f9', maxHeight: '180px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <img
+                        src={asset.url}
+                        alt={asset.name}
+                        style={{ maxWidth: '100%', maxHeight: '180px', objectFit: 'contain', display: 'block' }}
+                      />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    if (activeTab === 'Related') {
+      // Collect only pure Lookup fields defined in blueprint
+      const lookupFieldDefs = (blueprint?.fields || []).filter(
+        f => f.type?.toLowerCase() === 'lookup'
+      );
+
+      const relatedRecords = [];
+
+      lookupFieldDefs.forEach(fieldDef => {
+        // Value can be in root or customData
+        const rawValue = lead[fieldDef.name] !== undefined ? lead[fieldDef.name] : lead?.customData?.[fieldDef.name];
+        if (!rawValue) return;
+
+        const items = Array.isArray(rawValue) ? rawValue : [rawValue];
+
+        items.forEach((item, index) => {
+          if (!item) return;
+
+          let recordId = '';
+          let displayName = '';
+
+          if (typeof item === 'object') {
+            recordId = item.id || item._id || '';
+            displayName = item.name || item.taskName || item.displayName || item.title || item.companyName || (item.firstName ? `${item.firstName} ${item.lastName || ''}`.trim() : '') || item.id || 'Linked Record';
+          } else if (typeof item === 'string' || typeof item === 'number') {
+            recordId = String(item);
+            displayName = String(item);
+          }
+
+          if (displayName || recordId) {
+            const targetModule = fieldDef.targetModule || 'Record';
+            let moduleRoute = `/${targetModule.toLowerCase()}`;
+            if (targetModule.toLowerCase() === 'product') moduleRoute = '/products';
+
+            relatedRecords.push({
+              key: `${fieldDef.name}-${recordId || index}`,
+              fieldName: fieldDef.name,
+              fieldLabel: fieldDef.label || fieldDef.name,
+              targetModule,
+              moduleRoute,
+              recordId,
+              displayName
+            });
+          }
+        });
+      });
+
+      // Target module badge colors
+      const getModuleBadgeStyle = (mod) => {
+        const m = (mod || '').toLowerCase();
+        if (m.includes('lead')) return { bg: '#eef2ff', color: '#4f46e5', border: '#c7d2fe', icon: '🎯' };
+        if (m.includes('account')) return { bg: '#eff6ff', color: '#2563eb', border: '#bfdbfe', icon: '🏢' };
+        if (m.includes('deal')) return { bg: '#ecfdf5', color: '#059669', border: '#a7f3d0', icon: '💼' };
+        if (m.includes('task')) return { bg: '#faf5ff', color: '#7c3aed', border: '#e9d5ff', icon: '📋' };
+        if (m.includes('product')) return { bg: '#fffbeb', color: '#d97706', border: '#fde68a', icon: '📦' };
+        return { bg: '#f8fafc', color: '#475569', border: '#e2e8f0', icon: '🔗' };
+      };
+
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* Header Summary */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem' }}>
+            <div>
+              <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600, color: '#1e293b' }}>
+                Lookup Relationships
+              </h4>
+              <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: '#64748b' }}>
+                Fields connected to other modules via Lookup
+              </p>
+            </div>
+            <span style={{ fontSize: '0.75rem', fontWeight: 600, background: '#f1f5f9', color: '#475569', padding: '3px 8px', borderRadius: '12px' }}>
+              {relatedRecords.length} Linked
+            </span>
+          </div>
+
+          {/* List or Empty State */}
+          {relatedRecords.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '3rem 1rem', background: '#f8fafc', borderRadius: '12px', border: '1px dashed #cbd5e1' }}>
+              <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🔗</div>
+              <h5 style={{ margin: '0 0 0.25rem 0', fontSize: '0.95rem', fontWeight: 600, color: '#334155' }}>
+                No Linked Records
+              </h5>
+              <p style={{ margin: 0, fontSize: '0.825rem', color: '#64748b', maxWidth: '300px', marginInline: 'auto' }}>
+                No lookup relationship fields are currently populated for this record.
+              </p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {relatedRecords.map((rel) => {
+                const badge = getModuleBadgeStyle(rel.targetModule);
+                const hasValidTarget = rel.moduleRoute && rel.recordId;
+
+                return (
+                  <div
+                    key={rel.key}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.5rem',
+                      padding: '0.9rem 1rem',
+                      background: 'white',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '10px',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+                    }}
+                  >
+                    {/* Top Row: Module Badge + Field Label */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                          fontSize: '0.72rem',
+                          fontWeight: 600,
+                          background: badge.bg,
+                          color: badge.color,
+                          border: `1px solid ${badge.border}`,
+                          padding: '2px 7px',
+                          borderRadius: '6px'
+                        }}
+                      >
+                        <span>{badge.icon}</span>
+                        <span>{rel.targetModule}</span>
+                      </span>
+
+                      <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 500 }}>
+                        Field: <strong style={{ color: '#475569' }}>{rel.fieldLabel}</strong>
+                      </span>
+                    </div>
+
+                    {/* Middle Row: Record Display Name & ID */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '2px' }}>
+                      <div style={{ minWidth: 0, flex: 1, paddingRight: '0.75rem' }}>
+                        <div
+                          style={{
+                            fontSize: '0.925rem',
+                            fontWeight: 600,
+                            color: '#0f172a',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}
+                          title={rel.displayName}
+                        >
+                          {rel.displayName}
+                        </div>
+                        {rel.recordId && rel.recordId !== rel.displayName && (
+                          <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '2px', fontFamily: 'monospace' }}>
+                            ID: {rel.recordId}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Action Button: Open in target module */}
+                      {hasValidTarget ? (
+                        <a
+                          href={`${rel.moduleRoute}?id=${encodeURIComponent(rel.recordId)}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            color: '#2563eb',
+                            background: '#eff6ff',
+                            border: '1px solid #bfdbfe',
+                            padding: '4px 10px',
+                            borderRadius: '6px',
+                            textDecoration: 'none',
+                            whiteSpace: 'nowrap',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Open ↗
+                        </a>
+                      ) : (
+                        <span
+                          style={{
+                            fontSize: '0.72rem',
+                            color: '#94a3b8',
+                            background: '#f8fafc',
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            border: '1px solid #f1f5f9'
+                          }}
+                        >
+                          Linked
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      );
+    }
+
     return (
       <div style={{ textAlign: 'center', padding: '4rem 0', color: '#94a3b8' }}>
         <p>No data available for {activeTab}</p>
@@ -841,11 +1376,11 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
                       gap: '4px',
                       padding: '0.2rem 0.6rem',
                       borderRadius: '12px',
-                      backgroundColor: lead.completionSource.toLowerCase().includes('system') ? '#ecfdf5' : '#f0f9ff',
-                      color: lead.completionSource.toLowerCase().includes('system') ? '#047857' : '#0369a1',
-                      border: `1px solid ${lead.completionSource.toLowerCase().includes('system') ? '#a7f3d0' : '#bae6fd'}`
+                      backgroundColor: (lead.completionSource.toLowerCase().includes('auto') || lead.completionSource.toLowerCase().includes('system')) ? '#ecfdf5' : '#f0f9ff',
+                      color: (lead.completionSource.toLowerCase().includes('auto') || lead.completionSource.toLowerCase().includes('system')) ? '#047857' : '#0369a1',
+                      border: `1px solid ${(lead.completionSource.toLowerCase().includes('auto') || lead.completionSource.toLowerCase().includes('system')) ? '#a7f3d0' : '#bae6fd'}`
                     }}>
-                      <span>{lead.completionSource.toLowerCase().includes('system') ? '🤖' : '👤'}</span>
+                      <span>{(lead.completionSource.toLowerCase().includes('auto') || lead.completionSource.toLowerCase().includes('system')) ? '🤖' : '👤'}</span>
                       {lead.completionSource}
                     </span>
                   )}

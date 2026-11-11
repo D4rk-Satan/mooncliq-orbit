@@ -189,7 +189,7 @@ export function getDefaultBlueprintData(mod) {
                     { name: 'relatedModule', label: 'Related Module', type: 'Select', options: ['Lead', 'Deal', 'Account', 'Product', 'Project', 'Whatsapp'], isRequired: false, isSystemField: true, sectionName: 'Automation', orderIndex: 12 },
                     { name: 'taskAutomation', label: 'Task Automation', type: 'Select', options: ['None', 'Send Email', 'Send SMS', 'Update Field'], isRequired: false, isSystemField: true, sectionName: 'Automation', orderIndex: 14 },
                     // completionSource ko chhupane ke liye isHidden: true add kiya
-                    { name: 'completionSource', label: 'Completion Source', type: 'Select', options: ['System-verified', 'Manually marked'], isRequired: false, isSystemField: true, sectionName: 'Automation', orderIndex: 15, isHidden: true },
+                    { name: 'completionSource', label: 'Completion Source', type: 'Select', options: ['Automatic', 'Manual'], isRequired: false, isSystemField: true, sectionName: 'Automation', orderIndex: 15, isHidden: true },
 
                     // ----------------- SYSTEM FIELDS -----------------
                     { name: 'createdAt', label: 'Created Date', type: 'Datetime', isRequired: true, isSystemField: true, sectionName: 'System Fields', orderIndex: 16, isHidden: true },

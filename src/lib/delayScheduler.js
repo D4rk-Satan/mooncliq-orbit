@@ -191,8 +191,9 @@ function appendSystemNote(existingNotes, noteText) {
 }
 /**
  * Runs the audit logic when dueDateTime arrives:
- * If rep completed target -> Completed
- * If not completed -> Overdue
+ * Follows the 4-case matrix:
+ * Case-1, 3, 4 -> Move to Overdue with completionSource = 'Automatic'
+ * Case-2 -> Run Task Automation with fallback to Completed and completionSource = 'Automatic'
  */
 export async function runTaskAudit(taskId) {
   try {
@@ -206,9 +207,10 @@ export async function runTaskAudit(taskId) {
 
     if (!task) return;
 
-    // Agar task pehle hi kisi ne manually Complete kar diya hai to kuch mat karo
-    if (task.stage?.name?.toLowerCase() === 'completed') {
-      console.log(`[Delay Scheduler] Task ${task.id} already completed. Skipping.`);
+    // Do nothing if already Completed or Overdue
+    const currentStageName = task.stage?.name?.toLowerCase() || '';
+    if (currentStageName === 'completed' || currentStageName === 'overdue') {
+      console.log(`[Delay Scheduler] Task ${task.id} already closed (${currentStageName}). Skipping.`);
       return;
     }
 
@@ -216,57 +218,57 @@ export async function runTaskAudit(taskId) {
     const completedStage = stages.find(s => s.name?.toLowerCase() === 'completed');
     const overdueStage = stages.find(s => s.name?.toLowerCase() === 'overdue');
 
-    // BOSS RULE: Agar task generic hai (koi Related Module nahi aur koi Automation Workflow nahi),
-    // toh system task ko touch nahi karega, wo 'Pending' me hi rahega!
-    const hasRelatedModule = task.relatedModule && task.relatedModule.toLowerCase() !== 'none';
-    const hasAutomation = task.taskAutomation && task.taskAutomation.toLowerCase() !== 'none';
+    const hasRelatedModule = Boolean(task.relatedModule && task.relatedModule.trim().toLowerCase() !== 'none');
+    const hasAutomation = Boolean(task.taskAutomation && task.taskAutomation.trim().toLowerCase() !== 'none');
 
-    if (!hasRelatedModule && !hasAutomation) {
-      console.log(`[Delay Scheduler] Task "${task.taskName}" is a Generic Standalone task (None / None). Leaving in current stage.`);
-      return; // ⛔ Yahi se return! Na Completed me jayega, na Overdue me, na koi note dalegi!
-    }
-
-
-    // 1. Agar task me koi custom Task Automation attached hai to use execute karo
-    if (task.taskAutomation && task.taskAutomation !== 'None') {
-      console.log(`[Delay Scheduler] Executing assigned Task Automation: ${task.taskAutomation}`);
+    // Case-2: Both Related Module and Task Automation are selected
+    if (hasRelatedModule && hasAutomation) {
+      console.log(`[Delay Scheduler] Executing assigned Task Automation: "${task.taskAutomation}" for Task ${task.id}`);
       await executeBackendWorkflows(task.organizationId, 'Task', 'DueTimeReached', task);
-      return; // Custom script ne apna decision khud le liya hai!
+
+      // Re-verify task stage after script execution
+      const updatedTask = await prisma.task.findUnique({
+        where: { id: task.id },
+        include: { stage: true }
+      });
+
+      // Safety Fallback: If script did NOT update the stage, mark Completed to prevent duplicate runs
+      if (updatedTask && updatedTask.stageId === task.stageId && completedStage) {
+        await prisma.task.update({
+          where: { id: task.id },
+          data: {
+            stageId: completedStage.id,
+            endDateTime: new Date(),
+            completionSource: 'Automatic',
+            notes: appendSystemNote(task.notes, `✅ [Automatic Completed]: Automation "${task.taskAutomation}" executed.`)
+          }
+        });
+        console.log(`✅ [Delay Scheduler] Task "${task.taskName}" auto-completed (Safety Fallback) after running "${task.taskAutomation}".`);
+      } else if (updatedTask && !updatedTask.completionSource) {
+        await prisma.task.update({
+          where: { id: task.id },
+          data: { completionSource: 'Automatic' }
+        });
+      }
+      return;
     }
 
-    // 2. Universal Audit Verification (AuditLog se check karo kaam hua ya nahi):
-    const auditResult = await verifyTaskWork(task);
-
-    if (auditResult.verified && completedStage) {
-      // Work verified from AuditLog -> Move to Completed
+    // Case-1 (none/none), Case-3 (selected/none), Case-4 (none/selected):
+    // Move to Overdue with completionSource = 'Automatic'
+    if (overdueStage) {
       const updatedNotes = appendSystemNote(
         task.notes,
-        `✅ [System Verified]: ${auditResult.summary}`
-      );
-      await prisma.task.update({
-        where: { id: task.id },
-        data: {
-          stageId: completedStage.id,
-          endDateTime: new Date(),
-          completionSource: 'System Auto-Verified',
-          notes: updatedNotes
-        }
-      });
-      console.log(`✅ [Delay Scheduler] Task "${task.taskName}" verified & marked as COMPLETED!`);
-    } else if (overdueStage) {
-      // Work not found or deadline passed -> Move to Overdue
-      const updatedNotes = appendSystemNote(
-        task.notes,
-        `⚠️ [Deadline Reached]: ${auditResult.reason || 'Moved to Overdue at due time.'}`
+        `⚠️ [Automatic Overdue]: Due date passed without completion.`
       );
       await prisma.task.update({
         where: { id: task.id },
         data: {
           stageId: overdueStage.id,
+          completionSource: 'Automatic',
           notes: updatedNotes
         }
       });
-      console.log(`❌ [Delay Scheduler] Task "${task.taskName}" marked as OVERDUE!`);
+      console.log(`❌ [Delay Scheduler] Task "${task.taskName}" marked as OVERDUE with completionSource = Automatic.`);
     }
 
   } catch (error) {
