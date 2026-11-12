@@ -119,6 +119,18 @@ export async function GET(request) {
                                         notes: appendSystemNote(task.notes, `✅ [Automatic Completed]: Automation "${task.taskAutomation}" executed.`)
                                     }
                                 });
+
+                                // Audit Log for Cron Auto-Completed
+                                await prisma.auditLog.create({
+                                    data: {
+                                        organizationId: task.organizationId,
+                                        moduleType: 'Task',
+                                        recordId: task.id,
+                                        userEmail: 'system@automation',
+                                        actionType: 'AUTOMATED_COMPLETED',
+                                        details: { stage: 'Completed', automation: task.taskAutomation }
+                                    }
+                                }).catch(e => console.warn('AuditLog cron error:', e.message));
                             }
                         } else if (updatedTask && !updatedTask.completionSource) {
                             // If script moved stage, ensure completionSource is marked Automatic
@@ -142,6 +154,19 @@ export async function GET(request) {
                                     notes: appendSystemNote(task.notes, `⚠️ [Automatic Overdue]: Automation "${task.taskAutomation}" script not found or inactive.`)
                                 }
                             });
+
+                            // Audit Log for Cron Auto-Overdue
+                            await prisma.auditLog.create({
+                                data: {
+                                    organizationId: task.organizationId,
+                                    moduleType: 'Task',
+                                    recordId: task.id,
+                                    userEmail: 'system@automation',
+                                    actionType: 'AUTOMATED_OVERDUE',
+                                    details: { stage: 'Overdue', reason: 'Automation not found' }
+                                }
+                            }).catch(e => console.warn('AuditLog cron error:', e.message));
+
                             results.tasksMarkedOverdue += 1;
                         }
                     }
@@ -160,6 +185,19 @@ export async function GET(request) {
                                 notes: appendSystemNote(task.notes, `⚠️ [Automatic Overdue]: Due date passed.`)
                             }
                         });
+
+                        // Audit Log for Cron Auto-Overdue
+                        await prisma.auditLog.create({
+                            data: {
+                                organizationId: task.organizationId,
+                                moduleType: 'Task',
+                                recordId: task.id,
+                                userEmail: 'system@automation',
+                                actionType: 'AUTOMATED_OVERDUE',
+                                details: { stage: 'Overdue', reason: 'Due date passed' }
+                            }
+                        }).catch(e => console.warn('AuditLog cron error:', e.message));
+
                         results.tasksMarkedOverdue += 1;
                     }
                 }

@@ -104,6 +104,7 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
   // Helper to get human friendly action labels and colors
   const getActionBadge = (actionType) => {
     const act = (actionType || '').toUpperCase();
+    if (act.includes('AUTO')) return { label: 'Automated', color: '#059669', bg: '#ecfdf5', icon: '🤖' };
     if (act.includes('CREATE')) return { label: 'Created', color: '#10b981', bg: '#ecfdf5', icon: '✨' };
     if (act.includes('DELETE')) return { label: 'Deleted', color: '#ef4444', bg: '#fef2f2', icon: '🗑️' };
     if (act.includes('RECURR')) return { label: 'Recurred', color: '#6366f1', bg: '#e0e7ff', icon: '🔁' };
@@ -400,7 +401,8 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
       const modifiedBy = lead.lastModifiedByName ||
         usersMap[lead.lastModifiedById] ||
         (lead.lastModifiedById === currentUser?.id ? currentNick : null) ||
-        lead.owner ||
+        lead.assignedByName ||
+        lead.assignedBy ||
         currentNick ||
         "Team User";
 
@@ -897,7 +899,7 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
       const scanField = (fieldName, fieldLabel, val) => {
         if (!val || typeof val !== 'string') return;
         const lowerVal = val.toLowerCase();
-        
+
         // Audio files
         if (lowerVal.endsWith('.mp3') || lowerVal.endsWith('.wav') || lowerVal.endsWith('.webm') || lowerVal.endsWith('.ogg') || lowerVal.endsWith('.m4a') || lowerVal.includes('/audio/')) {
           extractedAssets.push({
@@ -1351,16 +1353,8 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
           {/* 👇 Ye wala wrapper div delete ho gaya tha */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', gap: '1rem' }}>
 
-            {/* Left Side: Avatar & Name */}
+            {/* Left Side: Name & Stage */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <div style={{
-                width: '48px', height: '48px', borderRadius: '50%',
-                backgroundColor: `${stageColor}20`, color: stageColor,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '1.1rem', fontWeight: 600, letterSpacing: '1px'
-              }}>
-                {getInitials(displayName)}
-              </div>
               <div>
                 <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
                   {displayName}

@@ -69,21 +69,9 @@ export async function executeBackendWorkflows(organizationId, moduleType, record
 
         if (workflows.length === 0) return;
 
-        // Fetch all taskAutomation names currently designated for Tasks to prevent accidental trigger
-        const activeTaskAutomations = await prisma.task.findMany({
-            where: {
-                organizationId,
-                taskAutomation: { not: null }
-            },
-            select: { taskAutomation: true },
-            distinct: ['taskAutomation']
-        });
-        const taskAutomationNames = new Set(activeTaskAutomations.map(t => t.taskAutomation).filter(Boolean));
-
-        // Filter out workflows that are actually designated for Task dropdowns
-        const eligibleWorkflows = moduleType !== 'Task'
-            ? workflows.filter(w => !taskAutomationNames.has(w.name))
-            : workflows;
+        // Workflows fetched are already scoped to `moduleType`.
+        // Only if moduleType is NOT 'Task', exclude workflows that belong specifically to 'Task' automation
+        const eligibleWorkflows = workflows;
 
         if (eligibleWorkflows.length === 0) return;
 

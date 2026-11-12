@@ -196,6 +196,19 @@ export async function PUT(request) {
             include: { stage: true }
         });
 
+        // Generate Audit Log for Custom Module record
+        await prisma.auditLog.create({
+            data: {
+                organizationId: user.organizationId,
+                moduleType: 'CustomRecord',
+                recordId: id,
+                userId: user.id,
+                userEmail: user.email,
+                actionType: stageId ? "StageChanged" : "Updated",
+                details: stageId ? { stage: updatedRecord.stage?.name || 'Stage updated' } : { updated: true }
+            }
+        }).catch(e => console.warn('AuditLog error in custom record:', e.message));
+
         const enrichedUpdatedRecord = await enrichWithUserNames(updatedRecord);
         return NextResponse.json(enrichedUpdatedRecord);
     } catch (error) {

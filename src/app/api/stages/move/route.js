@@ -87,17 +87,20 @@ export async function POST(request) {
       });
     }
 
-    // 3. Create Audit Log for the stage transition
+    // 3. Create Audit Log for the stage transition (Universal)
     await prisma.auditLog.create({
       data: {
         organizationId: user.organizationId,
+        moduleType: normModule,
+        recordId: recordId,
         leadId: lower === 'lead' ? recordId : null,
-        actionType: 'StageChangedBySDK',
+        userId: user.id,
+        userEmail: user.email,
+        actionType: 'StageChanged',
         details: {
+          stage: targetStage.name,
           moduleType: normModule,
-          recordId,
-          newStageId: targetStage.id,
-          newStageName: targetStage.name
+          newStageId: targetStage.id
         }
       }
     });

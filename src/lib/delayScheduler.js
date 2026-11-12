@@ -243,6 +243,19 @@ export async function runTaskAudit(taskId) {
             notes: appendSystemNote(task.notes, `✅ [Automatic Completed]: Automation "${task.taskAutomation}" executed.`)
           }
         });
+
+        // Audit Trail entry for System Automation
+        await prisma.auditLog.create({
+          data: {
+            organizationId: task.organizationId,
+            moduleType: 'Task',
+            recordId: task.id,
+            userEmail: 'system@automation',
+            actionType: 'AUTOMATED_COMPLETED',
+            details: { stage: 'Completed', automation: task.taskAutomation }
+          }
+        }).catch(e => console.warn('AuditLog error in delayScheduler:', e.message));
+
         console.log(`✅ [Delay Scheduler] Task "${task.taskName}" auto-completed (Safety Fallback) after running "${task.taskAutomation}".`);
       } else if (updatedTask && !updatedTask.completionSource) {
         await prisma.task.update({
@@ -256,10 +269,6 @@ export async function runTaskAudit(taskId) {
     // Case-1 (none/none), Case-3 (selected/none), Case-4 (none/selected):
     // Move to Overdue with completionSource = 'Automatic'
     if (overdueStage) {
-      const updatedNotes = appendSystemNote(
-        task.notes,
-        `⚠️ [Automatic Overdue]: Due date passed without completion.`
-      );
       await prisma.task.update({
         where: { id: task.id },
         data: {
@@ -268,6 +277,19 @@ export async function runTaskAudit(taskId) {
           notes: updatedNotes
         }
       });
+
+      // Audit Trail entry for System Overdue
+      await prisma.auditLog.create({
+        data: {
+          organizationId: task.organizationId,
+          moduleType: 'Task',
+          recordId: task.id,
+          userEmail: 'system@automation',
+          actionType: 'AUTOMATED_OVERDUE',
+          details: { stage: 'Overdue', reason: 'Due date passed' }
+        }
+      }).catch(e => console.warn('AuditLog error in delayScheduler:', e.message));
+
       console.log(`❌ [Delay Scheduler] Task "${task.taskName}" marked as OVERDUE with completionSource = Automatic.`);
     }
 

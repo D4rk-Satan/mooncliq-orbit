@@ -24,12 +24,15 @@ export async function GET(request) {
 
     const skip = (page - 1) * limit;
 
-    // Fetch total count and paginated logs in parallel (Fast!)
+    // Fetch total count and paginated logs in parallel (Universal across all modules)
     const [logs, totalCount] = await Promise.all([
       prisma.auditLog.findMany({
         where: {
           organizationId: user.organizationId,
-          recordId: String(recordId)
+          OR: [
+            { recordId: String(recordId) },
+            { leadId: String(recordId) }
+          ]
         },
         orderBy: {
           createdAt: 'desc'
@@ -40,7 +43,10 @@ export async function GET(request) {
       prisma.auditLog.count({
         where: {
           organizationId: user.organizationId,
-          recordId: String(recordId)
+          OR: [
+            { recordId: String(recordId) },
+            { leadId: String(recordId) }
+          ]
         }
       })
     ]);
@@ -57,13 +63,16 @@ export async function GET(request) {
       userMap[u.id] = u.profile?.nickname || u.nickname || u.name || u.email?.split('@')[0] || u.email;
     });
 
-    const enrichedLogs = logs.map(l => ({
-      id: l.id,
-      actionType: l.actionType,
-      details: l.details,
-      createdAt: l.createdAt,
-      authorName: (l.userId && userMap[l.userId]) || l.userEmail?.split('@')[0] || l.userEmail || "System User"
-    }));
+    const enrichedLogs = logs.map(l => {
+      const isSystem = (l.userEmail && l.userEmail.includes('system')) || (l.actionType && l.actionType.toUpperCase().includes('AUTO')) || (!l.userId && !l.userEmail);
+      return {
+        id: l.id,
+        actionType: l.actionType,
+        details: l.details,
+        createdAt: l.createdAt,
+        authorName: isSystem ? "System Automation 🤖" : ((l.userId && userMap[l.userId]) || l.userEmail?.split('@')[0] || l.userEmail || "Team Member")
+      };
+    });
 
     return NextResponse.json({
       logs: enrichedLogs,

@@ -390,13 +390,17 @@ export const PATCH = withPermission('Lead', 'edit', async (request, user) => {
       }
     });
 
-    // Generate Audit Log
+    // Generate Audit Log (Universal Record ID & User Attribution)
     await prisma.auditLog.create({
       data: {
         organizationId: user.organizationId,
+        moduleType: 'Lead',
+        recordId: updatedLead.id,
         leadId: updatedLead.id,
-        actionType: "StageChanged",
-        details: { newStageId: stageId }
+        userId: user.id,
+        userEmail: user.email,
+        actionType: stageId ? "StageChanged" : "Updated",
+        details: stageId ? { stage: updatedLead.stage?.name || 'Stage updated' } : updateData
       }
     });
     // Execute Backend Workflows (Async)

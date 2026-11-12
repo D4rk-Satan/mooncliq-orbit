@@ -348,13 +348,16 @@ export const PATCH = withPermission('Deal', 'edit', async (request, user) => {
     // --------------------------------------------------------
 
 
-    // Generate Audit Log
+    // Generate Audit Log (Universal Record ID & User Attribution)
     await prisma.auditLog.create({
       data: {
         organizationId: user.organizationId,
-        DealId: updatedDeal.id,
-        actionType: "StageChanged",
-        details: { newStageId: stageId }
+        moduleType: 'Deal',
+        recordId: updatedDeal.id,
+        userId: user.id,
+        userEmail: user.email,
+        actionType: stageId ? "StageChanged" : "Updated",
+        details: stageId ? { stage: updatedDeal.stage?.name || 'Stage updated' } : updateData
       }
     });
     // Execute Backend Workflows (Async)
