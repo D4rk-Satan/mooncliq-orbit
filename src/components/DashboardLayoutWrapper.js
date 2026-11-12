@@ -5,15 +5,17 @@ import Sidebar from './Sidebar';
 import OnboardingModal from './OnboardingModal';
 import { AppBootstrapProvider } from '../contexts/AppBootstrapContext';
 
-export default function DashboardLayoutWrapper({ 
-  children, 
+export default function DashboardLayoutWrapper({
+  children,
   initialOnboardingDone = false,
-  initialBootstrap = null 
+  initialBootstrap = null
 }) {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const authRoutes = ['/', '/sign-in', '/sign-up', '/forgot-password'];
   const isAuthPage = authRoutes.includes(pathname) || pathname.startsWith('/invite');
+  const isSettingsPage = pathname?.startsWith('/settings');
+
 
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -95,11 +97,14 @@ export default function DashboardLayoutWrapper({
             }}
           />
         )}
-        <Sidebar
-          isMobileMenuOpen={isMobileMenuOpen}
-          setIsMobileMenuOpen={setIsMobileMenuOpen}
-          refreshKey={refreshSidebarKey}
-        />
+        {!isSettingsPage && (
+          <Sidebar
+            isMobileMenuOpen={isMobileMenuOpen}
+            setIsMobileMenuOpen={setIsMobileMenuOpen}
+            refreshKey={refreshSidebarKey}
+          />
+        )}
+
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
           {/* MOBILE HEADER (Only visible on phones) */}

@@ -949,13 +949,52 @@ export default function SettingsPage() {
     <>
 
       <main className="dashboard-main" style={{ height: '100vh', overflowY: 'hidden', display: 'flex', flexDirection: 'column' }}>
-        <header className="dashboard-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <h1>Admin Settings</h1>
+        <header className="dashboard-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 2rem', background: '#ffffff', borderBottom: '1px solid #e2e8f0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#eff6ff', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Settings size={20} />
+            </div>
+            <div>
+              <h1 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, color: '#0f172a' }}>Settings Hub</h1>
+            </div>
           </div>
+
+          {/* 🚀 Return to Dashboard Button */}
+          <button
+            onClick={() => router.push('/dashboard')}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '0.55rem 1.1rem',
+              borderRadius: '8px',
+              background: '#ffffff',
+              color: '#0f172a',
+              border: '1px solid #cbd5e1',
+              fontSize: '0.875rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+              transition: 'all 0.15s ease'
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.backgroundColor = '#f8fafc';
+              e.currentTarget.style.borderColor = '#94a3b8';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.backgroundColor = '#ffffff';
+              e.currentTarget.style.borderColor = '#cbd5e1';
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M19 12H5M12 19l-7-7 7-7" />
+            </svg>
+            <span>Return to Dashboard</span>
+          </button>
         </header>
 
-        <div className="module-content" style={{ padding: '1rem', maxWidth: '1200px', overflowY: 'auto', flex: 1 }}>
+
+        <div className="module-content" style={{ padding: '1.5rem 2rem', maxWidth: '100%', overflowY: 'auto', flex: 1 }}>
           {isLoading ? (
             <GlobalLoader />
           ) : !blueprint || blueprint.error ? (
@@ -1606,8 +1645,8 @@ export default function SettingsPage() {
                                       Primary Admin
                                     </span>
                                   ) : (
-                                    <button 
-                                      onClick={() => handleRevokeAccess(user.id)} 
+                                    <button
+                                      onClick={() => handleRevokeAccess(user.id)}
                                       style={{ background: 'none', border: '1px solid #ef4444', color: '#ef4444', padding: '0.25rem 0.75rem', borderRadius: '4px', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600 }}
                                     >
                                       Revoke Access
