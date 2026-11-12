@@ -235,6 +235,7 @@ model Tag {
   moduleType     String       @default("Lead")
   name           String
   color          String       @default("#ef4444")
+  isActive       Boolean      @default(true)
   createdAt      DateTime     @default(now())
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   deals          Deal[]       @relation("DealToTag")

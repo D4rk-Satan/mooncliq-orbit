@@ -1113,12 +1113,12 @@ export default function DynamicModuleView({
                 <div style={{ padding: '0.6rem 0.85rem', borderBottom: '1px solid #f1f5f9', fontWeight: 700, fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase' }}>
                   Select a Tag
                 </div>
-                {(!tags || tags.length === 0) ? (
+                {(!tags || tags.filter(t => t.isActive !== false).length === 0) ? (
                   <div style={{ padding: '0.85rem', fontSize: '0.8rem', color: '#94a3b8', textAlign: 'center' }}>
-                    No tags available
+                    No active tags available
                   </div>
                 ) : (
-                  tags.map(tag => (
+                  tags.filter(t => t.isActive !== false).map(tag => (
                     <div
                       key={tag.id}
                       onClick={async () => {

@@ -29,7 +29,7 @@ export default function CustomModulePage() {
   const [records, setRecords] = useState([]);
   const [blueprint, setBlueprint] = useState(null);
   const [loading, setLoading] = useState(true);
-
+  const [tags, setTags] = useState([]);
   // Form states
   const [isNewRecordPanelOpen, setIsNewRecordPanelOpen] = useState(false);
   const [recordToEdit, setRecordToEdit] = useState(null);
@@ -48,6 +48,11 @@ export default function CustomModulePage() {
         const allMods = await modRes.json();
         const currentMod = allMods.find(m => m.id === moduleId);
         setModuleDef(currentMod);
+
+        const tagsRes = await fetch(`/api/tags?moduleType=${encodeURIComponent(currentMod?.name || moduleId)}&activeOnly=true`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (tagsRes.ok) setTags(await tagsRes.json());
 
         // 2. Fetch Module Records
         const recRes = await fetch(`/api/custom-modules/records?moduleId=${moduleId}`, {
@@ -215,13 +220,49 @@ export default function CustomModulePage() {
     }
   };
 
+
+  const handleBulkTagApply = async (tag, selectedIds) => {
+    try {
+      const token = await getAuthToken();
+      await Promise.all(selectedIds.map(async (recId) => {
+        const rec = records.find(r => r.id === recId);
+        let existingTags = [];
+        try {
+          existingTags = Array.isArray(rec.customData?.tags)
+            ? rec.customData.tags
+            : (Array.isArray(rec.tags) ? rec.tags : JSON.parse(rec.tags || '[]'));
+        } catch (e) { }
+        if (existingTags.some(t => t.id === tag.id || t === tag.id)) return;
+        const newTags = [...existingTags, tag];
+        await fetch(`/api/custom-modules/records?id=${recId}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            customData: {
+              ...(rec.customData || {}),
+              tags: newTags
+            }
+          })
+        });
+      }));
+      // Refresh listview
+      window.location.reload();
+    } catch (err) {
+      console.error("Failed to apply tags to custom records:", err);
+    }
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       <DynamicModuleView
         moduleName={moduleDef.name}
         records={records}
         blueprint={blueprint}
-        tags={[]}
+        tags={tags}
+        onBulkTagApply={handleBulkTagApply}
         supportKanban={true}
         onDropRecord={handleDropRecord}
         onRecordClick={(record) => setSelectedRecord(record)} // Open slide over panel on row click
@@ -258,6 +299,7 @@ export default function CustomModulePage() {
           setSelectedRecord(null); // Close preview panel when editing
         } : null}
         onLeadUpdate={handleUpdateRecord}
+        tags={tags}
         hasNext={hasNext}
         hasPrev={hasPrev}
         onNext={handleNext}

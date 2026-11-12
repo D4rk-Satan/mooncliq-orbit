@@ -1279,11 +1279,11 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
             </h3>
 
             <div style={{ marginBottom: '2rem' }}>
-              {tags.length === 0 ? (
-                <p style={{ color: '#64748b', fontSize: '0.9rem' }}>No tags available. Please define tags in Settings Hub.</p>
+              {tags.filter(t => t.isActive !== false).length === 0 ? (
+                <p style={{ color: '#64748b', fontSize: '0.9rem' }}>No active tags available.</p>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  {tags.map(tag => (
+                  {tags.filter(t => t.isActive !== false).map(tag => (
                     <div
                       key={tag.id}
                       onClick={async () => {

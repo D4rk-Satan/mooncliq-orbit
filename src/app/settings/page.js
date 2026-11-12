@@ -19,7 +19,8 @@ import {
   Factory, Shirt, Scissors, Package, Warehouse, Truck, Box, Wrench,
   Hammer, Settings, Ruler, Scale, ClipboardList, Tags, PenTool,
   HardHat, Droplet, Zap, Flame, Ship, Train, Sprout, Barcode,
-  Receipt, ShieldCheck, Fan, Archive, Layers, Briefcase, Activity
+  Receipt, ShieldCheck, Fan, Archive, Layers, Briefcase, Activity,
+  Search, Sliders, Code2, Users, CreditCard, MessageSquare, ChevronRight, ArrowLeft
 } from 'lucide-react';
 import GlobalLoader from "../../components/ui/GlobalLoader";
 
@@ -255,6 +256,7 @@ export default function SettingsPage() {
   };
 
   const [activeFeature, setActiveFeature] = useState(null);
+  const [hubSearchQuery, setHubSearchQuery] = useState('');
 
   // New Field State
   const [newField, setNewField] = useState({ name: "", label: "", type: "text", options: "", targetModule: "Account", isMultiSelect: false, isBiDirectional: false, targetDisplayField: "name", isPublic: true, relatedListLabel: "", filters: [] });
@@ -413,6 +415,7 @@ export default function SettingsPage() {
   const [tags, setTags] = useState([]);
   const [isAddingTag, setIsAddingTag] = useState(false);
   const [newTag, setNewTag] = useState({ name: "", color: "#ef4444", customColor: false });
+  const [tagSearchQuery, setTagSearchQuery] = useState('');
   const [isStageDropdownOpen, setIsStageDropdownOpen] = useState(false);
   // selectedRule schema: { id, name, toStageId, fromStageIds: [], isGlobal: boolean, requiredFields: [], necessaryFields: [] }
 
@@ -420,7 +423,7 @@ export default function SettingsPage() {
     fetchBlueprint();
     fetchTags();
     fetchProfiles();
-  }, [selectedModule]);
+  }, [selectedModule, currentView]);
 
   const getAuthToken = async () => {
     const { fetchAuthSession } = await import('aws-amplify/auth');
@@ -677,6 +680,27 @@ export default function SettingsPage() {
         console.error(err);
       }
     });
+  };
+
+  const handleToggleTagStatus = async (tagId, currentStatus) => {
+    // Optimistic UI update
+    setTags(prev => prev.map(t => t.id === tagId ? { ...t, isActive: !currentStatus } : t));
+
+    try {
+      const token = await getAuthToken();
+      const res = await fetch('/api/tags', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ id: tagId, isActive: !currentStatus })
+      });
+      if (!res.ok) {
+        setTags(prev => prev.map(t => t.id === tagId ? { ...t, isActive: currentStatus } : t));
+        alert("Failed to update tag status");
+      }
+    } catch (err) {
+      console.error(err);
+      setTags(prev => prev.map(t => t.id === tagId ? { ...t, isActive: currentStatus } : t));
+    }
   };
 
   const handleSaveProfile = async () => {
@@ -994,1239 +1018,1818 @@ export default function SettingsPage() {
         </header>
 
 
-        <div className="module-content" style={{ padding: '1.5rem 2rem', maxWidth: '100%', overflowY: 'auto', flex: 1 }}>
+        <div className="module-content" style={{ padding: currentView === 'hub' ? '1.5rem 2rem' : '0', maxWidth: '100%', overflowY: currentView === 'hub' ? 'auto' : 'hidden', flex: 1, display: 'flex' }}>
           {isLoading ? (
-            <GlobalLoader />
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <GlobalLoader />
+            </div>
           ) : !blueprint || blueprint.error ? (
-            <div>Failed to load blueprint: {blueprint?.error || "Unknown error"}</div>
+            <div style={{ padding: '2rem' }}>Failed to load blueprint: {blueprint?.error || "Unknown error"}</div>
           ) : currentView === 'hub' ? (
-            <div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '2rem' }}>
+            <div style={{ maxWidth: '1400px', margin: '0 auto', width: '100%' }}>
+              {/* Clean Enterprise Subheader & Search */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem', gap: '1.5rem', flexWrap: 'wrap' }}>
+                <div>
+                  <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0f172a', margin: '0 0 0.35rem 0' }}>Settings Workspace</h2>
+                  <p style={{ margin: 0, fontSize: '0.9rem', color: '#64748b' }}>Configure customization, workflow automation, and organization access.</p>
+                </div>
+                <div style={{ position: 'relative', minWidth: '320px' }}>
+                  <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                  <input
+                    type="text"
+                    placeholder="Search settings..."
+                    value={hubSearchQuery}
+                    onChange={(e) => setHubSearchQuery(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '0.6rem 1rem 0.6rem 2.4rem',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.875rem',
+                      color: '#0f172a',
+                      background: '#ffffff',
+                      outline: 'none',
+                      transition: 'all 0.15s'
+                    }}
+                    onFocus={e => e.target.style.borderColor = '#3b82f6'}
+                    onBlur={e => e.target.style.borderColor = '#cbd5e1'}
+                  />
+                </div>
+              </div>
 
-                {/* Customization Card */}
-                <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '1.5rem', boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.05)', border: '1px solid #e2e8f0' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
-                    <div style={{ background: '#f3f4f6', padding: '0.5rem', borderRadius: '8px', color: '#475569' }}>
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72Z" /><path d="m14 7 3 3" /><path d="M5 6v4" /><path d="M19 14v4" /><path d="M10 2v2" /><path d="M7 8H3" /><path d="M21 16h-4" /><path d="M11 3H9" /></svg>
-                    </div>
-                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: '#0f172a' }}>Customization</h3>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                    <button onClick={() => { setActiveFeature('layout-builder'); setCurrentView('module-list'); }} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
-                      Form Layout Builder
-                    </button>
-                    <button
-                      onClick={() => setCurrentView('custom-modules')}
-                      style={{ textAlign: 'left', padding: '0.5rem', background: currentView === 'custom-modules' ? '#e2e8f0' : 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }}
-                      onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'}
-                      onMouseLeave={e => e.target.style.backgroundColor = currentView === 'custom-modules' ? '#e2e8f0' : 'transparent'}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        Custom Modules
+              {/* Categorized Clean Hub Cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1.5rem' }}>
+
+                {/* Section 1: Customization & UI */}
+                {(!hubSearchQuery || ['layout', 'form', 'custom', 'modules', 'tags', 'blueprint'].some(k => k.includes(hubSearchQuery.toLowerCase()))) && (
+                  <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '1.5rem', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem', paddingBottom: '0.75rem', borderBottom: '1px solid #f1f5f9' }}>
+                      <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Sliders size={18} />
                       </div>
-                    </button>
-
-                    <button onClick={() => { setActiveFeature('tags'); setCurrentView('module-list'); }} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
-                      Manage Tags
-                    </button>
-                    <button onClick={() => { setActiveFeature('blueprint'); setCurrentView('blueprint-list'); }} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
-                      Blueprint Engine
-                    </button>
-
-                  </div>
-                </div>
-
-                {/* Developer Tools Card */}
-                <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '1.5rem', boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.05)', border: '1px solid #e2e8f0' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
-                    <div style={{ background: '#f3f4f6', padding: '0.5rem', borderRadius: '8px', color: '#475569' }}>
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" /></svg>
+                      <div>
+                        <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 600, color: '#0f172a' }}>Customization & UI</h3>
+                        <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Form fields, module layouts & tags</span>
+                      </div>
                     </div>
-                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: '#0f172a' }}>Developer</h3>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                    <button onClick={() => setCurrentView('workflows')} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
-                      Webhook Engine
-                    </button>
-                    <button onClick={() => setCurrentView('client-scripts')} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
-                      Custom Scripts
-                    </button>
-                    <button onClick={() => setCurrentView('task-automation')} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
-                      Task Automation
-                    </button>
-                  </div>
-                </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                      <button
+                        onClick={() => { setActiveFeature('layout-builder'); setCurrentView('module-list'); }}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', textAlign: 'left', padding: '0.65rem 0.75rem', background: 'none', border: 'none', cursor: 'pointer', color: '#334155', fontSize: '0.9rem', borderRadius: '6px', fontWeight: 500, transition: 'all 0.15s' }}
+                        onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#f8fafc'; e.currentTarget.style.color = '#2563eb'; }}
+                        onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#334155'; }}
+                      >
+                        <span>Form Layout Builder</span>
+                        <ChevronRight size={15} color="#94a3b8" />
+                      </button>
 
-                {/* System & Modules Card */}
-                <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '1.5rem', boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.05)', border: '1px solid #e2e8f0' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
-                    <div style={{ background: '#f3f4f6', padding: '0.5rem', borderRadius: '8px', color: '#475569' }}>
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
+                      <button
+                        onClick={() => setCurrentView('custom-modules')}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', textAlign: 'left', padding: '0.65rem 0.75rem', background: 'none', border: 'none', cursor: 'pointer', color: '#334155', fontSize: '0.9rem', borderRadius: '6px', fontWeight: 500, transition: 'all 0.15s' }}
+                        onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#f8fafc'; e.currentTarget.style.color = '#2563eb'; }}
+                        onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#334155'; }}
+                      >
+                        <span>Custom Modules</span>
+                        <ChevronRight size={15} color="#94a3b8" />
+                      </button>
+
+                      <button
+                        onClick={() => { setActiveFeature('tags'); setCurrentView('tags'); }}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', textAlign: 'left', padding: '0.65rem 0.75rem', background: 'none', border: 'none', cursor: 'pointer', color: '#334155', fontSize: '0.9rem', borderRadius: '6px', fontWeight: 500, transition: 'all 0.15s' }}
+                        onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#f8fafc'; e.currentTarget.style.color = '#2563eb'; }}
+                        onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#334155'; }}
+                      >
+                        <span>Manage Tags</span>
+                        <ChevronRight size={15} color="#94a3b8" />
+                      </button>
+
+                      <button
+                        onClick={() => { setActiveFeature('blueprint'); setCurrentView('blueprint-list'); }}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', textAlign: 'left', padding: '0.65rem 0.75rem', background: 'none', border: 'none', cursor: 'pointer', color: '#334155', fontSize: '0.9rem', borderRadius: '6px', fontWeight: 500, transition: 'all 0.15s' }}
+                        onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#f8fafc'; e.currentTarget.style.color = '#2563eb'; }}
+                        onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#334155'; }}
+                      >
+                        <span>Blueprint Engine</span>
+                        <ChevronRight size={15} color="#94a3b8" />
+                      </button>
                     </div>
-                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: '#0f172a' }}>System Modules</h3>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                    <button onClick={() => setCurrentView('module-toggles')} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
-                      Modules & Features
-                    </button>
-                  </div>
-                </div>
+                )}
 
-                {/* Users and Control Card */}
-                <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '1.5rem', boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.05)', border: '1px solid #e2e8f0' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
-                    <div style={{ background: '#f3f4f6', padding: '0.5rem', borderRadius: '8px', color: '#475569' }}>
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+                {/* Section 2: Automation & Logic */}
+                {(!hubSearchQuery || ['webhook', 'script', 'task', 'automation', 'cron'].some(k => k.includes(hubSearchQuery.toLowerCase()))) && (
+                  <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '1.5rem', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem', paddingBottom: '0.75rem', borderBottom: '1px solid #f1f5f9' }}>
+                      <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#f5f3ff', color: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Code2 size={18} />
+                      </div>
+                      <div>
+                        <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 600, color: '#0f172a' }}>Automation & Logic</h3>
+                        <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Triggers, webhooks & automated cron jobs</span>
+                      </div>
                     </div>
-                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: '#0f172a' }}>Users & Control</h3>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                    <button onClick={() => setCurrentView('profiles')} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
-                      Roles & Profiles
-                    </button>
-                    <button onClick={() => setCurrentView('users')} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
-                      Users & Invites
-                    </button>
-                    <button onClick={() => setCurrentView('profile-settings')} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
-                      Profile & Organization
-                    </button>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                      <button
+                        onClick={() => setCurrentView('workflows')}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', textAlign: 'left', padding: '0.65rem 0.75rem', background: 'none', border: 'none', cursor: 'pointer', color: '#334155', fontSize: '0.9rem', borderRadius: '6px', fontWeight: 500, transition: 'all 0.15s' }}
+                        onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#f8fafc'; e.currentTarget.style.color = '#7c3aed'; }}
+                        onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#334155'; }}
+                      >
+                        <span>Webhook Engine</span>
+                        <ChevronRight size={15} color="#94a3b8" />
+                      </button>
 
-                  </div>
-                </div>
+                      <button
+                        onClick={() => setCurrentView('client-scripts')}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', textAlign: 'left', padding: '0.65rem 0.75rem', background: 'none', border: 'none', cursor: 'pointer', color: '#334155', fontSize: '0.9rem', borderRadius: '6px', fontWeight: 500, transition: 'all 0.15s' }}
+                        onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#f8fafc'; e.currentTarget.style.color = '#7c3aed'; }}
+                        onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#334155'; }}
+                      >
+                        <span>Custom Scripts</span>
+                        <ChevronRight size={15} color="#94a3b8" />
+                      </button>
 
-                {/* Billing & Wallet Card */}
-                <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '1.5rem', boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.05)', border: '1px solid #e2e8f0' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
-                    <div style={{ background: '#f3f4f6', padding: '0.5rem', borderRadius: '8px', color: '#475569' }}>
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="14" x="2" y="5" rx="2" /><line x1="2" x2="22" y1="10" y2="10" /></svg>
+                      <button
+                        onClick={() => setCurrentView('task-automation')}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', textAlign: 'left', padding: '0.65rem 0.75rem', background: 'none', border: 'none', cursor: 'pointer', color: '#334155', fontSize: '0.9rem', borderRadius: '6px', fontWeight: 500, transition: 'all 0.15s' }}
+                        onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#f8fafc'; e.currentTarget.style.color = '#7c3aed'; }}
+                        onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#334155'; }}
+                      >
+                        <span>Task Automation</span>
+                        <ChevronRight size={15} color="#94a3b8" />
+                      </button>
                     </div>
-                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: '#0f172a' }}>Billing & Add-ons</h3>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                    <button onClick={() => setCurrentView('billing')} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
-                      Wallet & API Usage
-                    </button>
-                    <button onClick={() => window.location.href = '/settings/whatsapp'} style={{ textAlign: 'left', padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', color: '#475569', fontSize: '0.95rem', borderRadius: '6px', transition: 'all 0.2s', fontWeight: 500 }} onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}>
-                      WhatsApp API Setup
-                    </button>
+                )}
+
+                {/* Section 3: Users & Access Control */}
+                {(!hubSearchQuery || ['role', 'profile', 'user', 'invite', 'rbac', 'access', 'org'].some(k => k.includes(hubSearchQuery.toLowerCase()))) && (
+                  <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '1.5rem', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem', paddingBottom: '0.75rem', borderBottom: '1px solid #f1f5f9' }}>
+                      <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Users size={18} />
+                      </div>
+                      <div>
+                        <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 600, color: '#0f172a' }}>Users & Control</h3>
+                        <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Roles, permissions & team invites</span>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                      <button
+                        onClick={() => setCurrentView('profiles')}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', textAlign: 'left', padding: '0.65rem 0.75rem', background: 'none', border: 'none', cursor: 'pointer', color: '#334155', fontSize: '0.9rem', borderRadius: '6px', fontWeight: 500, transition: 'all 0.15s' }}
+                        onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#f8fafc'; e.currentTarget.style.color = '#059669'; }}
+                        onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#334155'; }}
+                      >
+                        <span>Roles & Profiles</span>
+                        <ChevronRight size={15} color="#94a3b8" />
+                      </button>
+
+                      <button
+                        onClick={() => setCurrentView('users')}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', textAlign: 'left', padding: '0.65rem 0.75rem', background: 'none', border: 'none', cursor: 'pointer', color: '#334155', fontSize: '0.9rem', borderRadius: '6px', fontWeight: 500, transition: 'all 0.15s' }}
+                        onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#f8fafc'; e.currentTarget.style.color = '#059669'; }}
+                        onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#334155'; }}
+                      >
+                        <span>Users & Invites</span>
+                        <ChevronRight size={15} color="#94a3b8" />
+                      </button>
+
+                      <button
+                        onClick={() => setCurrentView('profile-settings')}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', textAlign: 'left', padding: '0.65rem 0.75rem', background: 'none', border: 'none', cursor: 'pointer', color: '#334155', fontSize: '0.9rem', borderRadius: '6px', fontWeight: 500, transition: 'all 0.15s' }}
+                        onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#f8fafc'; e.currentTarget.style.color = '#059669'; }}
+                        onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#334155'; }}
+                      >
+                        <span>Profile & Organization</span>
+                        <ChevronRight size={15} color="#94a3b8" />
+                      </button>
+                    </div>
                   </div>
-                </div>
+                )}
+
+                {/* Section 4: Billing & Add-ons */}
+                {(!hubSearchQuery || ['billing', 'wallet', 'api', 'whatsapp', 'payment'].some(k => k.includes(hubSearchQuery.toLowerCase()))) && (
+                  <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '1.5rem', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem', paddingBottom: '0.75rem', borderBottom: '1px solid #f1f5f9' }}>
+                      <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#fffbeb', color: '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <CreditCard size={18} />
+                      </div>
+                      <div>
+                        <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 600, color: '#0f172a' }}>Billing & Add-ons</h3>
+                        <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Wallet credits & third-party integrations</span>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                      <button
+                        onClick={() => setCurrentView('billing')}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', textAlign: 'left', padding: '0.65rem 0.75rem', background: 'none', border: 'none', cursor: 'pointer', color: '#334155', fontSize: '0.9rem', borderRadius: '6px', fontWeight: 500, transition: 'all 0.15s' }}
+                        onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#f8fafc'; e.currentTarget.style.color = '#d97706'; }}
+                        onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#334155'; }}
+                      >
+                        <span>Wallet & API Usage</span>
+                        <ChevronRight size={15} color="#94a3b8" />
+                      </button>
+
+                      <button
+                        onClick={() => window.location.href = '/settings/whatsapp'}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', textAlign: 'left', padding: '0.65rem 0.75rem', background: 'none', border: 'none', cursor: 'pointer', color: '#334155', fontSize: '0.9rem', borderRadius: '6px', fontWeight: 500, transition: 'all 0.15s' }}
+                        onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#f8fafc'; e.currentTarget.style.color = '#d97706'; }}
+                        onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#334155'; }}
+                      >
+                        <span>WhatsApp API Setup</span>
+                        <ChevronRight size={15} color="#94a3b8" />
+                      </button>
+                    </div>
+                  </div>
+                )}
 
               </div>
             </div>
           ) : (
-            <div className="settings-container" style={{ backgroundColor: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.05)' }}>
-
-              <div style={{ display: 'flex', alignItems: 'center', padding: '1rem 2rem', borderBottom: '1px solid #e2e8f0', backgroundColor: '#f8fafc' }}>
-                <button
-                  onClick={() => {
-                    if (isLayoutDirty) {
-                      setShakeTrigger(prev => prev + 1);
-                      return;
-                    }
-                    if (currentView === 'module-list' || currentView === 'blueprint-list') {
+            <div style={{ flex: 1, display: 'flex', height: '100%', overflow: 'hidden', background: '#f8fafc' }}>
+              {/* Sleek Settings Navigation Sidebar (260px) */}
+              <aside style={{
+                width: '260px',
+                flexShrink: 0,
+                background: '#ffffff',
+                borderRight: '1px solid #e2e8f0',
+                display: 'flex',
+                flexDirection: 'column',
+                height: '100%'
+              }}>
+                {/* Back to Hub Header */}
+                <div style={{ padding: '1rem', borderBottom: '1px solid #f1f5f9' }}>
+                  <button
+                    onClick={() => {
+                      if (isLayoutDirty) {
+                        setShakeTrigger(prev => prev + 1);
+                        return;
+                      }
                       setCurrentView('hub');
                       setActiveFeature(null);
-                    } else if (['layout-builder', 'tags'].includes(currentView)) {
-                      setCurrentView('module-list');
-                    } else if (currentView === 'blueprint') {
-                      setCurrentView('blueprint-list');
-                    } else {
-                      setCurrentView('hub');
-                    }
-
-                  }}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.95rem' }}
-                >
-                  ← Back to {currentView === 'module-list' || currentView === 'blueprint-list' ? 'Setup' : 'Modules'}
-                </button>
-                <div style={{ width: '1px', height: '24px', backgroundColor: '#cbd5e1', margin: '0 1.5rem' }}></div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                  <h2 style={{ fontSize: '1.15rem', fontWeight: 600, margin: 0, color: '#0f172a' }}>
-                    {currentView === 'module-list' && (
-                      activeFeature === 'layout-builder' ? 'Form Layout Builder' :
-                        activeFeature === 'tags' ? 'Manage Tags' :
-                          activeFeature === 'blueprint' ? 'Blueprint Engine' :
-                            'Select Module'
-                    )}
-
-                    {currentView === 'blueprint' && "Blueprint"}
-                    {currentView === 'blueprint-list' && "Blueprints"}
-                    {currentView === 'fields' && "Modules and Fields"}
-                    {currentView === 'tags' && "Tag Definitions"}
-                    {currentView === 'users' && "Users & Invitations"}
-                    {currentView === 'workflows' && "Webhook Engine"}
-                    {currentView === 'client-scripts' && "Custom Scripts"}
-                    {currentView === 'layout-builder' && "Form Layout Builder"}
-                    {currentView === 'billing' && "Billing & Wallet"}
-                    {currentView === 'custom-modules' && "Custom Modules"}
-                    {currentView === 'profile-settings' && "Profile & Organization"}
-
-                  </h2>
-
+                    }}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '0.55rem 0.75rem',
+                      borderRadius: '8px',
+                      border: '1px solid #e2e8f0',
+                      background: '#f8fafc',
+                      color: '#475569',
+                      fontSize: '0.85rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s'
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.backgroundColor = '#eff6ff';
+                      e.currentTarget.style.borderColor = '#bfdbfe';
+                      e.currentTarget.style.color = '#2563eb';
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.backgroundColor = '#f8fafc';
+                      e.currentTarget.style.borderColor = '#e2e8f0';
+                      e.currentTarget.style.color = '#475569';
+                    }}
+                  >
+                    <ArrowLeft size={16} />
+                    <span>All Settings Hub</span>
+                  </button>
                 </div>
-              </div>
 
-              <div style={{ padding: '1rem' }}>
-
-
-                {/* ================= MODULE TOGGLES VIEW ================= */}
-                {currentView === 'module-toggles' && (
-                  <div style={{ padding: '2rem', maxWidth: '800px', margin: '0 auto' }}>
-                    <div style={{ marginBottom: '2rem' }}>
-                      <h2 style={{ fontSize: '1.5rem', fontWeight: 600, color: '#0f172a', marginBottom: '0.5rem' }}>Modules & Features</h2>
-                      <p style={{ color: '#64748b' }}>Turn on/off specific CRM modules for your organization. Data is preserved even if disabled.</p>
+                {/* Sidebar Navigation Items */}
+                <div style={{ flex: 1, overflowY: 'auto', padding: '1rem 0.75rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                  {/* Category 1: Customization */}
+                  <div>
+                    <div style={{ padding: '0 0.5rem 0.35rem', fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Customization
                     </div>
-
-                    <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', marginBottom: '2rem' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                        <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                          <tr>
-                            <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>System Module</th>
-                            <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600, width: '150px', textAlign: 'right' }}>Status</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {['Lead', 'Deal', 'Account', 'Task', 'Products'].map((mod, idx, arr) => {
-                            const isActive = activeModules.includes(mod);
-                            return (
-                              <tr key={mod} style={{ borderBottom: idx === arr.length - 1 ? 'none' : '1px solid #e2e8f0', transition: 'background-color 0.2s' }} onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
-                                <td style={{ padding: '1rem', color: '#0f172a', fontWeight: 600 }}>{mod}</td>
-                                <td style={{ padding: '1rem', textAlign: 'right' }}>
-                                  <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', cursor: 'pointer' }}>
-                                    <input type="checkbox" style={{ display: 'none' }} checked={isActive} onChange={() => handleToggleModule(mod)} />
-                                    <span style={{ marginRight: '0.5rem', fontSize: '0.85rem', color: isActive ? '#10b981' : '#94a3b8', fontWeight: 500 }}>{isActive ? 'Active' : 'Disabled'}</span>
-                                    <div style={{ position: 'relative', width: '36px', height: '20px', backgroundColor: isActive ? '#10b981' : '#e2e8f0', borderRadius: '10px', transition: 'background-color 0.2s' }}>
-                                      <div style={{ position: 'absolute', top: '2px', left: isActive ? '18px' : '2px', width: '16px', height: '16px', backgroundColor: 'white', borderRadius: '50%', transition: 'all 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}></div>
-                                    </div>
-                                  </label>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-
-                    {customModules.length > 0 && (
-                      <>
-                        <div style={{ marginBottom: '1rem' }}>
-                          <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#0f172a' }}>Custom Modules</h2>
-                        </div>
-                        <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
-                          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                            <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                              <tr>
-                                <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Module Name</th>
-                                <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600, width: '150px', textAlign: 'right' }}>Status</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {customModules.map((mod, idx, arr) => {
-                                const isActive = mod.isActive;
-                                return (
-                                  <tr key={mod.id} style={{ borderBottom: idx === arr.length - 1 ? 'none' : '1px solid #e2e8f0', transition: 'background-color 0.2s' }} onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
-                                    <td style={{ padding: '1rem', color: '#0f172a', fontWeight: 600 }}>{mod.name}</td>
-                                    <td style={{ padding: '1rem', textAlign: 'right' }}>
-                                      <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', cursor: 'pointer' }}>
-                                        <input type="checkbox" style={{ display: 'none' }} checked={isActive} onChange={() => handleToggleCustomModule(mod.id, isActive)} />
-                                        <span style={{ marginRight: '0.5rem', fontSize: '0.85rem', color: isActive ? '#10b981' : '#94a3b8', fontWeight: 500 }}>{isActive ? 'Active' : 'Disabled'}</span>
-                                        <div style={{ position: 'relative', width: '36px', height: '20px', backgroundColor: isActive ? '#10b981' : '#e2e8f0', borderRadius: '10px', transition: 'background-color 0.2s' }}>
-                                          <div style={{ position: 'absolute', top: '2px', left: isActive ? '18px' : '2px', width: '16px', height: '16px', backgroundColor: 'white', borderRadius: '50%', transition: 'all 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}></div>
-                                        </div>
-                                      </label>
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                )}
-
-                {/* ================= CUSTOM MODULES VIEW ================= */}
-                {currentView === 'custom-modules' && (
-                  <div style={{ padding: '2rem', maxWidth: '800px', margin: '0 auto' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                      <h2 style={{ fontSize: '1.5rem', fontWeight: 600, color: '#0f172a' }}>Custom Modules</h2>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                       <button
-                        onClick={() => setShowCustomModuleModal(true)}
-                        style={{ backgroundColor: '#0f172a', color: 'white', padding: '0.5rem 1rem', borderRadius: '6px', border: 'none', cursor: 'pointer' }}
+                        onClick={() => { setActiveFeature('layout-builder'); setCurrentView('module-list'); }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          padding: '0.55rem 0.75rem',
+                          borderRadius: '6px',
+                          border: 'none',
+                          fontSize: '0.875rem',
+                          fontWeight: (activeFeature === 'layout-builder' && ['module-list', 'layout-builder'].includes(currentView)) ? 600 : 500,
+                          color: (activeFeature === 'layout-builder' && ['module-list', 'layout-builder'].includes(currentView)) ? '#2563eb' : '#475569',
+                          background: (activeFeature === 'layout-builder' && ['module-list', 'layout-builder'].includes(currentView)) ? '#eff6ff' : 'transparent',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          transition: 'all 0.15s'
+                        }}
                       >
-                        + Create Module
+                        <Sliders size={16} />
+                        <span>Layout Builder</span>
+                      </button>
+
+                      <button
+                        onClick={() => setCurrentView('custom-modules')}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          padding: '0.55rem 0.75rem',
+                          borderRadius: '6px',
+                          border: 'none',
+                          fontSize: '0.875rem',
+                          fontWeight: currentView === 'custom-modules' ? 600 : 500,
+                          color: currentView === 'custom-modules' ? '#2563eb' : '#475569',
+                          background: currentView === 'custom-modules' ? '#eff6ff' : 'transparent',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          transition: 'all 0.15s'
+                        }}
+                      >
+                        <Box size={16} />
+                        <span>Custom Modules</span>
+                      </button>
+
+                      <button
+                        onClick={() => { setActiveFeature('tags'); setCurrentView('tags'); }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          padding: '0.55rem 0.75rem',
+                          borderRadius: '6px',
+                          border: 'none',
+                          fontSize: '0.875rem',
+                          fontWeight: (activeFeature === 'tags' || currentView === 'tags') ? 600 : 500,
+                          color: (activeFeature === 'tags' || currentView === 'tags') ? '#2563eb' : '#475569',
+                          background: (activeFeature === 'tags' || currentView === 'tags') ? '#eff6ff' : 'transparent',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          transition: 'all 0.15s'
+                        }}
+                      >
+                        <Tags size={16} />
+                        <span>Manage Tags</span>
+                      </button>
+
+                      <button
+                        onClick={() => { setActiveFeature('blueprint'); setCurrentView('blueprint-list'); }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          padding: '0.55rem 0.75rem',
+                          borderRadius: '6px',
+                          border: 'none',
+                          fontSize: '0.875rem',
+                          fontWeight: ['blueprint', 'blueprint-list'].includes(currentView) ? 600 : 500,
+                          color: ['blueprint', 'blueprint-list'].includes(currentView) ? '#2563eb' : '#475569',
+                          background: ['blueprint', 'blueprint-list'].includes(currentView) ? '#eff6ff' : 'transparent',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          transition: 'all 0.15s'
+                        }}
+                      >
+                        <Layers size={16} />
+                        <span>Blueprint Engine</span>
                       </button>
                     </div>
+                  </div>
 
-                    {/* List of existing custom modules */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                      {customModules.length === 0 ? (
-                        <p style={{ color: '#64748b' }}>No custom modules yet. Create one to get started!</p>
-                      ) : (
-                        <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
-                          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                            <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                              <tr>
-                                <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Module Name</th>
-                                <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Last Modified</th>
-                                <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Status</th>
-                                <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600, textAlign: 'right' }}>Action</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {customModules.map((mod, idx) => {
-                                const IconComponent = ICON_MAP[mod.icon] || ICON_MAP['Box'];
-                                return (
-                                  <tr key={mod.id} style={{ borderBottom: idx === customModules.length - 1 ? 'none' : '1px solid #e2e8f0', transition: 'background-color 0.2s' }} onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
-                                    <td style={{ padding: '1rem', color: '#0f172a', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                      <div style={{ background: '#e0e7ff', color: '#4f46e5', padding: '0.35rem', borderRadius: '6px' }}>
-                                        <IconComponent size={16} strokeWidth={2} />
-                                      </div>
-                                      <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                        <span>{mod.name}</span>
-                                        <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 400 }}>Singular: {mod.singularName}</span>
-                                      </div>
-                                    </td>
-                                    <td style={{ padding: '1rem', color: '#475569', fontSize: '0.9rem' }}>Just now</td>
-                                    <td style={{ padding: '1rem' }}>
-                                      <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
-                                        <div style={{ position: 'relative', width: '36px', height: '20px', backgroundColor: '#10b981', borderRadius: '10px' }}>
-                                          <div style={{ position: 'absolute', top: '2px', left: '18px', width: '16px', height: '16px', backgroundColor: 'white', borderRadius: '50%', transition: 'all 0.2s' }}></div>
-                                        </div>
-                                        <span style={{ marginLeft: '0.5rem', fontSize: '0.85rem', color: '#475569', fontWeight: 500 }}>Active</span>
-                                      </label>
-                                    </td>
-                                    <td style={{ padding: '1rem', textAlign: 'right' }}>
-                                      <button
-                                        onClick={() => {
-                                          setNewCustomModule({ id: mod.id, name: mod.name, icon: mod.icon });
-                                          setShowCustomModuleModal(true);
-                                        }}
-                                        style={{ padding: '0.4rem 0.8rem', backgroundColor: 'transparent', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer', marginRight: '0.5rem', fontSize: '0.85rem', color: '#0f172a' }}
-                                      >
-                                        Edit
-                                      </button>
-                                      <button
-                                        onClick={() => { setSelectedModule(mod.id); setCurrentView('blueprint'); }}
-                                        style={{ padding: '0.4rem 0.8rem', backgroundColor: '#0f172a', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.85rem' }}
-                                      >
-                                        Edit Layout
-                                      </button>
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
+                  {/* Category 2: Automation */}
+                  <div>
+                    <div style={{ padding: '0 0.5rem 0.35rem', fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Automation
                     </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <button
+                        onClick={() => setCurrentView('workflows')}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          padding: '0.55rem 0.75rem',
+                          borderRadius: '6px',
+                          border: 'none',
+                          fontSize: '0.875rem',
+                          fontWeight: currentView === 'workflows' ? 600 : 500,
+                          color: currentView === 'workflows' ? '#7c3aed' : '#475569',
+                          background: currentView === 'workflows' ? '#f5f3ff' : 'transparent',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          transition: 'all 0.15s'
+                        }}
+                      >
+                        <Zap size={16} />
+                        <span>Webhook Engine</span>
+                      </button>
 
-                    {/* CREATE MODULE MODAL */}
-                    {showCustomModuleModal && (
-                      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-                        <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '12px', width: '400px' }}>
-                          <h3 style={{ marginBottom: '1rem' }}>Create New Module</h3>
+                      <button
+                        onClick={() => setCurrentView('client-scripts')}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          padding: '0.55rem 0.75rem',
+                          borderRadius: '6px',
+                          border: 'none',
+                          fontSize: '0.875rem',
+                          fontWeight: currentView === 'client-scripts' ? 600 : 500,
+                          color: currentView === 'client-scripts' ? '#7c3aed' : '#475569',
+                          background: currentView === 'client-scripts' ? '#f5f3ff' : 'transparent',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          transition: 'all 0.15s'
+                        }}
+                      >
+                        <Code2 size={16} />
+                        <span>Custom Scripts</span>
+                      </button>
 
-                          <label style={{ display: 'block', marginBottom: '0.5rem' }}>Module Name (e.g. Properties)</label>
-                          <input
-                            type="text"
-                            value={newCustomModule.name}
-                            onChange={(e) => setNewCustomModule({ ...newCustomModule, name: e.target.value })}
-                            style={{ width: '100%', padding: '0.5rem', marginBottom: '1rem', border: '1px solid #ccc', borderRadius: '4px' }}
-                          />
+                      <button
+                        onClick={() => setCurrentView('task-automation')}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          padding: '0.55rem 0.75rem',
+                          borderRadius: '6px',
+                          border: 'none',
+                          fontSize: '0.875rem',
+                          fontWeight: currentView === 'task-automation' ? 600 : 500,
+                          color: currentView === 'task-automation' ? '#7c3aed' : '#475569',
+                          background: currentView === 'task-automation' ? '#f5f3ff' : 'transparent',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          transition: 'all 0.15s'
+                        }}
+                      >
+                        <ClipboardList size={16} />
+                        <span>Task Automation</span>
+                      </button>
+                    </div>
+                  </div>
 
-                          <label style={{ display: 'block', marginBottom: '0.5rem', marginTop: '1rem' }}>Select Icon</label>
-                          <div style={{
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(6, 1fr)', // 1 row me 6 icons dikhenge
-                            gap: '0.5rem',
-                            marginBottom: '1.5rem',
-                            maxHeight: '160px', // Scrollable box
-                            overflowY: 'auto',
-                            padding: '0.75rem',
-                            border: '1px solid #e2e8f0',
-                            borderRadius: '6px',
-                            backgroundColor: '#f8fafc'
-                          }}>
-                            {Object.keys(ICON_MAP).map(iconKey => {
-                              const IconComponent = ICON_MAP[iconKey];
-                              const isSelected = newCustomModule.icon === iconKey;
+                  {/* Category 3: Access & Control */}
+                  <div>
+                    <div style={{ padding: '0 0.5rem 0.35rem', fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Access & Control
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <button
+                        onClick={() => setCurrentView('profiles')}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          padding: '0.55rem 0.75rem',
+                          borderRadius: '6px',
+                          border: 'none',
+                          fontSize: '0.875rem',
+                          fontWeight: currentView === 'profiles' ? 600 : 500,
+                          color: currentView === 'profiles' ? '#059669' : '#475569',
+                          background: currentView === 'profiles' ? '#ecfdf5' : 'transparent',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          transition: 'all 0.15s'
+                        }}
+                      >
+                        <ShieldCheck size={16} />
+                        <span>Roles & Profiles</span>
+                      </button>
+
+                      <button
+                        onClick={() => setCurrentView('users')}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          padding: '0.55rem 0.75rem',
+                          borderRadius: '6px',
+                          border: 'none',
+                          fontSize: '0.875rem',
+                          fontWeight: currentView === 'users' ? 600 : 500,
+                          color: currentView === 'users' ? '#059669' : '#475569',
+                          background: currentView === 'users' ? '#ecfdf5' : 'transparent',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          transition: 'all 0.15s'
+                        }}
+                      >
+                        <Users size={16} />
+                        <span>Users & Invites</span>
+                      </button>
+
+                      <button
+                        onClick={() => setCurrentView('profile-settings')}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          padding: '0.55rem 0.75rem',
+                          borderRadius: '6px',
+                          border: 'none',
+                          fontSize: '0.875rem',
+                          fontWeight: currentView === 'profile-settings' ? 600 : 500,
+                          color: currentView === 'profile-settings' ? '#059669' : '#475569',
+                          background: currentView === 'profile-settings' ? '#ecfdf5' : 'transparent',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          transition: 'all 0.15s'
+                        }}
+                      >
+                        <Settings size={16} />
+                        <span>Organization Profile</span>
+                      </button>
+                      {/* Category 4: Billing & Add-ons */}
+                      <div>
+                        <div style={{ padding: '0 0.5rem 0.35rem', fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          Billing & Add-ons
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                          <button
+                            onClick={() => setCurrentView('billing')}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '10px',
+                              padding: '0.55rem 0.75rem',
+                              borderRadius: '6px',
+                              border: 'none',
+                              fontSize: '0.875rem',
+                              fontWeight: currentView === 'billing' ? 600 : 500,
+                              color: currentView === 'billing' ? '#d97706' : '#475569',
+                              background: currentView === 'billing' ? '#fffbeb' : 'transparent',
+                              cursor: 'pointer',
+                              textAlign: 'left',
+                              transition: 'all 0.15s'
+                            }}
+                          >
+                            <CreditCard size={16} />
+                            <span>Wallet & API Usage</span>
+                          </button>
+                          <button
+                            onClick={() => window.location.href = '/settings/whatsapp'}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '10px',
+                              padding: '0.55rem 0.75rem',
+                              borderRadius: '6px',
+                              border: 'none',
+                              fontSize: '0.875rem',
+                              fontWeight: 500,
+                              color: '#475569',
+                              background: 'transparent',
+                              cursor: 'pointer',
+                              textAlign: 'left',
+                              transition: 'all 0.15s'
+                            }}
+                            onMouseEnter={e => {
+                              e.currentTarget.style.backgroundColor = '#fffbeb';
+                              e.currentTarget.style.color = '#d97706';
+                            }}
+                            onMouseLeave={e => {
+                              e.currentTarget.style.backgroundColor = 'transparent';
+                              e.currentTarget.style.color = '#475569';
+                            }}
+                          >
+                            <MessageSquare size={16} />
+                            <span>WhatsApp API Setup</span>
+                          </button>
+                        </div>
+                      </div>
+
+                    </div>
+                  </div>
+                </div>
+              </aside>
+
+              {/* Main Content Workspace Canvas */}
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+                {/* Content Header Bar with Breadcrumb */}
+                <div style={{
+                  height: '56px',
+                  background: '#ffffff',
+                  borderBottom: '1px solid #e2e8f0',
+                  padding: '0 1.5rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexShrink: 0
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.875rem' }}>
+                    <span style={{ color: '#64748b' }}>Settings</span>
+                    <span style={{ color: '#cbd5e1' }}>/</span>
+                    <span style={{ color: '#0f172a', fontWeight: 600 }}>
+                      {currentView === 'module-list' && (
+                        activeFeature === 'layout-builder' ? 'Form Layout Builder' :
+                          activeFeature === 'tags' ? 'Manage Tags' :
+                            activeFeature === 'blueprint' ? 'Blueprint Engine' :
+                              'Select Module'
+                      )}
+                      {currentView === 'blueprint' && `Blueprint: ${selectedModule}`}
+                      {currentView === 'blueprint-list' && "Blueprints"}
+                      {currentView === 'fields' && "Modules and Fields"}
+                      {currentView === 'tags' && `Tag Definitions: ${selectedModule}`}
+                      {currentView === 'users' && "Users & Invitations"}
+                      {currentView === 'workflows' && "Webhook Engine"}
+                      {currentView === 'client-scripts' && "Custom Scripts"}
+                      {currentView === 'task-automation' && "Task Automation"}
+                      {currentView === 'layout-builder' && `Layout Builder: ${selectedModule}`}
+                      {currentView === 'billing' && "Billing & Wallet"}
+                      {currentView === 'custom-modules' && "Custom Modules"}
+                      {currentView === 'profile-settings' && "Profile & Organization"}
+                      {currentView === 'profiles' && "Roles & Profiles"}
+                    </span>
+                  </div>
+
+                  {/* Contextual back button if inside deep sub-view */}
+                  {['layout-builder', 'tags', 'blueprint'].includes(currentView) && (
+                    <button
+                      onClick={() => {
+                        if (isLayoutDirty) {
+                          setShakeTrigger(prev => prev + 1);
+                          return;
+                        }
+                        if (['layout-builder', 'tags'].includes(currentView)) {
+                          setCurrentView('module-list');
+                        } else if (currentView === 'blueprint') {
+                          setCurrentView('blueprint-list');
+                        }
+                      }}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '0.4rem 0.8rem',
+                        borderRadius: '6px',
+                        border: '1px solid #cbd5e1',
+                        background: '#ffffff',
+                        color: '#475569',
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <ArrowLeft size={14} />
+                      <span>Back to {currentView === 'blueprint' ? 'Blueprints' : 'Modules'}</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* Sub-view Content Body */}
+                <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem 2rem', background: '#f8fafc' }}>
+
+
+                  {/* ================= MODULE TOGGLES VIEW ================= */}
+                  {currentView === 'module-toggles' && (
+                    <div style={{ padding: '2rem', maxWidth: '800px', margin: '0 auto' }}>
+                      <div style={{ marginBottom: '2rem' }}>
+                        <h2 style={{ fontSize: '1.5rem', fontWeight: 600, color: '#0f172a', marginBottom: '0.5rem' }}>Modules & Features</h2>
+                        <p style={{ color: '#64748b' }}>Turn on/off specific CRM modules for your organization. Data is preserved even if disabled.</p>
+                      </div>
+
+                      <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', marginBottom: '2rem' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                          <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                            <tr>
+                              <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>System Module</th>
+                              <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600, width: '150px', textAlign: 'right' }}>Status</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {['Lead', 'Deal', 'Account', 'Task', 'Products'].map((mod, idx, arr) => {
+                              const isActive = activeModules.includes(mod);
                               return (
-                                <div
-                                  key={iconKey}
-                                  onClick={() => setNewCustomModule({ ...newCustomModule, icon: iconKey })}
-                                  style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    padding: '0.5rem',
-                                    cursor: 'pointer',
-                                    borderRadius: '6px',
-                                    backgroundColor: isSelected ? '#fff' : 'transparent',
-                                    border: isSelected ? '2px solid #3b82f6' : '2px solid transparent',
-                                    boxShadow: isSelected ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                                    transition: 'all 0.2s'
-                                  }}
-                                  title={iconKey} // Hover karne par naam dikhega
-                                >
-                                  <IconComponent size={22} color={isSelected ? '#3b82f6' : '#64748b'} strokeWidth={isSelected ? 2.5 : 2} />
-                                </div>
+                                <tr key={mod} style={{ borderBottom: idx === arr.length - 1 ? 'none' : '1px solid #e2e8f0', transition: 'background-color 0.2s' }} onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
+                                  <td style={{ padding: '1rem', color: '#0f172a', fontWeight: 600 }}>{mod}</td>
+                                  <td style={{ padding: '1rem', textAlign: 'right' }}>
+                                    <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', cursor: 'pointer' }}>
+                                      <input type="checkbox" style={{ display: 'none' }} checked={isActive} onChange={() => handleToggleModule(mod)} />
+                                      <span style={{ marginRight: '0.5rem', fontSize: '0.85rem', color: isActive ? '#10b981' : '#94a3b8', fontWeight: 500 }}>{isActive ? 'Active' : 'Disabled'}</span>
+                                      <div style={{ position: 'relative', width: '36px', height: '20px', backgroundColor: isActive ? '#10b981' : '#e2e8f0', borderRadius: '10px', transition: 'background-color 0.2s' }}>
+                                        <div style={{ position: 'absolute', top: '2px', left: isActive ? '18px' : '2px', width: '16px', height: '16px', backgroundColor: 'white', borderRadius: '50%', transition: 'all 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}></div>
+                                      </div>
+                                    </label>
+                                  </td>
+                                </tr>
                               );
                             })}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {customModules.length > 0 && (
+                        <>
+                          <div style={{ marginBottom: '1rem' }}>
+                            <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#0f172a' }}>Custom Modules</h2>
                           </div>
-
-
-
-                          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-                            <button onClick={() => {
-                              setShowCustomModuleModal(false);
-                              setNewCustomModule({ id: null, name: '', icon: 'Box' });
-                            }} style={{ padding: '0.5rem 1rem', background: 'none', border: 'none', cursor: 'pointer' }}>Cancel</button>
-                            <button
-                              onClick={async () => {
-                                const token = await getAuthToken();
-                                const method = newCustomModule.id ? 'PUT' : 'POST';
-
-                                const res = await fetch('/api/custom-modules', {
-                                  method: method,
-                                  headers: {
-                                    'Content-Type': 'application/json',
-                                    'Authorization': `Bearer ${token}`
-                                  },
-                                  body: JSON.stringify({
-                                    id: newCustomModule.id,
-                                    name: newCustomModule.name,
-                                    singularName: newCustomModule.name,
-                                    icon: newCustomModule.icon
-                                  })
-                                });
-
-                                if (res.ok) {
-                                  const savedMod = await res.json();
-                                  if (newCustomModule.id) {
-                                    // Update list if edited
-                                    setCustomModules(customModules.map(m => m.id === savedMod.id ? savedMod : m));
-                                  } else {
-                                    // Add to list if new
-                                    setCustomModules([savedMod, ...customModules]);
-                                  }
-                                  setShowCustomModuleModal(false);
-                                  setNewCustomModule({ id: null, name: '', icon: 'Box' });
-                                  try { localStorage.removeItem('mooncliq_bootstrap_cache'); } catch (e) { }
-                                }
-                              }}
-                              style={{ padding: '0.5rem 1rem', backgroundColor: '#0f172a', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-                            >
-                              Save
-                            </button>
+                          <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                              <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                                <tr>
+                                  <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Module Name</th>
+                                  <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600, width: '150px', textAlign: 'right' }}>Status</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {customModules.map((mod, idx, arr) => {
+                                  const isActive = mod.isActive;
+                                  return (
+                                    <tr key={mod.id} style={{ borderBottom: idx === arr.length - 1 ? 'none' : '1px solid #e2e8f0', transition: 'background-color 0.2s' }} onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
+                                      <td style={{ padding: '1rem', color: '#0f172a', fontWeight: 600 }}>{mod.name}</td>
+                                      <td style={{ padding: '1rem', textAlign: 'right' }}>
+                                        <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', cursor: 'pointer' }}>
+                                          <input type="checkbox" style={{ display: 'none' }} checked={isActive} onChange={() => handleToggleCustomModule(mod.id, isActive)} />
+                                          <span style={{ marginRight: '0.5rem', fontSize: '0.85rem', color: isActive ? '#10b981' : '#94a3b8', fontWeight: 500 }}>{isActive ? 'Active' : 'Disabled'}</span>
+                                          <div style={{ position: 'relative', width: '36px', height: '20px', backgroundColor: isActive ? '#10b981' : '#e2e8f0', borderRadius: '10px', transition: 'background-color 0.2s' }}>
+                                            <div style={{ position: 'absolute', top: '2px', left: isActive ? '18px' : '2px', width: '16px', height: '16px', backgroundColor: 'white', borderRadius: '50%', transition: 'all 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}></div>
+                                          </div>
+                                        </label>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
                           </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-
-                {/* MODULE LIST TAB */}
-                {currentView === 'module-list' && (
-                  <div>
-                    <p style={{ color: '#475569', marginBottom: '1.5rem', fontSize: '0.95rem' }}>Select a module to customize its {activeFeature === 'tags' ? 'tags' : activeFeature === 'layout-builder' ? 'layout' : 'blueprint'}.</p>
-
-                    <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                        <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                          <tr>
-                            <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Module Name</th>
-                            <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Last Modified</th>
-                            <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Status</th>
-                            <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600, textAlign: 'right' }}>Action</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {[
-                            { id: 'Lead', name: 'Lead' },
-                            { id: 'Deal', name: 'Deal' },
-                            { id: 'Account', name: 'Account' },
-                            { id: 'Product', name: 'Product' },
-                            { id: 'Task', name: 'Task' },
-                            ...customModules.map(m => ({ id: m.id, name: m.name }))
-                          ].map((mod, idx, arr) => (
-                            <tr key={mod.id} style={{ borderBottom: idx === arr.length - 1 ? 'none' : '1px solid #e2e8f0', transition: 'background-color 0.2s' }} onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
-                              <td style={{ padding: '1rem', color: '#0f172a', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <div style={{ background: '#e0e7ff', color: '#4f46e5', padding: '0.35rem', borderRadius: '6px' }}>
-                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
-                                </div>
-                                {mod.name}
-                              </td>
-                              <td style={{ padding: '1rem', color: '#475569', fontSize: '0.9rem' }}>Just now</td>
-                              <td style={{ padding: '1rem' }}>
-                                <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
-                                  <div style={{ position: 'relative', width: '36px', height: '20px', backgroundColor: '#10b981', borderRadius: '10px' }}>
-                                    <div style={{ position: 'absolute', top: '2px', left: '18px', width: '16px', height: '16px', backgroundColor: 'white', borderRadius: '50%', transition: 'all 0.2s' }}></div>
-                                  </div>
-                                  <span style={{ marginLeft: '0.5rem', fontSize: '0.85rem', color: '#475569', fontWeight: 500 }}>Active</span>
-                                </label>
-                              </td>
-                              <td style={{ padding: '1rem', textAlign: 'right' }}>
-                                <button
-                                  onClick={() => { setSelectedModule(mod.id); setCurrentView(activeFeature); }}
-                                  style={{ padding: '0.4rem 1rem', backgroundColor: 'white', color: '#0f172a', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)' }}
-                                  onMouseEnter={e => e.target.style.backgroundColor = '#f8fafc'}
-                                  onMouseLeave={e => e.target.style.backgroundColor = 'white'}
-                                >
-                                  Customize
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-
-                        </tbody>
-                      </table>
+                        </>
+                      )}
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {/* BLUEPRINT LIST TAB (NEW UI) */}
-                {currentView === 'blueprint-list' && (
-                  <div>
-                    {/* Top Action Bar */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                      <div style={{ position: 'relative', width: '300px' }}>
-                        <svg style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                        <input type="text" placeholder="Search" value={blueprintSearch} onChange={(e) => setBlueprintSearch(e.target.value)} style={{ width: '100%', padding: '0.5rem 1rem 0.5rem 2rem', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '0.9rem', outline: 'none' }} />
-                      </div>
-                      <div style={{ display: 'flex', gap: '1rem' }}>
-                        <button onClick={() => {
-                          const leadBlueprints = allBlueprintsList.filter(bp => bp.moduleType === 'Lead').sort((a, b) => (a.executionOrder || 0) - (b.executionOrder || 0));
-                          setReorderModal({ isOpen: true, module: 'Lead', blueprints: leadBlueprints });
-                        }} style={{ padding: '0.5rem 1rem', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', color: '#475569', borderRadius: '6px', cursor: 'pointer', fontWeight: 500, fontSize: '0.9rem' }} onMouseEnter={e => e.target.style.backgroundColor = '#f1f5f9'} onMouseLeave={e => e.target.style.backgroundColor = '#f8fafc'}>Reorder Blueprints</button>
-
-                        <button onClick={() => setCreateBlueprintModal({ isOpen: true, name: '', module: 'Lead', targetField: 'Lead Status' })} style={{ padding: '0.5rem 1rem', backgroundColor: '#4f46e5', border: 'none', color: 'white', borderRadius: '6px', cursor: 'pointer', fontWeight: 500, fontSize: '0.9rem' }} onMouseEnter={e => e.target.style.backgroundColor = '#4338ca'} onMouseLeave={e => e.target.style.backgroundColor = '#4f46e5'}>+ Create Blueprint</button>
-                      </div>
-                    </div>
-
-                    {/* Table */}
-                    <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', backgroundColor: 'white' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                        <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                          <tr>
-                            <th style={{ padding: '1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Blueprint Name</th>
-                            <th style={{ padding: '1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Modules </th>
-                            <th style={{ padding: '1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Field</th>
-                            <th style={{ padding: '1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Last Modified</th>
-                            <th style={{ padding: '1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600, textAlign: 'left' }}>Status </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {allBlueprintsList
-                            .filter(bp => blueprintSearch.length >= 3 ?
-                              (bp.name.toLowerCase().includes(blueprintSearch.toLowerCase()) || bp.moduleType.toLowerCase().includes(blueprintSearch.toLowerCase())) : true)
-                            .map((bp) => (
-                              <tr key={bp.id} style={{ borderBottom: '1px solid #e2e8f0', transition: 'background-color 0.2s' }} onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
-                                {/* 1. Clickable Name (Jispar click karke canvas khulega) */}
-                                <td
-                                  style={{ padding: '1rem', color: '#4f46e5', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer', textDecoration: 'underline' }}
-                                  onClick={() => { setSelectedModule(bp.moduleType); fetchBlueprint(bp.moduleType); setCurrentView('blueprint'); }}
-                                >
-                                  {bp.name}
-                                </td>
-
-                                <td style={{ padding: '1rem', color: '#64748b', fontSize: '0.9rem' }}>{customModules.find(m => m.id === bp.moduleType)?.name || bp.moduleType}</td>
-
-                                <td style={{ padding: '1rem', color: '#64748b', fontSize: '0.9rem' }}>{bp.targetField || 'N/A'}</td>
-
-                                <td style={{ padding: '1rem', color: '#64748b', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                  <div style={{ width: '24px', height: '24px', backgroundColor: '#e2e8f0', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 'bold', color: '#64748b' }}>GK</div>
-                                  Just now
-                                </td>
-
-                                {/* 2. Green Toggle Switch (Active/Inactive ke liye) aur "Edit Flow" button delete ho gaya */}
-                                <td style={{ padding: '1rem', textAlign: 'left' }}>
-                                  <label style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>
-                                    <input
-                                      type="checkbox"
-                                      style={{ display: 'none' }}
-                                      checked={bp.isActive}
-                                      onChange={async () => {
-                                        try {
-                                          const res = await fetch('/api/blueprint', {
-                                            method: 'PUT',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify({ id: bp.id, isActive: !bp.isActive })
-                                          });
-                                          if (res.ok) fetchBlueprintsList();
-                                        } catch (error) { console.error(error); }
-                                      }}
-                                    />
-                                    <div style={{ position: 'relative', width: '36px', height: '20px', backgroundColor: bp.isActive ? '#10b981' : '#cbd5e1', borderRadius: '10px', transition: 'background-color 0.2s' }}>
-                                      <div style={{ position: 'absolute', top: '2px', left: bp.isActive ? '18px' : '2px', width: '16px', height: '16px', backgroundColor: 'white', borderRadius: '50%', transition: 'all 0.2s' }}></div>
-                                    </div>
-                                  </label>
-                                </td>
-
-                              </tr>
-                            ))}
-                        </tbody>
-
-                      </table>
-                    </div>
-                  </div>
-                )}
-
-
-                {/* WORKFLOWS TAB */}
-                {currentView === 'workflows' && (
-                  <WorkflowBuilder />
-                )}
-
-                {/* CLIENT SCRIPTS TAB */}
-                {currentView === 'client-scripts' && (
-                  <ClientScriptBuilder />
-                )}
-
-                {/* TASK AUTOMATION TAB */}
-                {currentView === 'task-automation' && (
-                  <TaskAutomationBuilder />
-                )}
-
-                {/* USERS TAB */}
-                {currentView === 'users' && (
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                      <div>
-                        <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.25rem' }}>Users in Organization</h2>
-                        <p className="text-muted" style={{ margin: 0, fontSize: '0.9rem' }}>Manage active members and pending invitations.</p>
-                      </div>
-                      <button onClick={() => setIsInviteModalOpen(true)} style={{ padding: '0.5rem 1rem', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="M12 5v14" /></svg>
-                        Invite User
-                      </button>
-                    </div>
-
-                    <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                        <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                          <tr>
-                            <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Email Address</th>
-                            <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>RBAC Profile</th>
-                            <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Status</th>
-                            <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {/* 1. Asli Active Users Dikhayenge (Including Super Admin) */}
-                          {orgUsers.map(user => {
-                            const isSuperAdmin = user.profile?.canAccessSettings || ['administrator', 'admin', 'superadmin', 'super admin'].includes(user.profile?.name?.toLowerCase());
-
-                            return (
-                              <tr key={user.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                                <td style={{ padding: '1rem', color: '#0f172a', fontWeight: 500 }}>
-                                  {user.email}
-                                  {isSuperAdmin && (
-                                    <span style={{ marginLeft: '0.5rem', fontSize: '0.7rem', backgroundColor: '#e0e7ff', color: '#3730a3', padding: '0.15rem 0.5rem', borderRadius: '12px', fontWeight: 600 }}>
-                                      Owner / Admin
-                                    </span>
-                                  )}
-                                </td>
-                                <td style={{ padding: '1rem' }}>
-                                  <span style={{ backgroundColor: '#f1f5f9', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem', color: '#475569', fontWeight: 600 }}>
-                                    {user.profile?.name || 'No Role'}
-                                  </span>
-                                </td>
-                                <td style={{ padding: '1rem' }}>
-                                  <span style={{ color: '#10b981', fontWeight: 600, fontSize: '0.85rem' }}>● Active</span>
-                                </td>
-                                <td style={{ padding: '1rem' }}>
-                                  {isSuperAdmin ? (
-                                    <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic', fontWeight: 500 }}>
-                                      Primary Admin
-                                    </span>
-                                  ) : (
-                                    <button
-                                      onClick={() => handleRevokeAccess(user.id)}
-                                      style={{ background: 'none', border: '1px solid #ef4444', color: '#ef4444', padding: '0.25rem 0.75rem', borderRadius: '4px', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600 }}
-                                    >
-                                      Revoke Access
-                                    </button>
-                                  )}
-                                </td>
-                              </tr>
-                            );
-                          })}
-
-                          {/* 2. Pending Invites Dikhayenge */}
-                          {pendingInvites.map(invite => (
-                            <tr key={invite.id} style={{ borderBottom: '1px solid #e2e8f0', backgroundColor: '#fdf8f6' }}>
-                              <td style={{ padding: '1rem', color: '#0f172a', fontWeight: 500 }}>{invite.email} <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>(Invited)</span></td>
-                              <td style={{ padding: '1rem' }}><span style={{ backgroundColor: '#f1f5f9', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem', color: '#475569', fontWeight: 600 }}>{invite.profile?.name || 'Pending'}</span></td>
-                              <td style={{ padding: '1rem' }}><span style={{ color: '#f59e0b', fontWeight: 600, fontSize: '0.85rem' }}>○ Pending</span></td>
-                              <td style={{ padding: '1rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const inviteUrl = `${window.location.origin}/invite/${invite.token}`;
-                                    navigator.clipboard.writeText(inviteUrl);
-                                    alert("Invite link copied to clipboard!\n" + inviteUrl);
-                                  }}
-                                  style={{
-                                    backgroundColor: '#2563eb',
-                                    border: 'none',
-                                    color: '#ffffff',
-                                    padding: '0.25rem 0.75rem',
-                                    borderRadius: '4px',
-                                    fontSize: '0.8rem',
-                                    cursor: 'pointer',
-                                    fontWeight: 600
-                                  }}
-                                >
-                                  Copy Link
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick={async () => {
-                                    if (!window.confirm("Are you sure you want to revoke this pending invite?")) return;
-                                    try {
-                                      const token = await getAuthToken();
-                                      const res = await fetch('/api/invitations/revoke', {
-                                        method: 'POST',
-                                        headers: {
-                                          'Content-Type': 'application/json',
-                                          'Authorization': `Bearer ${token}`
-                                        },
-                                        body: JSON.stringify({ inviteId: invite.id })
-                                      });
-                                      if (res.ok) {
-                                        alert("Pending Invitation Revoked!");
-                                        setPendingInvites(prev => prev.filter(i => i.id !== invite.id));
-                                      } else {
-                                        const errorData = await res.json();
-                                        alert(errorData.error || "Failed to revoke invitation");
-                                      }
-                                    } catch (e) {
-                                      alert("Error revoking invite");
-                                    }
-                                  }}
-                                  style={{ background: 'none', border: '1px solid #ef4444', color: '#ef4444', padding: '0.25rem 0.75rem', borderRadius: '4px', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600 }}
-                                >
-                                  Revoke Invite
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-
-                          {orgUsers.length === 0 && pendingInvites.length === 0 && (
-                            <tr><td colSpan="4" style={{ padding: '1rem', textAlign: 'center', color: '#64748b' }}>No users found.</td></tr>
-                          )}
-                        </tbody>
-
-                      </table>
-                    </div>
-                  </div>
-                )}
-
-                {/* BLUEPRINT TAB */}
-                {currentView === 'blueprint' && (
-                  <div>
-                    <div style={{ marginBottom: '2rem' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                        <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Visual Blueprint Canvas</h2>
-                        <button className="btn-primary" style={{ padding: '0.4rem 1rem', fontSize: '0.9rem' }} onClick={() => setIsAddingStage(!isAddingStage)}>
-                          {isAddingStage ? 'Cancel' : '+ Add Stage'}
+                  {/* ================= CUSTOM MODULES VIEW ================= */}
+                  {currentView === 'custom-modules' && (
+                    <div style={{ padding: '2rem', maxWidth: '800px', margin: '0 auto' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                        <h2 style={{ fontSize: '1.5rem', fontWeight: 600, color: '#0f172a' }}>Custom Modules</h2>
+                        <button
+                          onClick={() => setShowCustomModuleModal(true)}
+                          style={{ backgroundColor: '#0f172a', color: 'white', padding: '0.5rem 1rem', borderRadius: '6px', border: 'none', cursor: 'pointer' }}
+                        >
+                          + Create Module
                         </button>
                       </div>
 
-                      {isAddingStage && (
-                        <div style={{ display: 'flex', gap: '1rem', padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '8px', marginBottom: '1.5rem', border: '1px solid #e2e8f0', alignItems: 'center' }}>
-                          <input required type="text" placeholder="Stage Name" className="form-input bg-white" style={{ flex: 1, margin: 0 }} value={newStage.name} onChange={e => setNewStage({ ...newStage, name: e.target.value })} />
-                          <select className="form-input bg-white" style={{ width: '150px', margin: 0 }} value={newStage.color} onChange={e => setNewStage({ ...newStage, color: e.target.value })}>
-                            <option value="#f5d96bff">Yellow</option>
-                            <option value="#6aacfcff">Blue</option>
-                            <option value="#64f296ff">Green</option>
-                            <option value="#f676bfff">Pink</option>
-                            <option value="#e5e7eb">Gray</option>
-                            <option value="#8fa2edff">Indigo</option>
-                            <option value="#f53030ff">Red</option>
-                            <option value="#f975bdff">Rose</option>
-                            <option value="#80fbe2ff">Teal</option>
-                          </select>
-                          <button className="btn-primary" onClick={handleAddStage}>Save Stage</button>
-                        </div>
-                      )}
-
-                      <div style={{ display: 'flex', gap: '1.5rem', width: '100%', height: '550px' }}>
-                        {/* LEFTSIDE: CANVAS */}
-                        <div style={{ flex: 1, borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
-                          <ReactFlow
-                            nodes={nodes}
-                            edges={edges}
-                            onNodesChange={onNodesChange}
-                            onEdgesChange={onEdgesChange}
-                            nodeTypes={nodeTypes}
-                            fitView
-                            onNodeClick={onNodeClick}
-                            onEdgeClick={onEdgeClick}
-                            onConnect={onConnect}
-                          >
-                            <Background color="#cbd5e1" gap={16} />
-                            <Controls />
-                          </ReactFlow>
-                        </div>
-
-                        {/* RIGHTSIDE: PROPERTIES PANEL */}
-                        {selectedCanvasItem && (
-                          <div style={{ width: '350px', backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '1.5rem', overflowY: 'auto' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: '1px solid #e2e8f0' }}>
-                              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: '#0f172a' }}>Properties</h3>
-                              <button onClick={() => setSelectedCanvasItem(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', fontSize: '1.2rem' }}>✕</button>
-                            </div>
-
-                            {selectedCanvasItem.type === 'start' && (
-                              <div>
-                                <h4 style={{ color: '#4f46e5', margin: '0 0 0.5rem 0' }}>Entry Criteria</h4>
-                                <p style={{ fontSize: '0.85rem', color: '#64748b', lineHeight: 1.5 }}>
-                                  Configure the conditions under which a record enters this blueprint.
-                                </p>
-                                <div style={{ marginTop: '1.5rem', padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                                  <label className="form-label" style={{ color: '#475569' }}>Apply To:</label>
-                                  <select
-                                    className="form-input bg-white"
-                                    style={{ marginBottom: '1rem' }}
-                                    value={entryCriteriaForm.type}
-                                    onChange={(e) => setEntryCriteriaForm({ ...entryCriteriaForm, type: e.target.value })}
-                                  >
-                                    <option value="always">All Records</option>
-                                    <option value="conditions">Records matching specific conditions</option>
-                                  </select>
-
-                                  {entryCriteriaForm.type === 'conditions' && (
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem' }}>
-                                      {(entryCriteriaForm.conditions || []).map((cond, idx) => (
-                                        <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-
-                                          {/* AND/OR Operator (Agar 1 se zyada condition ho) */}
-                                          {idx > 0 && (
-                                            <div style={{ display: 'flex', justifyContent: 'center', margin: '0.25rem 0' }}>
-                                              <select
-                                                className="form-input"
-                                                style={{ width: '80px', padding: '0.2rem 0.5rem', fontSize: '0.75rem', background: '#f1f5f9', border: 'none', borderRadius: '20px', textAlign: 'center', fontWeight: 600, color: '#475569' }}
-                                                value={cond.logical || 'AND'}
-                                                onChange={e => {
-                                                  const newConds = [...(entryCriteriaForm.conditions || [])];
-                                                  newConds[idx].logical = e.target.value;
-                                                  setEntryCriteriaForm({ ...entryCriteriaForm, conditions: newConds });
-                                                }}
-                                              >
-                                                <option value="AND">AND</option>
-                                                <option value="OR">OR</option>
-                                              </select>
-                                            </div>
-                                          )}
-
-                                          {/* Condition Card */}
-                                          <div style={{ padding: '0.75rem', backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid #cbd5e1', display: 'flex', flexDirection: 'column', gap: '0.5rem', position: 'relative' }}>
-
-                                            <button onClick={() => {
-                                              const newConds = (entryCriteriaForm.conditions || []).filter((_, i) => i !== idx);
-                                              setEntryCriteriaForm({ ...entryCriteriaForm, conditions: newConds });
-                                            }} style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '1rem', padding: '0.2rem' }}>✕</button>
-
-                                            <label style={{ fontSize: '0.7rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase' }}>Condition {idx + 1}</label>
-
-                                            <select className="form-input" style={{ width: '90%', fontSize: '0.85rem' }} value={cond.field} onChange={e => {
-                                              const newConds = [...(entryCriteriaForm.conditions || [])];
-                                              newConds[idx].field = e.target.value;
-                                              setEntryCriteriaForm({ ...entryCriteriaForm, conditions: newConds });
-                                            }}>
-                                              <option value="">Select Field</option>
-                                              {[...(blueprint.fields || [])].map(f => (
-                                                <option key={f.name} value={f.name}>{f.label || f.name}</option>
-                                              ))}
-                                            </select>
-
-                                            <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                              <select className="form-input" style={{ flex: '0 0 40%', fontSize: '0.85rem' }} value={cond.operator} onChange={e => {
-                                                const newConds = [...(entryCriteriaForm.conditions || [])];
-                                                newConds[idx].operator = e.target.value;
-                                                setEntryCriteriaForm({ ...entryCriteriaForm, conditions: newConds });
-                                              }}>
-                                                <option value="is">is</option>
-                                                <option value="isn't">isn't</option>
-                                                <option value="contains">contains</option>
-                                              </select>
-                                              <input type="text" className="form-input" style={{ flex: 1, minWidth: 0, fontSize: '0.85rem' }} placeholder="Value" value={cond.value} onChange={e => {
-                                                const newConds = [...(entryCriteriaForm.conditions || [])];
-                                                newConds[idx].value = e.target.value;
-                                                setEntryCriteriaForm({ ...entryCriteriaForm, conditions: newConds });
-                                              }} />
-                                            </div>
-                                          </div>
+                      {/* List of existing custom modules */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        {customModules.length === 0 ? (
+                          <p style={{ color: '#64748b' }}>No custom modules yet. Create one to get started!</p>
+                        ) : (
+                          <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                              <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                                <tr>
+                                  <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Module Name</th>
+                                  <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Last Modified</th>
+                                  <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Status</th>
+                                  <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600, textAlign: 'right' }}>Action</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {customModules.map((mod, idx) => {
+                                  const IconComponent = ICON_MAP[mod.icon] || ICON_MAP['Box'];
+                                  return (
+                                    <tr key={mod.id} style={{ borderBottom: idx === customModules.length - 1 ? 'none' : '1px solid #e2e8f0', transition: 'background-color 0.2s' }} onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
+                                      <td style={{ padding: '1rem', color: '#0f172a', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        <div style={{ background: '#e0e7ff', color: '#4f46e5', padding: '0.35rem', borderRadius: '6px' }}>
+                                          <IconComponent size={16} strokeWidth={2} />
                                         </div>
-                                      ))}
-
-                                      <button onClick={() => {
-                                        const newConds = [...(entryCriteriaForm.conditions || []), { field: '', operator: 'is', value: '' }];
-                                        setEntryCriteriaForm({ ...entryCriteriaForm, conditions: newConds });
-                                      }} style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontWeight: 500, padding: 0 }}>+ Add Condition</button>
-                                    </div>
-                                  )}
-
-                                  <button
-                                    className="btn-primary"
-                                    style={{ width: '100%', background: '#4f46e5' }}
-                                    disabled={isSavingEntry}
-                                    onClick={async () => {
-                                      setIsSavingEntry(true);
-                                      try {
-                                        const res = await fetch('/api/blueprint', {
-                                          method: 'PUT',
-                                          headers: { 'Content-Type': 'application/json' },
-                                          body: JSON.stringify({
-                                            id: blueprint.id,
-                                            entryCriteria: entryCriteriaForm
-                                          })
-                                        });
-                                        if (res.ok) {
-                                          alert("Entry Criteria Saved!");
-                                        }
-                                      } catch (err) {
-                                        alert("Failed to save entry criteria");
-                                      }
-                                      setIsSavingEntry(false);
-                                    }}
-                                  >
-                                    {isSavingEntry ? 'Saving...' : 'Save Entry Criteria'}
-                                  </button>
-                                </div>
-                              </div>
-                            )}
-
-
-
-                            {selectedCanvasItem.type === 'node' && (
-                              <div>
-                                <h4 style={{ margin: '0 0 0.5rem 0', color: '#1e293b' }}>Stage: {selectedCanvasItem.data.data.label}</h4>
-                                <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '1.5rem' }}>View or delete this stage.</p>
-
-                                <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                                  <label className="form-label">Color Theme</label>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem' }}>
-                                    <div style={{ width: '24px', height: '24px', borderRadius: '4px', backgroundColor: selectedCanvasItem.data.data.color }}></div>
-                                    <span style={{ fontSize: '0.9rem', color: '#64748b', fontWeight: 500 }}>{selectedCanvasItem.data.data.color}</span>
-                                  </div>
-                                  {!selectedCanvasItem.data.data?.isSystem && (
-                                    <button
-                                      onClick={() => handleDeleteStage(selectedCanvasItem.data.id)}
-                                      style={{ marginTop: '1rem', width: '100%', padding: '0.5rem', background: '#fee2e2', color: '#ef4444', border: '1px solid #fecaca', borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}
-                                    >
-                                      Delete Stage
-                                    </button>
-                                  )}
-
-                                  {selectedCanvasItem.data.data?.isSystem && (
-                                    <p style={{ marginTop: '1rem', color: '#94a3b8', fontSize: '0.8rem', textAlign: 'center', fontStyle: 'italic', padding: '0.5rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px' }}>
-                                      🔒 System stages cannot be deleted.
-                                    </p>
-                                  )}
-
-                                </div>
-                              </div>
-                            )}
-
-
-                            {selectedCanvasItem.type === 'edge' && (
-                              <div>
-                                <h4 style={{ margin: '0 0 0.5rem 0', color: '#1e293b' }}>Rule: {selectedCanvasItem.data.label}</h4>
-                                <p style={{ fontSize: '0.85rem', color: '#64748b' }}>Configure transition field updates here.</p>
-                                <button
-                                  className="btn-primary"
-                                  style={{ width: '100%', marginTop: '1rem' }}
-                                  onClick={() => {
-                                    // Rule ID ke base par database wali details nikal rahe hain
-                                    const existingRule = blueprint.transitions.find(t => t.id === selectedCanvasItem.data.data.ruleId);
-                                    if (existingRule) openRuleModal(existingRule);
-                                  }}
-                                >
-                                  Edit Rule Settings
-                                </button>
-                              </div>
-                            )}
-
-
-                            {selectedCanvasItem.type === 'new_edge' && (
-                              <div>
-                                <h4 style={{ margin: '0 0 0.5rem 0', color: '#1e293b' }}>Create New Rule</h4>
-                                <p style={{ fontSize: '0.85rem', color: '#64748b' }}>Connect these stages logically.</p>
-                                <button
-                                  className="btn-primary"
-                                  style={{ width: '100%', marginTop: '1rem' }}
-                                  onClick={() => {
-                                    openRuleModal();
-                                    // Set a slight timeout to ensure state is set by openRuleModal first
-                                    setTimeout(() => {
-                                      setSelectedRule(prev => ({
-                                        ...prev,
-                                        fromStageIds: [selectedCanvasItem.data.source],
-                                        toStageId: selectedCanvasItem.data.target
-                                      }));
-                                    }, 0);
-                                  }}
-                                >
-                                  Configure New Rule
-                                </button>
-                              </div>
-                            )}
-
+                                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                          <span>{mod.name}</span>
+                                          <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 400 }}>Singular: {mod.singularName}</span>
+                                        </div>
+                                      </td>
+                                      <td style={{ padding: '1rem', color: '#475569', fontSize: '0.9rem' }}>Just now</td>
+                                      <td style={{ padding: '1rem' }}>
+                                        <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                                          <div style={{ position: 'relative', width: '36px', height: '20px', backgroundColor: '#10b981', borderRadius: '10px' }}>
+                                            <div style={{ position: 'absolute', top: '2px', left: '18px', width: '16px', height: '16px', backgroundColor: 'white', borderRadius: '50%', transition: 'all 0.2s' }}></div>
+                                          </div>
+                                          <span style={{ marginLeft: '0.5rem', fontSize: '0.85rem', color: '#475569', fontWeight: 500 }}>Active</span>
+                                        </label>
+                                      </td>
+                                      <td style={{ padding: '1rem', textAlign: 'right' }}>
+                                        <button
+                                          onClick={() => {
+                                            setNewCustomModule({ id: mod.id, name: mod.name, icon: mod.icon });
+                                            setShowCustomModuleModal(true);
+                                          }}
+                                          style={{ padding: '0.4rem 0.8rem', backgroundColor: 'transparent', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer', marginRight: '0.5rem', fontSize: '0.85rem', color: '#0f172a' }}
+                                        >
+                                          Edit
+                                        </button>
+                                        <button
+                                          onClick={() => { setSelectedModule(mod.id); setCurrentView('blueprint'); }}
+                                          style={{ padding: '0.4rem 0.8rem', backgroundColor: '#0f172a', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.85rem' }}
+                                        >
+                                          Edit Layout
+                                        </button>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
                           </div>
                         )}
                       </div>
 
+                      {/* CREATE MODULE MODAL */}
+                      {showCustomModuleModal && (
+                        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+                          <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '12px', width: '400px' }}>
+                            <h3 style={{ marginBottom: '1rem' }}>Create New Module</h3>
+
+                            <label style={{ display: 'block', marginBottom: '0.5rem' }}>Module Name (e.g. Properties)</label>
+                            <input
+                              type="text"
+                              value={newCustomModule.name}
+                              onChange={(e) => setNewCustomModule({ ...newCustomModule, name: e.target.value })}
+                              style={{ width: '100%', padding: '0.5rem', marginBottom: '1rem', border: '1px solid #ccc', borderRadius: '4px' }}
+                            />
+
+                            <label style={{ display: 'block', marginBottom: '0.5rem', marginTop: '1rem' }}>Select Icon</label>
+                            <div style={{
+                              display: 'grid',
+                              gridTemplateColumns: 'repeat(6, 1fr)', // 1 row me 6 icons dikhenge
+                              gap: '0.5rem',
+                              marginBottom: '1.5rem',
+                              maxHeight: '160px', // Scrollable box
+                              overflowY: 'auto',
+                              padding: '0.75rem',
+                              border: '1px solid #e2e8f0',
+                              borderRadius: '6px',
+                              backgroundColor: '#f8fafc'
+                            }}>
+                              {Object.keys(ICON_MAP).map(iconKey => {
+                                const IconComponent = ICON_MAP[iconKey];
+                                const isSelected = newCustomModule.icon === iconKey;
+                                return (
+                                  <div
+                                    key={iconKey}
+                                    onClick={() => setNewCustomModule({ ...newCustomModule, icon: iconKey })}
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      padding: '0.5rem',
+                                      cursor: 'pointer',
+                                      borderRadius: '6px',
+                                      backgroundColor: isSelected ? '#fff' : 'transparent',
+                                      border: isSelected ? '2px solid #3b82f6' : '2px solid transparent',
+                                      boxShadow: isSelected ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                                      transition: 'all 0.2s'
+                                    }}
+                                    title={iconKey} // Hover karne par naam dikhega
+                                  >
+                                    <IconComponent size={22} color={isSelected ? '#3b82f6' : '#64748b'} strokeWidth={isSelected ? 2.5 : 2} />
+                                  </div>
+                                );
+                              })}
+                            </div>
+
+
+
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+                              <button onClick={() => {
+                                setShowCustomModuleModal(false);
+                                setNewCustomModule({ id: null, name: '', icon: 'Box' });
+                              }} style={{ padding: '0.5rem 1rem', background: 'none', border: 'none', cursor: 'pointer' }}>Cancel</button>
+                              <button
+                                onClick={async () => {
+                                  const token = await getAuthToken();
+                                  const method = newCustomModule.id ? 'PUT' : 'POST';
+
+                                  const res = await fetch('/api/custom-modules', {
+                                    method: method,
+                                    headers: {
+                                      'Content-Type': 'application/json',
+                                      'Authorization': `Bearer ${token}`
+                                    },
+                                    body: JSON.stringify({
+                                      id: newCustomModule.id,
+                                      name: newCustomModule.name,
+                                      singularName: newCustomModule.name,
+                                      icon: newCustomModule.icon
+                                    })
+                                  });
+
+                                  if (res.ok) {
+                                    const savedMod = await res.json();
+                                    if (newCustomModule.id) {
+                                      // Update list if edited
+                                      setCustomModules(customModules.map(m => m.id === savedMod.id ? savedMod : m));
+                                    } else {
+                                      // Add to list if new
+                                      setCustomModules([savedMod, ...customModules]);
+                                    }
+                                    setShowCustomModuleModal(false);
+                                    setNewCustomModule({ id: null, name: '', icon: 'Box' });
+                                    try { localStorage.removeItem('mooncliq_bootstrap_cache'); } catch (e) { }
+                                  }
+                                }}
+                                style={{ padding: '0.5rem 1rem', backgroundColor: '#0f172a', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                              >
+                                Save
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
+                  )}
 
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+                  {/* MODULE LIST TAB */}
+                  {currentView === 'module-list' && (
+                    <div>
+                      <p style={{ color: '#475569', marginBottom: '1.5rem', fontSize: '0.95rem' }}>Select a module to customize its {activeFeature === 'tags' ? 'tags' : activeFeature === 'layout-builder' ? 'layout' : 'blueprint'}.</p>
 
-                      {/* STAGE MANAGER (Drag & Drop) */}
-                      <div>
+                      <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                          <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                            <tr>
+                              <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Module Name</th>
+                              <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Last Modified</th>
+                              <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Status</th>
+                              <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600, textAlign: 'right' }}>Action</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {[
+                              { id: 'Lead', name: 'Lead', isCustom: false },
+                              { id: 'Deal', name: 'Deal', isCustom: false },
+                              { id: 'Account', name: 'Account', isCustom: false },
+                              { id: 'Product', name: 'Product', isCustom: false },
+                              { id: 'Task', name: 'Task', isCustom: false },
+                              ...customModules.map(m => ({ id: m.id, name: m.name, isCustom: true, isActive: m.isActive }))
+                            ].map((mod, idx, arr) => {
+                              const isModActive = mod.isCustom
+                                ? mod.isActive !== false
+                                : activeModules.includes(mod.id === 'Product' ? 'Products' : mod.id);
+
+                              return (
+                                <tr key={mod.id} style={{ borderBottom: idx === arr.length - 1 ? 'none' : '1px solid #e2e8f0', transition: 'background-color 0.2s' }} onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
+                                  <td style={{ padding: '1rem', color: '#0f172a', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <div style={{ background: '#eff6ff', color: '#2563eb', padding: '0.4rem', borderRadius: '6px' }}>
+                                      <Layers size={16} />
+                                    </div>
+                                    <div>
+                                      <div>{mod.name}</div>
+                                      {mod.isCustom && <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 500 }}>Custom Module</span>}
+                                    </div>
+                                  </td>
+                                  <td style={{ padding: '1rem', color: '#475569', fontSize: '0.875rem' }}>Configured</td>
+                                  <td style={{ padding: '1rem' }}>
+                                    <label style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer', gap: '8px' }}>
+                                      <input
+                                        type="checkbox"
+                                        style={{ display: 'none' }}
+                                        checked={isModActive}
+                                        onChange={() => {
+                                          if (mod.isCustom) {
+                                            handleToggleCustomModule(mod.id, isModActive);
+                                          } else {
+                                            handleToggleModule(mod.id === 'Product' ? 'Products' : mod.id);
+                                          }
+                                        }}
+                                      />
+                                      <div style={{ position: 'relative', width: '36px', height: '20px', backgroundColor: isModActive ? '#10b981' : '#cbd5e1', borderRadius: '10px', transition: 'background-color 0.2s' }}>
+                                        <div style={{ position: 'absolute', top: '2px', left: isModActive ? '18px' : '2px', width: '16px', height: '16px', backgroundColor: 'white', borderRadius: '50%', transition: 'all 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}></div>
+                                      </div>
+                                      <span style={{ fontSize: '0.85rem', color: isModActive ? '#10b981' : '#94a3b8', fontWeight: 600 }}>
+                                        {isModActive ? 'Active' : 'Disabled'}
+                                      </span>
+                                    </label>
+                                  </td>
+                                  <td style={{ padding: '1rem', textAlign: 'right' }}>
+                                    <button
+                                      onClick={() => { setSelectedModule(mod.id); setCurrentView(activeFeature); }}
+                                      style={{ padding: '0.45rem 1rem', backgroundColor: '#ffffff', color: '#0f172a', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)', transition: 'all 0.15s' }}
+                                      onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#f8fafc'; e.currentTarget.style.borderColor = '#94a3b8'; }}
+                                      onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#ffffff'; e.currentTarget.style.borderColor = '#cbd5e1'; }}
+                                    >
+                                      Customize
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* BLUEPRINT LIST TAB (NEW UI) */}
+                  {currentView === 'blueprint-list' && (
+                    <div>
+                      {/* Top Action Bar */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                        <div style={{ position: 'relative', width: '300px' }}>
+                          <svg style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                          <input type="text" placeholder="Search" value={blueprintSearch} onChange={(e) => setBlueprintSearch(e.target.value)} style={{ width: '100%', padding: '0.5rem 1rem 0.5rem 2rem', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '0.9rem', outline: 'none' }} />
+                        </div>
+                        <div style={{ display: 'flex', gap: '1rem' }}>
+                          <button onClick={() => {
+                            const leadBlueprints = allBlueprintsList.filter(bp => bp.moduleType === 'Lead').sort((a, b) => (a.executionOrder || 0) - (b.executionOrder || 0));
+                            setReorderModal({ isOpen: true, module: 'Lead', blueprints: leadBlueprints });
+                          }} style={{ padding: '0.5rem 1rem', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', color: '#475569', borderRadius: '6px', cursor: 'pointer', fontWeight: 500, fontSize: '0.9rem' }} onMouseEnter={e => e.target.style.backgroundColor = '#f1f5f9'} onMouseLeave={e => e.target.style.backgroundColor = '#f8fafc'}>Reorder Blueprints</button>
+
+                          <button onClick={() => setCreateBlueprintModal({ isOpen: true, name: '', module: 'Lead', targetField: 'Lead Status' })} style={{ padding: '0.5rem 1rem', backgroundColor: '#4f46e5', border: 'none', color: 'white', borderRadius: '6px', cursor: 'pointer', fontWeight: 500, fontSize: '0.9rem' }} onMouseEnter={e => e.target.style.backgroundColor = '#4338ca'} onMouseLeave={e => e.target.style.backgroundColor = '#4f46e5'}>+ Create Blueprint</button>
+                        </div>
+                      </div>
+
+                      {/* Table */}
+                      <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', backgroundColor: 'white' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                          <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                            <tr>
+                              <th style={{ padding: '1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Blueprint Name</th>
+                              <th style={{ padding: '1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Modules </th>
+                              <th style={{ padding: '1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Field</th>
+                              <th style={{ padding: '1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Last Modified</th>
+                              <th style={{ padding: '1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600, textAlign: 'left' }}>Status </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {allBlueprintsList
+                              .filter(bp => blueprintSearch.length >= 3 ?
+                                (bp.name.toLowerCase().includes(blueprintSearch.toLowerCase()) || bp.moduleType.toLowerCase().includes(blueprintSearch.toLowerCase())) : true)
+                              .map((bp) => (
+                                <tr key={bp.id} style={{ borderBottom: '1px solid #e2e8f0', transition: 'background-color 0.2s' }} onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
+                                  {/* 1. Clickable Name (Jispar click karke canvas khulega) */}
+                                  <td
+                                    style={{ padding: '1rem', color: '#4f46e5', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer', textDecoration: 'underline' }}
+                                    onClick={() => { setSelectedModule(bp.moduleType); fetchBlueprint(bp.moduleType); setCurrentView('blueprint'); }}
+                                  >
+                                    {bp.name}
+                                  </td>
+
+                                  <td style={{ padding: '1rem', color: '#64748b', fontSize: '0.9rem' }}>{customModules.find(m => m.id === bp.moduleType)?.name || bp.moduleType}</td>
+
+                                  <td style={{ padding: '1rem', color: '#64748b', fontSize: '0.9rem' }}>{bp.targetField || 'N/A'}</td>
+
+                                  <td style={{ padding: '1rem', color: '#64748b', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <div style={{ width: '24px', height: '24px', backgroundColor: '#e2e8f0', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 'bold', color: '#64748b' }}>GK</div>
+                                    Just now
+                                  </td>
+
+                                  {/* 2. Green Toggle Switch (Active/Inactive ke liye) aur "Edit Flow" button delete ho gaya */}
+                                  <td style={{ padding: '1rem', textAlign: 'left' }}>
+                                    <label style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>
+                                      <input
+                                        type="checkbox"
+                                        style={{ display: 'none' }}
+                                        checked={bp.isActive}
+                                        onChange={async () => {
+                                          try {
+                                            const res = await fetch('/api/blueprint', {
+                                              method: 'PUT',
+                                              headers: { 'Content-Type': 'application/json' },
+                                              body: JSON.stringify({ id: bp.id, isActive: !bp.isActive })
+                                            });
+                                            if (res.ok) fetchBlueprintsList();
+                                          } catch (error) { console.error(error); }
+                                        }}
+                                      />
+                                      <div style={{ position: 'relative', width: '36px', height: '20px', backgroundColor: bp.isActive ? '#10b981' : '#cbd5e1', borderRadius: '10px', transition: 'background-color 0.2s' }}>
+                                        <div style={{ position: 'absolute', top: '2px', left: bp.isActive ? '18px' : '2px', width: '16px', height: '16px', backgroundColor: 'white', borderRadius: '50%', transition: 'all 0.2s' }}></div>
+                                      </div>
+                                    </label>
+                                  </td>
+
+                                </tr>
+                              ))}
+                          </tbody>
+
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+
+                  {/* WORKFLOWS TAB */}
+                  {currentView === 'workflows' && (
+                    <WorkflowBuilder />
+                  )}
+
+                  {/* CLIENT SCRIPTS TAB */}
+                  {currentView === 'client-scripts' && (
+                    <ClientScriptBuilder />
+                  )}
+
+                  {/* TASK AUTOMATION TAB */}
+                  {currentView === 'task-automation' && (
+                    <TaskAutomationBuilder />
+                  )}
+
+                  {/* USERS TAB */}
+                  {currentView === 'users' && (
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                        <div>
+                          <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.25rem' }}>Users in Organization</h2>
+                          <p className="text-muted" style={{ margin: 0, fontSize: '0.9rem' }}>Manage active members and pending invitations.</p>
+                        </div>
+                        <button onClick={() => setIsInviteModalOpen(true)} style={{ padding: '0.5rem 1rem', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="M12 5v14" /></svg>
+                          Invite User
+                        </button>
+                      </div>
+
+                      <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                          <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                            <tr>
+                              <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Email Address</th>
+                              <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>RBAC Profile</th>
+                              <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Status</th>
+                              <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {/* 1. Asli Active Users Dikhayenge (Including Super Admin) */}
+                            {orgUsers.map(user => {
+                              const isSuperAdmin = user.profile?.canAccessSettings || ['administrator', 'admin', 'superadmin', 'super admin'].includes(user.profile?.name?.toLowerCase());
+
+                              return (
+                                <tr key={user.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                                  <td style={{ padding: '1rem', color: '#0f172a', fontWeight: 500 }}>
+                                    {user.email}
+                                    {isSuperAdmin && (
+                                      <span style={{ marginLeft: '0.5rem', fontSize: '0.7rem', backgroundColor: '#e0e7ff', color: '#3730a3', padding: '0.15rem 0.5rem', borderRadius: '12px', fontWeight: 600 }}>
+                                        Owner / Admin
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td style={{ padding: '1rem' }}>
+                                    <span style={{ backgroundColor: '#f1f5f9', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem', color: '#475569', fontWeight: 600 }}>
+                                      {user.profile?.name || 'No Role'}
+                                    </span>
+                                  </td>
+                                  <td style={{ padding: '1rem' }}>
+                                    <span style={{ color: '#10b981', fontWeight: 600, fontSize: '0.85rem' }}>● Active</span>
+                                  </td>
+                                  <td style={{ padding: '1rem' }}>
+                                    {isSuperAdmin ? (
+                                      <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic', fontWeight: 500 }}>
+                                        Primary Admin
+                                      </span>
+                                    ) : (
+                                      <button
+                                        onClick={() => handleRevokeAccess(user.id)}
+                                        style={{ background: 'none', border: '1px solid #ef4444', color: '#ef4444', padding: '0.25rem 0.75rem', borderRadius: '4px', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600 }}
+                                      >
+                                        Revoke Access
+                                      </button>
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+
+                            {/* 2. Pending Invites Dikhayenge */}
+                            {pendingInvites.map(invite => (
+                              <tr key={invite.id} style={{ borderBottom: '1px solid #e2e8f0', backgroundColor: '#fdf8f6' }}>
+                                <td style={{ padding: '1rem', color: '#0f172a', fontWeight: 500 }}>{invite.email} <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>(Invited)</span></td>
+                                <td style={{ padding: '1rem' }}><span style={{ backgroundColor: '#f1f5f9', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem', color: '#475569', fontWeight: 600 }}>{invite.profile?.name || 'Pending'}</span></td>
+                                <td style={{ padding: '1rem' }}><span style={{ color: '#f59e0b', fontWeight: 600, fontSize: '0.85rem' }}>○ Pending</span></td>
+                                <td style={{ padding: '1rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const inviteUrl = `${window.location.origin}/invite/${invite.token}`;
+                                      navigator.clipboard.writeText(inviteUrl);
+                                      alert("Invite link copied to clipboard!\n" + inviteUrl);
+                                    }}
+                                    style={{
+                                      backgroundColor: '#2563eb',
+                                      border: 'none',
+                                      color: '#ffffff',
+                                      padding: '0.25rem 0.75rem',
+                                      borderRadius: '4px',
+                                      fontSize: '0.8rem',
+                                      cursor: 'pointer',
+                                      fontWeight: 600
+                                    }}
+                                  >
+                                    Copy Link
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      if (!window.confirm("Are you sure you want to revoke this pending invite?")) return;
+                                      try {
+                                        const token = await getAuthToken();
+                                        const res = await fetch('/api/invitations/revoke', {
+                                          method: 'POST',
+                                          headers: {
+                                            'Content-Type': 'application/json',
+                                            'Authorization': `Bearer ${token}`
+                                          },
+                                          body: JSON.stringify({ inviteId: invite.id })
+                                        });
+                                        if (res.ok) {
+                                          alert("Pending Invitation Revoked!");
+                                          setPendingInvites(prev => prev.filter(i => i.id !== invite.id));
+                                        } else {
+                                          const errorData = await res.json();
+                                          alert(errorData.error || "Failed to revoke invitation");
+                                        }
+                                      } catch (e) {
+                                        alert("Error revoking invite");
+                                      }
+                                    }}
+                                    style={{ background: 'none', border: '1px solid #ef4444', color: '#ef4444', padding: '0.25rem 0.75rem', borderRadius: '4px', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600 }}
+                                  >
+                                    Revoke Invite
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+
+                            {orgUsers.length === 0 && pendingInvites.length === 0 && (
+                              <tr><td colSpan="4" style={{ padding: '1rem', textAlign: 'center', color: '#64748b' }}>No users found.</td></tr>
+                            )}
+                          </tbody>
+
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* BLUEPRINT TAB */}
+                  {currentView === 'blueprint' && (
+                    <div>
+                      <div style={{ marginBottom: '2rem' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                          <h3 style={{ fontSize: '1.125rem', fontWeight: 600 }}>1. Stage Manager</h3>
+                          <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Visual Blueprint Canvas</h2>
+                          <button className="btn-primary" style={{ padding: '0.4rem 1rem', fontSize: '0.9rem' }} onClick={() => setIsAddingStage(!isAddingStage)}>
+                            {isAddingStage ? 'Cancel' : '+ Add Stage'}
+                          </button>
                         </div>
 
+                        {isAddingStage && (
+                          <div style={{ display: 'flex', gap: '1rem', padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '8px', marginBottom: '1.5rem', border: '1px solid #e2e8f0', alignItems: 'center' }}>
+                            <input required type="text" placeholder="Stage Name" className="form-input bg-white" style={{ flex: 1, margin: 0 }} value={newStage.name} onChange={e => setNewStage({ ...newStage, name: e.target.value })} />
+                            <select className="form-input bg-white" style={{ width: '150px', margin: 0 }} value={newStage.color} onChange={e => setNewStage({ ...newStage, color: e.target.value })}>
+                              <option value="#f5d96bff">Yellow</option>
+                              <option value="#6aacfcff">Blue</option>
+                              <option value="#64f296ff">Green</option>
+                              <option value="#f676bfff">Pink</option>
+                              <option value="#e5e7eb">Gray</option>
+                              <option value="#8fa2edff">Indigo</option>
+                              <option value="#f53030ff">Red</option>
+                              <option value="#f975bdff">Rose</option>
+                              <option value="#80fbe2ff">Teal</option>
+                            </select>
+                            <button className="btn-primary" onClick={handleAddStage}>Save Stage</button>
+                          </div>
+                        )}
 
-                        <DragDropContext onDragEnd={handleDragEnd}>
-                          <Droppable droppableId="stages">
-                            {(provided) => (
-                              <div {...provided.droppableProps} ref={provided.innerRef}>
-                                {blueprint.stages.map((stage, index) => (
-                                  <Draggable key={stage.id} draggableId={stage.id} index={index}>
-                                    {(provided) => (
-                                      <div
-                                        ref={provided.innerRef}
-                                        {...provided.draggableProps}
-                                        {...provided.dragHandleProps}
-                                        style={{
-                                          padding: '1rem', border: '1px solid #e2e8f0', borderRadius: '8px',
-                                          marginBottom: '0.5rem', background: 'white', display: 'flex',
-                                          justifyContent: 'space-between', alignItems: 'center',
-                                          ...provided.draggableProps.style
-                                        }}
-                                      >
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                          <div style={{ cursor: 'grab', color: '#cbd5e1' }}>⋮⋮</div>
-                                          <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: stage.color }}></div>
-                                          <span style={{ fontWeight: 500 }}>{stage.name}</span>
-                                        </div>
-                                        <button onClick={() => handleDeleteStage(stage.id)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
+                        <div style={{ display: 'flex', gap: '1.5rem', width: '100%', height: '550px' }}>
+                          {/* LEFTSIDE: CANVAS */}
+                          <div style={{ flex: 1, borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+                            <ReactFlow
+                              nodes={nodes}
+                              edges={edges}
+                              onNodesChange={onNodesChange}
+                              onEdgesChange={onEdgesChange}
+                              nodeTypes={nodeTypes}
+                              fitView
+                              onNodeClick={onNodeClick}
+                              onEdgeClick={onEdgeClick}
+                              onConnect={onConnect}
+                            >
+                              <Background color="#cbd5e1" gap={16} />
+                              <Controls />
+                            </ReactFlow>
+                          </div>
+
+                          {/* RIGHTSIDE: PROPERTIES PANEL */}
+                          {selectedCanvasItem && (
+                            <div style={{ width: '350px', backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '1.5rem', overflowY: 'auto' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: '1px solid #e2e8f0' }}>
+                                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: '#0f172a' }}>Properties</h3>
+                                <button onClick={() => setSelectedCanvasItem(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', fontSize: '1.2rem' }}>✕</button>
+                              </div>
+
+                              {selectedCanvasItem.type === 'start' && (
+                                <div>
+                                  <h4 style={{ color: '#4f46e5', margin: '0 0 0.5rem 0' }}>Entry Criteria</h4>
+                                  <p style={{ fontSize: '0.85rem', color: '#64748b', lineHeight: 1.5 }}>
+                                    Configure the conditions under which a record enters this blueprint.
+                                  </p>
+                                  <div style={{ marginTop: '1.5rem', padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                    <label className="form-label" style={{ color: '#475569' }}>Apply To:</label>
+                                    <select
+                                      className="form-input bg-white"
+                                      style={{ marginBottom: '1rem' }}
+                                      value={entryCriteriaForm.type}
+                                      onChange={(e) => setEntryCriteriaForm({ ...entryCriteriaForm, type: e.target.value })}
+                                    >
+                                      <option value="always">All Records</option>
+                                      <option value="conditions">Records matching specific conditions</option>
+                                    </select>
+
+                                    {entryCriteriaForm.type === 'conditions' && (
+                                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                                        {(entryCriteriaForm.conditions || []).map((cond, idx) => (
+                                          <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+
+                                            {/* AND/OR Operator (Agar 1 se zyada condition ho) */}
+                                            {idx > 0 && (
+                                              <div style={{ display: 'flex', justifyContent: 'center', margin: '0.25rem 0' }}>
+                                                <select
+                                                  className="form-input"
+                                                  style={{ width: '80px', padding: '0.2rem 0.5rem', fontSize: '0.75rem', background: '#f1f5f9', border: 'none', borderRadius: '20px', textAlign: 'center', fontWeight: 600, color: '#475569' }}
+                                                  value={cond.logical || 'AND'}
+                                                  onChange={e => {
+                                                    const newConds = [...(entryCriteriaForm.conditions || [])];
+                                                    newConds[idx].logical = e.target.value;
+                                                    setEntryCriteriaForm({ ...entryCriteriaForm, conditions: newConds });
+                                                  }}
+                                                >
+                                                  <option value="AND">AND</option>
+                                                  <option value="OR">OR</option>
+                                                </select>
+                                              </div>
+                                            )}
+
+                                            {/* Condition Card */}
+                                            <div style={{ padding: '0.75rem', backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid #cbd5e1', display: 'flex', flexDirection: 'column', gap: '0.5rem', position: 'relative' }}>
+
+                                              <button onClick={() => {
+                                                const newConds = (entryCriteriaForm.conditions || []).filter((_, i) => i !== idx);
+                                                setEntryCriteriaForm({ ...entryCriteriaForm, conditions: newConds });
+                                              }} style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '1rem', padding: '0.2rem' }}>✕</button>
+
+                                              <label style={{ fontSize: '0.7rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase' }}>Condition {idx + 1}</label>
+
+                                              <select className="form-input" style={{ width: '90%', fontSize: '0.85rem' }} value={cond.field} onChange={e => {
+                                                const newConds = [...(entryCriteriaForm.conditions || [])];
+                                                newConds[idx].field = e.target.value;
+                                                setEntryCriteriaForm({ ...entryCriteriaForm, conditions: newConds });
+                                              }}>
+                                                <option value="">Select Field</option>
+                                                {[...(blueprint.fields || [])].map(f => (
+                                                  <option key={f.name} value={f.name}>{f.label || f.name}</option>
+                                                ))}
+                                              </select>
+
+                                              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                <select className="form-input" style={{ flex: '0 0 40%', fontSize: '0.85rem' }} value={cond.operator} onChange={e => {
+                                                  const newConds = [...(entryCriteriaForm.conditions || [])];
+                                                  newConds[idx].operator = e.target.value;
+                                                  setEntryCriteriaForm({ ...entryCriteriaForm, conditions: newConds });
+                                                }}>
+                                                  <option value="is">is</option>
+                                                  <option value="isn't">isn't</option>
+                                                  <option value="contains">contains</option>
+                                                </select>
+                                                <input type="text" className="form-input" style={{ flex: 1, minWidth: 0, fontSize: '0.85rem' }} placeholder="Value" value={cond.value} onChange={e => {
+                                                  const newConds = [...(entryCriteriaForm.conditions || [])];
+                                                  newConds[idx].value = e.target.value;
+                                                  setEntryCriteriaForm({ ...entryCriteriaForm, conditions: newConds });
+                                                }} />
+                                              </div>
+                                            </div>
+                                          </div>
+                                        ))}
+
+                                        <button onClick={() => {
+                                          const newConds = [...(entryCriteriaForm.conditions || []), { field: '', operator: 'is', value: '' }];
+                                          setEntryCriteriaForm({ ...entryCriteriaForm, conditions: newConds });
+                                        }} style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontWeight: 500, padding: 0 }}>+ Add Condition</button>
                                       </div>
                                     )}
-                                  </Draggable>
-                                ))}
-                                {provided.placeholder}
-                              </div>
-                            )}
-                          </Droppable>
-                        </DragDropContext>
-                      </div>
 
-                      {/* RULES MANAGER */}
-                      <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                          <h3 style={{ fontSize: '1.125rem', fontWeight: 600 }}>2. Rules Manager</h3>
-                        </div>
-
-
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                          {blueprint.transitions.length === 0 && <p style={{ color: '#64748b', fontSize: '0.875rem' }}>No transition rules created.</p>}
-                          {blueprint.transitions.map(t => {
-                            const destStage = blueprint.stages.find(s => s.id === t.toStageId);
-                            return (
-                              <div
-                                key={t.id}
-                                onClick={() => openRuleModal(t)}
-                                style={{ padding: '1rem', background: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-                              >
-                                <div>
-                                  <div style={{ fontWeight: 600, color: 'var(--primary)', marginBottom: '0.25rem' }}>{t.name}</div>
-                                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                                    {t.isGlobal ? "From Any Stage" : `From ${t.fromStages?.length || 0} Stage(s)`} ➔ To {destStage?.name || "Unknown"}
+                                    <button
+                                      className="btn-primary"
+                                      style={{ width: '100%', background: '#4f46e5' }}
+                                      disabled={isSavingEntry}
+                                      onClick={async () => {
+                                        setIsSavingEntry(true);
+                                        try {
+                                          const res = await fetch('/api/blueprint', {
+                                            method: 'PUT',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({
+                                              id: blueprint.id,
+                                              entryCriteria: entryCriteriaForm
+                                            })
+                                          });
+                                          if (res.ok) {
+                                            alert("Entry Criteria Saved!");
+                                          }
+                                        } catch (err) {
+                                          alert("Failed to save entry criteria");
+                                        }
+                                        setIsSavingEntry(false);
+                                      }}
+                                    >
+                                      {isSavingEntry ? 'Saving...' : 'Save Entry Criteria'}
+                                    </button>
                                   </div>
                                 </div>
-                                <div style={{ color: '#cbd5e1' }}>➔</div>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      </div>
+                              )}
 
-                    </div>
-                  </div>
-                )}
 
-                {/* LAYOUT BUILDER TAB */}
-                {currentView === 'layout-builder' && (
-                  <LayoutBuilder selectedModule={selectedModule} onDirtyChange={setIsLayoutDirty} shakeTrigger={shakeTrigger} />
-                )}
 
-                {/* FIELDS TAB */}
-                {currentView === 'fields' && (
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                      <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>{selectedModule} Fields</h2>
-                      <button className="btn-primary" onClick={() => setIsAddingField(!isAddingField)}>
-                        {isAddingField ? 'Cancel' : '+ Add Field'}
-                      </button>
-                    </div>
+                              {selectedCanvasItem.type === 'node' && (
+                                <div>
+                                  <h4 style={{ margin: '0 0 0.5rem 0', color: '#1e293b' }}>Stage: {selectedCanvasItem.data.data.label}</h4>
+                                  <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '1.5rem' }}>View or delete this stage.</p>
 
-                    {isAddingField && (
-                      <form onSubmit={handleAddField} style={{ padding: '1.5rem', backgroundColor: '#f8fafc', borderRadius: '8px', marginBottom: '1.5rem', border: '1px solid #e2e8f0' }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-                          <div>
-                            <label className="form-label">Field Label (e.g. Lead Source)</label>
-                            <input required type="text" className="form-input bg-white" value={newField.label} onChange={e => setNewField({ ...newField, label: e.target.value })} />
-                          </div>
-                          <div>
-                            <label className="form-label">Field Type</label>
-                            <select className="form-input bg-white" value={newField.type} onChange={e => setNewField({ ...newField, type: e.target.value })}>
-                              <option value="text">Short Text</option>
-                              <option value="textarea">Long Text (Text area)</option>
-                              <option value="address">Address Block</option>
-                              <option value="number">Number</option>
-                              <option value="decimal">Decimal (Float)</option>
-                              <option value="currency">Currency</option>
-                              <option value="email">Email Address</option>
-                              <option value="phone">Phone Number</option>
-                              <option value="url">Website URL</option>
-                              <option value="date">Date</option>
-                              <option value="datetime">Date & Time</option>
-                              <option value="image">Image Upload</option>
-                              <option value="file">File Upload (PDF, Docs)</option>
-                              <option value="user">User / Owner</option>
-                              <option value="checkbox">Checkbox (True/False)</option>
-                              <option value="decision">Decision Box (Toggle)</option>
-                              <option value="select">Dropdown (Select)</option>
-                              <option value="formula">Formula (Calculation)</option>
-                              <option value="radio">Radio Buttons</option>
-                              <option value="autonumber">Auto-Number</option>
-                              <option value="barcode">QR / Barcode Scanner</option>
-                              <option value="audio">Audio / Voice Note</option>
-                              <option value="lookup">Lookup (Relationship)</option>
-                              <option value="subform">Subform</option>
-                            </select>
+                                  <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                    <label className="form-label">Color Theme</label>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem' }}>
+                                      <div style={{ width: '24px', height: '24px', borderRadius: '4px', backgroundColor: selectedCanvasItem.data.data.color }}></div>
+                                      <span style={{ fontSize: '0.9rem', color: '#64748b', fontWeight: 500 }}>{selectedCanvasItem.data.data.color}</span>
+                                    </div>
+                                    {!selectedCanvasItem.data.data?.isSystem && (
+                                      <button
+                                        onClick={() => handleDeleteStage(selectedCanvasItem.data.id)}
+                                        style={{ marginTop: '1rem', width: '100%', padding: '0.5rem', background: '#fee2e2', color: '#ef4444', border: '1px solid #fecaca', borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}
+                                      >
+                                        Delete Stage
+                                      </button>
+                                    )}
 
-                          </div>
-                          {(newField.type === 'select' || newField.type === 'radio') && (
-                            <div style={{ gridColumn: '1 / -1' }}>
-                              <label className="form-label">{newField.type === 'radio' ? 'Radio Options' : 'Dropdown Options'} (Comma Separated)</label>
-                              <input
-                                required
-                                type="text"
-                                className="form-input bg-white"
-                                placeholder="e.g. Enterprise, Mid-Market, Startup"
-                                value={newField.options || ''}
-                                onChange={e => setNewField({ ...newField, options: e.target.value })}
-                              />
+                                    {selectedCanvasItem.data.data?.isSystem && (
+                                      <p style={{ marginTop: '1rem', color: '#94a3b8', fontSize: '0.8rem', textAlign: 'center', fontStyle: 'italic', padding: '0.5rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px' }}>
+                                        🔒 System stages cannot be deleted.
+                                      </p>
+                                    )}
+
+                                  </div>
+                                </div>
+                              )}
+
+
+                              {selectedCanvasItem.type === 'edge' && (
+                                <div>
+                                  <h4 style={{ margin: '0 0 0.5rem 0', color: '#1e293b' }}>Rule: {selectedCanvasItem.data.label}</h4>
+                                  <p style={{ fontSize: '0.85rem', color: '#64748b' }}>Configure transition field updates here.</p>
+                                  <button
+                                    className="btn-primary"
+                                    style={{ width: '100%', marginTop: '1rem' }}
+                                    onClick={() => {
+                                      // Rule ID ke base par database wali details nikal rahe hain
+                                      const existingRule = blueprint.transitions.find(t => t.id === selectedCanvasItem.data.data.ruleId);
+                                      if (existingRule) openRuleModal(existingRule);
+                                    }}
+                                  >
+                                    Edit Rule Settings
+                                  </button>
+                                </div>
+                              )}
+
+
+                              {selectedCanvasItem.type === 'new_edge' && (
+                                <div>
+                                  <h4 style={{ margin: '0 0 0.5rem 0', color: '#1e293b' }}>Create New Rule</h4>
+                                  <p style={{ fontSize: '0.85rem', color: '#64748b' }}>Connect these stages logically.</p>
+                                  <button
+                                    className="btn-primary"
+                                    style={{ width: '100%', marginTop: '1rem' }}
+                                    onClick={() => {
+                                      openRuleModal();
+                                      // Set a slight timeout to ensure state is set by openRuleModal first
+                                      setTimeout(() => {
+                                        setSelectedRule(prev => ({
+                                          ...prev,
+                                          fromStageIds: [selectedCanvasItem.data.source],
+                                          toStageId: selectedCanvasItem.data.target
+                                        }));
+                                      }, 0);
+                                    }}
+                                  >
+                                    Configure New Rule
+                                  </button>
+                                </div>
+                              )}
+
                             </div>
                           )}
+                        </div>
 
-                          {newField.type === 'lookup' && (
-                            <div style={{ gridColumn: '1 / -1', padding: '1.5rem', border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: '#f1f5f9', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                              <h4 style={{ fontWeight: 600, fontSize: '1rem', color: '#334155', margin: 0 }}>Advanced Lookup Configuration</h4>
+                      </div>
 
-                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                <div>
-                                  <label className="form-label">Target Module (Which module to link to?)</label>
-                                  <select className="form-input bg-white" value={newField.targetModule || 'Account'} onChange={e => setNewField({ ...newField, targetModule: e.target.value })}>
-                                    {['Lead', 'Deal', 'Account', 'Product', 'Task'].map(m => (
-                                      <option key={m} value={m}>{m}</option>
-                                    ))}
-                                  </select>
-                                </div>
-                                <div>
-                                  <label className="form-label">Public Read/Write</label>
-                                  <div style={{ display: 'flex', alignItems: 'center', height: '42px', gap: '0.5rem' }}>
-                                    <input type="checkbox" checked={newField.isPublic !== false} onChange={e => setNewField({ ...newField, isPublic: e.target.checked })} style={{ width: '1.25rem', height: '1.25rem' }} />
-                                    <span style={{ fontSize: '0.875rem', color: '#475569' }}>Allow all users to view/select</span>
-                                  </div>
-                                </div>
-                              </div>
 
-                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                <div>
-                                  <label className="form-label">Bi-Directional Related List</label>
-                                  <div style={{ display: 'flex', alignItems: 'center', height: '42px', gap: '0.5rem' }}>
-                                    <input type="checkbox" checked={newField.isBiDirectional || false} onChange={e => setNewField({ ...newField, isBiDirectional: e.target.checked })} style={{ width: '1.25rem', height: '1.25rem' }} />
-                                    <span style={{ fontSize: '0.875rem', color: '#475569' }}>Show on Target Module</span>
-                                  </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+
+                        {/* STAGE MANAGER (Drag & Drop) */}
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                            <h3 style={{ fontSize: '1.125rem', fontWeight: 600 }}>1. Stage Manager</h3>
+                          </div>
+
+
+                          <DragDropContext onDragEnd={handleDragEnd}>
+                            <Droppable droppableId="stages">
+                              {(provided) => (
+                                <div {...provided.droppableProps} ref={provided.innerRef}>
+                                  {blueprint.stages.map((stage, index) => (
+                                    <Draggable key={stage.id} draggableId={stage.id} index={index}>
+                                      {(provided) => (
+                                        <div
+                                          ref={provided.innerRef}
+                                          {...provided.draggableProps}
+                                          {...provided.dragHandleProps}
+                                          style={{
+                                            padding: '1rem', border: '1px solid #e2e8f0', borderRadius: '8px',
+                                            marginBottom: '0.5rem', background: 'white', display: 'flex',
+                                            justifyContent: 'space-between', alignItems: 'center',
+                                            ...provided.draggableProps.style
+                                          }}
+                                        >
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                            <div style={{ cursor: 'grab', color: '#cbd5e1' }}>⋮⋮</div>
+                                            <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: stage.color }}></div>
+                                            <span style={{ fontWeight: 500 }}>{stage.name}</span>
+                                          </div>
+                                          <button onClick={() => handleDeleteStage(stage.id)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
+                                        </div>
+                                      )}
+                                    </Draggable>
+                                  ))}
+                                  {provided.placeholder}
                                 </div>
-                                {newField.isBiDirectional && (
+                              )}
+                            </Droppable>
+                          </DragDropContext>
+                        </div>
+
+                        {/* RULES MANAGER */}
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                            <h3 style={{ fontSize: '1.125rem', fontWeight: 600 }}>2. Rules Manager</h3>
+                          </div>
+
+
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                            {blueprint.transitions.length === 0 && <p style={{ color: '#64748b', fontSize: '0.875rem' }}>No transition rules created.</p>}
+                            {blueprint.transitions.map(t => {
+                              const destStage = blueprint.stages.find(s => s.id === t.toStageId);
+                              return (
+                                <div
+                                  key={t.id}
+                                  onClick={() => openRuleModal(t)}
+                                  style={{ padding: '1rem', background: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                                >
                                   <div>
-                                    <label className="form-label">Related List Title</label>
-                                    <input required type="text" className="form-input bg-white" placeholder="e.g. Associated Deals" value={newField.relatedListLabel || ''} onChange={e => setNewField({ ...newField, relatedListLabel: e.target.value })} />
+                                    <div style={{ fontWeight: 600, color: 'var(--primary)', marginBottom: '0.25rem' }}>{t.name}</div>
+                                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                                      {t.isGlobal ? "From Any Stage" : `From ${t.fromStages?.length || 0} Stage(s)`} ➔ To {destStage?.name || "Unknown"}
+                                    </div>
                                   </div>
-                                )}
+                                  <div style={{ color: '#cbd5e1' }}>➔</div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+
+                      </div>
+                    </div>
+                  )}
+
+                  {/* LAYOUT BUILDER TAB */}
+                  {currentView === 'layout-builder' && (
+                    <LayoutBuilder selectedModule={selectedModule} onDirtyChange={setIsLayoutDirty} shakeTrigger={shakeTrigger} />
+                  )}
+
+                  {/* FIELDS TAB */}
+                  {currentView === 'fields' && (
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                        <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>{selectedModule} Fields</h2>
+                        <button className="btn-primary" onClick={() => setIsAddingField(!isAddingField)}>
+                          {isAddingField ? 'Cancel' : '+ Add Field'}
+                        </button>
+                      </div>
+
+                      {isAddingField && (
+                        <form onSubmit={handleAddField} style={{ padding: '1.5rem', backgroundColor: '#f8fafc', borderRadius: '8px', marginBottom: '1.5rem', border: '1px solid #e2e8f0' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                            <div>
+                              <label className="form-label">Field Label (e.g. Lead Source)</label>
+                              <input required type="text" className="form-input bg-white" value={newField.label} onChange={e => setNewField({ ...newField, label: e.target.value })} />
+                            </div>
+                            <div>
+                              <label className="form-label">Field Type</label>
+                              <select className="form-input bg-white" value={newField.type} onChange={e => setNewField({ ...newField, type: e.target.value })}>
+                                <option value="text">Short Text</option>
+                                <option value="textarea">Long Text (Text area)</option>
+                                <option value="address">Address Block</option>
+                                <option value="number">Number</option>
+                                <option value="decimal">Decimal (Float)</option>
+                                <option value="currency">Currency</option>
+                                <option value="email">Email Address</option>
+                                <option value="phone">Phone Number</option>
+                                <option value="url">Website URL</option>
+                                <option value="date">Date</option>
+                                <option value="datetime">Date & Time</option>
+                                <option value="image">Image Upload</option>
+                                <option value="file">File Upload (PDF, Docs)</option>
+                                <option value="user">User / Owner</option>
+                                <option value="checkbox">Checkbox (True/False)</option>
+                                <option value="decision">Decision Box (Toggle)</option>
+                                <option value="select">Dropdown (Select)</option>
+                                <option value="formula">Formula (Calculation)</option>
+                                <option value="radio">Radio Buttons</option>
+                                <option value="autonumber">Auto-Number</option>
+                                <option value="barcode">QR / Barcode Scanner</option>
+                                <option value="audio">Audio / Voice Note</option>
+                                <option value="lookup">Lookup (Relationship)</option>
+                                <option value="subform">Subform</option>
+                              </select>
+
+                            </div>
+                            {(newField.type === 'select' || newField.type === 'radio') && (
+                              <div style={{ gridColumn: '1 / -1' }}>
+                                <label className="form-label">{newField.type === 'radio' ? 'Radio Options' : 'Dropdown Options'} (Comma Separated)</label>
+                                <input
+                                  required
+                                  type="text"
+                                  className="form-input bg-white"
+                                  placeholder="e.g. Enterprise, Mid-Market, Startup"
+                                  value={newField.options || ''}
+                                  onChange={e => setNewField({ ...newField, options: e.target.value })}
+                                />
                               </div>
+                            )}
 
-                              {/* NEW: Filter Builder */}
-                              <div>
-                                <label className="form-label">Filter Lookup Records (Optional)</label>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                  {(newField.filters || []).map((filter, idx) => (
-                                    <div key={idx} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                      {/* Target Module Field Dropdown */}
-                                      <select className="form-input bg-white" style={{ flex: 1 }} value={filter.field || ''} onChange={e => {
-                                        const f = [...(newField.filters || [])];
-                                        f[idx].field = e.target.value;
-                                        setNewField({ ...newField, filters: f });
-                                      }}>
-                                        <option value="" disabled>Select Target Field...</option>
-                                        <optgroup label="Standard Fields">
-                                          {getNativeFields(newField.targetModule).map(tf => (
-                                            <option key={tf.name} value={tf.name}>{tf.label}</option>
-                                          ))}
-                                        </optgroup>
-                                        <optgroup label="Custom Fields">
-                                          {(targetBlueprint?.fields || []).map(tf => (
-                                            <option key={tf.name} value={tf.name}>{tf.label}</option>
-                                          ))}
-                                        </optgroup>
-                                      </select>
+                            {newField.type === 'lookup' && (
+                              <div style={{ gridColumn: '1 / -1', padding: '1.5rem', border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: '#f1f5f9', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                                <h4 style={{ fontWeight: 600, fontSize: '1rem', color: '#334155', margin: 0 }}>Advanced Lookup Configuration</h4>
 
-                                      {/* Operator Dropdown */}
-                                      <select className="form-input bg-white" style={{ width: '130px' }} value={filter.operator || 'is'} onChange={e => {
-                                        const f = [...(newField.filters || [])];
-                                        f[idx].operator = e.target.value;
-                                        setNewField({ ...newField, filters: f });
-                                      }}>
-                                        <option value="is">Is</option>
-                                        <option value="is_not">Isn't</option>
-                                        <option value="contains">Contains</option>
-                                        <option value="does_not_contain">Doesn't Contain</option>
-                                        <option value="starts_with">Starts With</option>
-                                        <option value="ends_with">Ends With</option>
-                                      </select>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                  <div>
+                                    <label className="form-label">Target Module (Which module to link to?)</label>
+                                    <select className="form-input bg-white" value={newField.targetModule || 'Account'} onChange={e => setNewField({ ...newField, targetModule: e.target.value })}>
+                                      {['Lead', 'Deal', 'Account', 'Product', 'Task'].map(m => (
+                                        <option key={m} value={m}>{m}</option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                  <div>
+                                    <label className="form-label">Public Read/Write</label>
+                                    <div style={{ display: 'flex', alignItems: 'center', height: '42px', gap: '0.5rem' }}>
+                                      <input type="checkbox" checked={newField.isPublic !== false} onChange={e => setNewField({ ...newField, isPublic: e.target.checked })} style={{ width: '1.25rem', height: '1.25rem' }} />
+                                      <span style={{ fontSize: '0.875rem', color: '#475569' }}>Allow all users to view/select</span>
+                                    </div>
+                                  </div>
+                                </div>
 
-                                      {/* Match Type Dropdown */}
-                                      <select className="form-input bg-white" style={{ width: '100px' }} value={filter.matchType || 'value'} onChange={e => {
-                                        const f = [...(newField.filters || [])];
-                                        f[idx].matchType = e.target.value;
-                                        f[idx].value = ''; // Reset value when switching type
-                                        setNewField({ ...newField, filters: f });
-                                      }}>
-                                        <option value="value">Value</option>
-                                        <option value="field">Field</option>
-                                      </select>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                  <div>
+                                    <label className="form-label">Bi-Directional Related List</label>
+                                    <div style={{ display: 'flex', alignItems: 'center', height: '42px', gap: '0.5rem' }}>
+                                      <input type="checkbox" checked={newField.isBiDirectional || false} onChange={e => setNewField({ ...newField, isBiDirectional: e.target.checked })} style={{ width: '1.25rem', height: '1.25rem' }} />
+                                      <span style={{ fontSize: '0.875rem', color: '#475569' }}>Show on Target Module</span>
+                                    </div>
+                                  </div>
+                                  {newField.isBiDirectional && (
+                                    <div>
+                                      <label className="form-label">Related List Title</label>
+                                      <input required type="text" className="form-input bg-white" placeholder="e.g. Associated Deals" value={newField.relatedListLabel || ''} onChange={e => setNewField({ ...newField, relatedListLabel: e.target.value })} />
+                                    </div>
+                                  )}
+                                </div>
 
-                                      {/* Value Input OR Current Module Field Dropdown */}
-                                      {filter.matchType === 'field' ? (
-                                        <select className="form-input bg-white" style={{ flex: 1 }} value={filter.value || ''} onChange={e => {
+                                {/* NEW: Filter Builder */}
+                                <div>
+                                  <label className="form-label">Filter Lookup Records (Optional)</label>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                    {(newField.filters || []).map((filter, idx) => (
+                                      <div key={idx} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                        {/* Target Module Field Dropdown */}
+                                        <select className="form-input bg-white" style={{ flex: 1 }} value={filter.field || ''} onChange={e => {
                                           const f = [...(newField.filters || [])];
-                                          f[idx].value = e.target.value;
+                                          f[idx].field = e.target.value;
                                           setNewField({ ...newField, filters: f });
                                         }}>
-                                          <option value="" disabled>Select Current Field...</option>
+                                          <option value="" disabled>Select Target Field...</option>
+                                          <optgroup label="Standard Fields">
+                                            {getNativeFields(newField.targetModule).map(tf => (
+                                              <option key={tf.name} value={tf.name}>{tf.label}</option>
+                                            ))}
+                                          </optgroup>
+                                          <optgroup label="Custom Fields">
+                                            {(targetBlueprint?.fields || []).map(tf => (
+                                              <option key={tf.name} value={tf.name}>{tf.label}</option>
+                                            ))}
+                                          </optgroup>
+                                        </select>
+
+                                        {/* Operator Dropdown */}
+                                        <select className="form-input bg-white" style={{ width: '130px' }} value={filter.operator || 'is'} onChange={e => {
+                                          const f = [...(newField.filters || [])];
+                                          f[idx].operator = e.target.value;
+                                          setNewField({ ...newField, filters: f });
+                                        }}>
+                                          <option value="is">Is</option>
+                                          <option value="is_not">Isn't</option>
+                                          <option value="contains">Contains</option>
+                                          <option value="does_not_contain">Doesn't Contain</option>
+                                          <option value="starts_with">Starts With</option>
+                                          <option value="ends_with">Ends With</option>
+                                        </select>
+
+                                        {/* Match Type Dropdown */}
+                                        <select className="form-input bg-white" style={{ width: '100px' }} value={filter.matchType || 'value'} onChange={e => {
+                                          const f = [...(newField.filters || [])];
+                                          f[idx].matchType = e.target.value;
+                                          f[idx].value = ''; // Reset value when switching type
+                                          setNewField({ ...newField, filters: f });
+                                        }}>
+                                          <option value="value">Value</option>
+                                          <option value="field">Field</option>
+                                        </select>
+
+                                        {/* Value Input OR Current Module Field Dropdown */}
+                                        {filter.matchType === 'field' ? (
+                                          <select className="form-input bg-white" style={{ flex: 1 }} value={filter.value || ''} onChange={e => {
+                                            const f = [...(newField.filters || [])];
+                                            f[idx].value = e.target.value;
+                                            setNewField({ ...newField, filters: f });
+                                          }}>
+                                            <option value="" disabled>Select Current Field...</option>
+                                            <optgroup label="Standard Fields">
+                                              {getNativeFields(selectedModule).map(cf => (
+                                                <option key={cf.name} value={cf.name}>{cf.label}</option>
+                                              ))}
+                                            </optgroup>
+                                            <optgroup label="Custom Fields">
+                                              {(blueprint?.fields || []).map(cf => (
+                                                <option key={cf.name} value={cf.name}>{cf.label}</option>
+                                              ))}
+                                            </optgroup>
+                                          </select>
+                                        ) : (
+                                          <input type="text" className="form-input bg-white" style={{ flex: 1 }} placeholder="Value (e.g. Active)" value={filter.value || ''} onChange={e => {
+                                            const f = [...(newField.filters || [])];
+                                            f[idx].value = e.target.value;
+                                            setNewField({ ...newField, filters: f });
+                                          }} />
+                                        )}
+
+                                        <button type="button" onClick={() => {
+                                          const f = [...(newField.filters || [])];
+                                          f.splice(idx, 1);
+                                          setNewField({ ...newField, filters: f });
+                                        }} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', padding: '0 0.5rem' }}>✕</button>
+                                      </div>
+                                    ))}
+                                    <button type="button" onClick={() => {
+                                      const f = [...(newField.filters || [])];
+                                      f.push({ field: '', operator: 'is', matchType: 'value', value: '' });
+                                      setNewField({ ...newField, filters: f });
+                                    }} style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer', alignSelf: 'flex-start', marginTop: '0.25rem' }}>
+                                      + Add Filter Rule
+                                    </button>
+                                  </div>
+                                </div>
+
+                                {/* NEW: Mappings Builder */}
+                                <div>
+                                  <label className="form-label">Auto-Fill Mappings</label>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                    {(newField.mappings || []).map((mapping, idx) => (
+                                      <div key={idx} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                        <select className="form-input bg-white" style={{ flex: 1 }} value={mapping.sourceField || ''} onChange={e => {
+                                          const m = [...(newField.mappings || [])];
+                                          m[idx].sourceField = e.target.value;
+                                          setNewField({ ...newField, mappings: m });
+                                        }}>
+                                          <option value="" disabled>Select Target Module Field...</option>
+                                          <optgroup label="Standard Fields">
+                                            {getNativeFields(newField.targetModule).map(tf => (
+                                              <option key={tf.name} value={tf.name}>{tf.label}</option>
+                                            ))}
+                                          </optgroup>
+                                          <optgroup label="Custom Fields">
+                                            {(targetBlueprint?.fields || []).map(tf => (
+                                              <option key={tf.name} value={tf.name}>{tf.label}</option>
+                                            ))}
+                                          </optgroup>
+                                        </select>
+                                        <span style={{ color: '#64748b', fontSize: '1.2rem' }}>➔</span>
+                                        <select className="form-input bg-white" style={{ flex: 1 }} value={mapping.targetField || ''} onChange={e => {
+                                          const m = [...(newField.mappings || [])];
+                                          m[idx].targetField = e.target.value;
+                                          setNewField({ ...newField, mappings: m });
+                                        }}>
+                                          <option value="" disabled>Select Current Module Field...</option>
                                           <optgroup label="Standard Fields">
                                             {getNativeFields(selectedModule).map(cf => (
                                               <option key={cf.name} value={cf.name}>{cf.label}</option>
@@ -2238,341 +2841,504 @@ export default function SettingsPage() {
                                             ))}
                                           </optgroup>
                                         </select>
-                                      ) : (
-                                        <input type="text" className="form-input bg-white" style={{ flex: 1 }} placeholder="Value (e.g. Active)" value={filter.value || ''} onChange={e => {
-                                          const f = [...(newField.filters || [])];
-                                          f[idx].value = e.target.value;
-                                          setNewField({ ...newField, filters: f });
-                                        }} />
-                                      )}
-
-                                      <button type="button" onClick={() => {
-                                        const f = [...(newField.filters || [])];
-                                        f.splice(idx, 1);
-                                        setNewField({ ...newField, filters: f });
-                                      }} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', padding: '0 0.5rem' }}>✕</button>
-                                    </div>
-                                  ))}
-                                  <button type="button" onClick={() => {
-                                    const f = [...(newField.filters || [])];
-                                    f.push({ field: '', operator: 'is', matchType: 'value', value: '' });
-                                    setNewField({ ...newField, filters: f });
-                                  }} style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer', alignSelf: 'flex-start', marginTop: '0.25rem' }}>
-                                    + Add Filter Rule
-                                  </button>
+                                        <button type="button" onClick={() => {
+                                          const m = [...(newField.mappings || [])];
+                                          m.splice(idx, 1);
+                                          setNewField({ ...newField, mappings: m });
+                                        }} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', padding: '0 0.5rem' }}>✕</button>
+                                      </div>
+                                    ))}
+                                    <button type="button" onClick={() => {
+                                      const m = [...(newField.mappings || [])];
+                                      m.push({ sourceField: '', targetField: '' });
+                                      setNewField({ ...newField, mappings: m });
+                                    }} style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer', alignSelf: 'flex-start', marginTop: '0.25rem' }}>
+                                      + Add Auto-Fill Mapping
+                                    </button>
+                                  </div>
                                 </div>
                               </div>
+                            )}
 
-                              {/* NEW: Mappings Builder */}
-                              <div>
-                                <label className="form-label">Auto-Fill Mappings</label>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                  {(newField.mappings || []).map((mapping, idx) => (
-                                    <div key={idx} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                      <select className="form-input bg-white" style={{ flex: 1 }} value={mapping.sourceField || ''} onChange={e => {
-                                        const m = [...(newField.mappings || [])];
-                                        m[idx].sourceField = e.target.value;
-                                        setNewField({ ...newField, mappings: m });
-                                      }}>
-                                        <option value="" disabled>Select Target Module Field...</option>
-                                        <optgroup label="Standard Fields">
-                                          {getNativeFields(newField.targetModule).map(tf => (
-                                            <option key={tf.name} value={tf.name}>{tf.label}</option>
-                                          ))}
-                                        </optgroup>
-                                        <optgroup label="Custom Fields">
-                                          {(targetBlueprint?.fields || []).map(tf => (
-                                            <option key={tf.name} value={tf.name}>{tf.label}</option>
-                                          ))}
-                                        </optgroup>
-                                      </select>
-                                      <span style={{ color: '#64748b', fontSize: '1.2rem' }}>➔</span>
-                                      <select className="form-input bg-white" style={{ flex: 1 }} value={mapping.targetField || ''} onChange={e => {
-                                        const m = [...(newField.mappings || [])];
-                                        m[idx].targetField = e.target.value;
-                                        setNewField({ ...newField, mappings: m });
-                                      }}>
-                                        <option value="" disabled>Select Current Module Field...</option>
-                                        <optgroup label="Standard Fields">
-                                          {getNativeFields(selectedModule).map(cf => (
-                                            <option key={cf.name} value={cf.name}>{cf.label}</option>
-                                          ))}
-                                        </optgroup>
-                                        <optgroup label="Custom Fields">
-                                          {(blueprint?.fields || []).map(cf => (
-                                            <option key={cf.name} value={cf.name}>{cf.label}</option>
-                                          ))}
-                                        </optgroup>
-                                      </select>
-                                      <button type="button" onClick={() => {
-                                        const m = [...(newField.mappings || [])];
-                                        m.splice(idx, 1);
-                                        setNewField({ ...newField, mappings: m });
-                                      }} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', padding: '0 0.5rem' }}>✕</button>
-                                    </div>
-                                  ))}
-                                  <button type="button" onClick={() => {
-                                    const m = [...(newField.mappings || [])];
-                                    m.push({ sourceField: '', targetField: '' });
-                                    setNewField({ ...newField, mappings: m });
-                                  }} style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer', alignSelf: 'flex-start', marginTop: '0.25rem' }}>
-                                    + Add Auto-Fill Mapping
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-
-                          {newField.type === 'subform' && (
-                            <div style={{ gridColumn: '1 / -1', padding: '1.5rem', border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: '#f8fafc' }}>
-                              <h4 style={{ fontWeight: 600, fontSize: '1rem', color: '#334155', margin: '0 0 1rem 0' }}>Subform Column Builder</h4>
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                {(newField.subformFields || []).map((col, idx) => (
-                                  <div key={idx} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', backgroundColor: 'white', padding: '0.75rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                                    <input
-                                      type="text"
-                                      className="form-input"
-                                      placeholder="Column Label (e.g. Quantity)"
-                                      value={col.label || ''}
-                                      style={{ flex: 1 }}
-                                      onChange={e => {
-                                        const sf = [...(newField.subformFields || [])];
-                                        sf[idx].label = e.target.value;
-                                        // Auto-generate name from label if name is empty
-                                        if (!sf[idx].name || sf[idx].name === sf[idx].label.toLowerCase().replace(/ /g, '_').substring(0, sf[idx].label.length - 1)) {
-                                          sf[idx].name = e.target.value.toLowerCase().replace(/ /g, '_');
-                                        }
-                                        setNewField({ ...newField, subformFields: sf });
-                                      }}
-                                    />
-                                    <input
-                                      type="text"
-                                      className="form-input"
-                                      placeholder="API Name (e.g. quantity)"
-                                      value={col.name || ''}
-                                      style={{ flex: 1 }}
-                                      onChange={e => {
-                                        const sf = [...(newField.subformFields || [])];
-                                        sf[idx].name = e.target.value.toLowerCase().replace(/ /g, '_');
-                                        setNewField({ ...newField, subformFields: sf });
-                                      }}
-                                    />
-                                    <select
-                                      className="form-input"
-                                      value={col.type || 'text'}
-                                      style={{ flex: 1 }}
-                                      onChange={e => {
-                                        const sf = [...(newField.subformFields || [])];
-                                        sf[idx].type = e.target.value;
-                                        setNewField({ ...newField, subformFields: sf });
-                                      }}
-                                    >
-                                      <option value="text">Short Text</option>
-                                      <option value="number">Number</option>
-                                      <option value="currency">Currency</option>
-                                      <option value="date">Date</option>
-                                      <option value="checkbox">Checkbox (True/False)</option>
-                                      <option value="select">Dropdown (Select)</option>
-                                    </select>
-                                    {col.type === 'select' && (
+                            {newField.type === 'subform' && (
+                              <div style={{ gridColumn: '1 / -1', padding: '1.5rem', border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: '#f8fafc' }}>
+                                <h4 style={{ fontWeight: 600, fontSize: '1rem', color: '#334155', margin: '0 0 1rem 0' }}>Subform Column Builder</h4>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                  {(newField.subformFields || []).map((col, idx) => (
+                                    <div key={idx} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', backgroundColor: 'white', padding: '0.75rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
                                       <input
                                         type="text"
                                         className="form-input"
-                                        placeholder="Options (Comma separated)"
-                                        value={col.options ? col.options.join(', ') : ''}
+                                        placeholder="Column Label (e.g. Quantity)"
+                                        value={col.label || ''}
                                         style={{ flex: 1 }}
                                         onChange={e => {
                                           const sf = [...(newField.subformFields || [])];
-                                          sf[idx].options = e.target.value.split(',').map(s => s.trim()).filter(s => s);
+                                          sf[idx].label = e.target.value;
+                                          // Auto-generate name from label if name is empty
+                                          if (!sf[idx].name || sf[idx].name === sf[idx].label.toLowerCase().replace(/ /g, '_').substring(0, sf[idx].label.length - 1)) {
+                                            sf[idx].name = e.target.value.toLowerCase().replace(/ /g, '_');
+                                          }
                                           setNewField({ ...newField, subformFields: sf });
                                         }}
                                       />
-                                    )}
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.875rem' }}>
                                       <input
-                                        type="checkbox"
-                                        checked={col.isRequired || false}
+                                        type="text"
+                                        className="form-input"
+                                        placeholder="API Name (e.g. quantity)"
+                                        value={col.name || ''}
+                                        style={{ flex: 1 }}
                                         onChange={e => {
                                           const sf = [...(newField.subformFields || [])];
-                                          sf[idx].isRequired = e.target.checked;
+                                          sf[idx].name = e.target.value.toLowerCase().replace(/ /g, '_');
                                           setNewField({ ...newField, subformFields: sf });
                                         }}
                                       />
-                                      Required
-                                    </label>
-                                    <button type="button" onClick={() => {
-                                      const sf = [...(newField.subformFields || [])];
-                                      sf.splice(idx, 1);
-                                      setNewField({ ...newField, subformFields: sf });
-                                    }} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', padding: '0 0.5rem' }}>✕</button>
-                                  </div>
-                                ))}
-                                <button type="button" onClick={() => {
-                                  const sf = [...(newField.subformFields || [])];
-                                  sf.push({ name: '', label: '', type: 'text', isRequired: false });
-                                  setNewField({ ...newField, subformFields: sf });
-                                }} style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer', alignSelf: 'flex-start', marginTop: '0.25rem' }}>
-                                  + Add Column
-                                </button>
+                                      <select
+                                        className="form-input"
+                                        value={col.type || 'text'}
+                                        style={{ flex: 1 }}
+                                        onChange={e => {
+                                          const sf = [...(newField.subformFields || [])];
+                                          sf[idx].type = e.target.value;
+                                          setNewField({ ...newField, subformFields: sf });
+                                        }}
+                                      >
+                                        <option value="text">Short Text</option>
+                                        <option value="number">Number</option>
+                                        <option value="currency">Currency</option>
+                                        <option value="date">Date</option>
+                                        <option value="checkbox">Checkbox (True/False)</option>
+                                        <option value="select">Dropdown (Select)</option>
+                                      </select>
+                                      {col.type === 'select' && (
+                                        <input
+                                          type="text"
+                                          className="form-input"
+                                          placeholder="Options (Comma separated)"
+                                          value={col.options ? col.options.join(', ') : ''}
+                                          style={{ flex: 1 }}
+                                          onChange={e => {
+                                            const sf = [...(newField.subformFields || [])];
+                                            sf[idx].options = e.target.value.split(',').map(s => s.trim()).filter(s => s);
+                                            setNewField({ ...newField, subformFields: sf });
+                                          }}
+                                        />
+                                      )}
+                                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.875rem' }}>
+                                        <input
+                                          type="checkbox"
+                                          checked={col.isRequired || false}
+                                          onChange={e => {
+                                            const sf = [...(newField.subformFields || [])];
+                                            sf[idx].isRequired = e.target.checked;
+                                            setNewField({ ...newField, subformFields: sf });
+                                          }}
+                                        />
+                                        Required
+                                      </label>
+                                      <button type="button" onClick={() => {
+                                        const sf = [...(newField.subformFields || [])];
+                                        sf.splice(idx, 1);
+                                        setNewField({ ...newField, subformFields: sf });
+                                      }} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', padding: '0 0.5rem' }}>✕</button>
+                                    </div>
+                                  ))}
+                                  <button type="button" onClick={() => {
+                                    const sf = [...(newField.subformFields || [])];
+                                    sf.push({ name: '', label: '', type: 'text', isRequired: false });
+                                    setNewField({ ...newField, subformFields: sf });
+                                  }} style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer', alignSelf: 'flex-start', marginTop: '0.25rem' }}>
+                                    + Add Column
+                                  </button>
+                                </div>
                               </div>
-                            </div>
-                          )}
-                        </div>
-                        <button type="submit" className="btn-primary">Save Field</button>
-                      </form>
-                    )}
-
-                    <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-                      <thead>
-                        <tr style={{ borderBottom: '1px solid #e2e8f0', textAlign: 'left' }}>
-                          <th style={{ padding: '0.75rem 1rem', color: '#64748b', fontWeight: 500 }}>Label</th>
-                          <th style={{ padding: '0.75rem 1rem', color: '#64748b', fontWeight: 500 }}>Database ID</th>
-                          <th style={{ padding: '0.75rem 1rem', color: '#64748b', fontWeight: 500 }}>Type</th>
-                          <th style={{ padding: '0.75rem 1rem', color: '#64748b', fontWeight: 500, textAlign: 'right' }}>Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {blueprint.fields.map(field => (
-                          <tr key={field.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                            <td style={{ padding: '1rem', fontWeight: 500 }}>{field.label}</td>
-                            <td style={{ padding: '1rem', color: '#64748b', fontFamily: 'monospace' }}>{field.name}</td>
-                            <td style={{ padding: '1rem' }}>
-                              <span style={{ backgroundColor: '#f1f5f9', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.875rem' }}>{field.type}</span>
-                            </td>
-                            <td style={{ padding: '1rem', textAlign: 'right' }}>
-                              <button onClick={() => handleDeleteField(field.id)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}>Delete</button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-
-                {/* TAGS TAB */}
-                {currentView === 'tags' && (
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                      <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Tag Definitions</h2>
-                      <button className="btn-primary" onClick={() => setIsAddingTag(!isAddingTag)}>
-                        {isAddingTag ? 'Cancel' : '+ Add Tag'}
-                      </button>
-                    </div>
-
-                    {isAddingTag && (
-                      <form onSubmit={handleAddTag} style={{ padding: '1.5rem', backgroundColor: '#f8fafc', borderRadius: '8px', marginBottom: '1.5rem', border: '1px solid #e2e8f0' }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-                          <div>
-                            <label className="form-label">Tag Name (e.g. VIP)</label>
-                            <input required type="text" className="form-input bg-white" value={newTag.name} onChange={e => setNewTag({ ...newTag, name: e.target.value })} />
-                          </div>
-                          <div>
-                            <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
-                              <span>Tag Color</span>
-                              <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer', fontWeight: 'normal', fontSize: '0.85rem' }}>
-                                <input type="checkbox" checked={newTag.customColor} onChange={e => setNewTag({ ...newTag, customColor: e.target.checked })} />
-                                Use Custom Color
-                              </label>
-                            </label>
-                            {newTag.customColor ? (
-                              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                <input type="color" value={newTag.color} onChange={e => setNewTag({ ...newTag, color: e.target.value })} style={{ height: '42px', padding: '0', cursor: 'pointer' }} />
-                                <input type="text" className="form-input bg-white" value={newTag.color} onChange={e => setNewTag({ ...newTag, color: e.target.value })} style={{ flex: 1 }} />
-                              </div>
-                            ) : (
-                              <select className="form-input bg-white" value={newTag.color} onChange={e => setNewTag({ ...newTag, color: e.target.value })}>
-                                <option value="#ef4444">Red</option>
-                                <option value="#f97316">Orange</option>
-                                <option value="#eab308">Yellow</option>
-                                <option value="#22c55e">Green</option>
-                                <option value="#0ea5e9">Blue</option>
-                                <option value="#8b5cf6">Purple</option>
-                                <option value="#ec4899">Pink</option>
-                                <option value="#64748b">Slate</option>
-                              </select>
                             )}
                           </div>
-                        </div>
-                        <button type="submit" className="btn-primary">Save Tag</button>
-                      </form>
-                    )}
-
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
-                      {tags.length === 0 && <p style={{ color: '#64748b' }}>No tags defined yet.</p>}
-                      {tags.map(tag => (
-                        <div key={tag.id} style={{ padding: '1rem', background: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: tag.color }}></div>
-                            <span style={{ fontWeight: 500 }}>{tag.name}</span>
-                          </div>
-                          <button onClick={() => handleDeleteTag(tag.id)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* PROFILES TAB */}
-                {currentView === 'profiles' && (
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                      <h2 style={{ fontSize: '1.25rem', fontWeight: 600, margin: 0 }}>Roles & Profiles</h2>
-                      <button className="btn-primary" onClick={() => {
-                        setSelectedProfile({
-                          name: '',
-                          canAccessSettings: false,
-                          canExportData: false,
-                          permissions: {
-                            Lead: { view: false, create: false, edit: false, delete: false, export: false },
-                            Deal: { view: false, create: false, edit: false, delete: false, export: false },
-                            Account: { view: false, create: false, edit: false, delete: false, export: false },
-                            Task: { view: false, create: false, edit: false, delete: false, export: false },
-                            Product: { view: false, create: false, edit: false, delete: false, export: false },
-                            ...customModules.reduce((acc, m) => ({ ...acc, [m.name]: { view: false, create: false, edit: false, delete: false, export: false } }), {})
-                          }
-                        });
-                        setIsProfileModalOpen(true);
-                      }}>+ New Profile</button>
-                    </div>
-
-                    <div style={{ display: 'grid', gap: '1rem' }}>
-                      {profiles
-                        .filter(profile => !['administrator', 'admin'].includes(profile.name?.toLowerCase()))
-                        .map(profile => (
-                          <div key={profile.id} style={{ padding: '1.5rem', background: 'white', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div>
-                              <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem', color: '#0f172a' }}>{profile.name}</h3>
-                              <div style={{ display: 'flex', gap: '1rem', fontSize: '0.85rem', color: '#64748b' }}>
-                                <span>Admin: {profile.canAccessSettings ? 'Yes' : 'No'}</span>
-                                <span>Export: {profile.canExportData ? 'Yes' : 'No'}</span>
-                              </div>
-                            </div>
-                            {profile.name?.toLowerCase() !== 'standard user' && (
-                              <button className="btn-outline" onClick={() => {
-                                setSelectedProfile(profile);
-                                setIsProfileModalOpen(true);
-                              }}>Edit Permissions</button>
-                            )}
-                          </div>
-                        ))}
-                      {profiles.filter(p => !['administrator', 'admin'].includes(p.name?.toLowerCase())).length === 0 && (
-                        <p>No profiles found.</p>
+                          <button type="submit" className="btn-primary">Save Field</button>
+                        </form>
                       )}
+
+                      <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <thead>
+                          <tr style={{ borderBottom: '1px solid #e2e8f0', textAlign: 'left' }}>
+                            <th style={{ padding: '0.75rem 1rem', color: '#64748b', fontWeight: 500 }}>Label</th>
+                            <th style={{ padding: '0.75rem 1rem', color: '#64748b', fontWeight: 500 }}>Database ID</th>
+                            <th style={{ padding: '0.75rem 1rem', color: '#64748b', fontWeight: 500 }}>Type</th>
+                            <th style={{ padding: '0.75rem 1rem', color: '#64748b', fontWeight: 500, textAlign: 'right' }}>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {blueprint.fields.map(field => (
+                            <tr key={field.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                              <td style={{ padding: '1rem', fontWeight: 500 }}>{field.label}</td>
+                              <td style={{ padding: '1rem', color: '#64748b', fontFamily: 'monospace' }}>{field.name}</td>
+                              <td style={{ padding: '1rem' }}>
+                                <span style={{ backgroundColor: '#f1f5f9', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.875rem' }}>{field.type}</span>
+                              </td>
+                              <td style={{ padding: '1rem', textAlign: 'right' }}>
+                                <button onClick={() => handleDeleteField(field.id)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}>Delete</button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {/* BILLING TAB */}
-                {currentView === 'billing' && (
-                  <WalletDashboard />
-                )}
+                  {/* DEDICATED TAGS WORKSPACE */}
+                  {currentView === 'tags' && (
+                    <div style={{ maxWidth: '1050px', margin: '0 auto', width: '100%' }}>
 
-                {/* PROFILE SETTINGS TAB */}
-                {currentView === 'profile-settings' && (
-                  <ProfileSettingsView />
-                )}
+                      {/* Top Header & Search */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem', gap: '1rem', flexWrap: 'wrap' }}>
+                        <div>
+                          <h2 style={{ fontSize: '1.35rem', fontWeight: 700, color: '#0f172a', margin: '0 0 0.25rem 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <Tags size={20} color="#2563eb" />
+                            <span>Tag Management</span>
+                          </h2>
+                          <p style={{ margin: 0, fontSize: '0.875rem', color: '#64748b' }}>Define and configure color badges for {selectedModule} records.</p>
+                        </div>
+
+                        {/* Search Input */}
+                        <div style={{ position: 'relative', width: '260px' }}>
+                          <Search size={15} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                          <input
+                            type="text"
+                            placeholder={`Filter ${selectedModule} tags...`}
+                            value={tagSearchQuery}
+                            onChange={(e) => setTagSearchQuery(e.target.value)}
+                            style={{
+                              width: '100%',
+                              padding: '0.45rem 0.75rem 0.45rem 2rem',
+                              borderRadius: '6px',
+                              border: '1px solid #cbd5e1',
+                              fontSize: '0.85rem',
+                              outline: 'none',
+                              background: '#ffffff'
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* 1-Click Module Scope Switcher */}
+                      <div style={{
+                        background: '#ffffff',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '10px',
+                        padding: '0.4rem 0.6rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.4rem',
+                        marginBottom: '1.25rem',
+                        overflowX: 'auto'
+                      }}>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', margin: '0 0.5rem' }}>
+                          Module Scope:
+                        </span>
+                        {['Lead', 'Deal', 'Account', 'Task', 'Product', ...customModules.map(m => m.name)].map((modName) => {
+                          const isCurrent = selectedModule === modName;
+                          return (
+                            <button
+                              key={modName}
+                              onClick={() => setSelectedModule(modName)}
+                              style={{
+                                padding: '0.4rem 0.85rem',
+                                borderRadius: '6px',
+                                fontSize: '0.85rem',
+                                fontWeight: isCurrent ? 600 : 500,
+                                color: isCurrent ? '#2563eb' : '#475569',
+                                background: isCurrent ? '#eff6ff' : 'transparent',
+                                border: 'none',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s',
+                                whiteSpace: 'nowrap'
+                              }}
+                            >
+                              {modName}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* 🚀 QUICK-ADD FORM (Fixed at Top) */}
+                      <form onSubmit={handleAddTag} style={{
+                        background: '#ffffff',
+                        border: '1px solid #cbd5e1',
+                        borderRadius: '10px',
+                        padding: '1.25rem 1.5rem',
+                        marginBottom: '1.5rem',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                          <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <Tags size={15} color="#2563eb" />
+                            <span>Quick Add Tag to <strong style={{ color: '#2563eb' }}>{selectedModule}</strong></span>
+                          </div>
+
+                          {/* Live Preview Badge */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontSize: '0.78rem', color: '#64748b' }}>Live Preview:</span>
+                            <span style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '7px',
+                              padding: '0.35rem 0.75rem',
+                              borderRadius: '16px',
+                              fontSize: '0.825rem',
+                              fontWeight: 600,
+                              background: '#f8fafc',
+                              color: newTag.color || '#ef4444',
+                              border: `1px solid ${newTag.color ? newTag.color + '40' : '#e2e8f0'}`
+                            }}>
+                              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: newTag.color || '#ef4444' }}></span>
+                              {newTag.name?.trim() || 'Sample Tag'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                          <div style={{ flex: 1, minWidth: '240px' }}>
+                            <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem' }}>Tag Name</label>
+                            <input
+                              required
+                              type="text"
+                              value={newTag.name}
+                              onChange={e => setNewTag({ ...newTag, name: e.target.value })}
+                              placeholder="e.g. VIP Client, High Priority, Hot Prospect..."
+                              style={{ width: '100%', padding: '0.55rem 0.85rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.875rem', color: '#0f172a', outline: 'none' }}
+                            />
+                          </div>
+
+                          <div>
+                            <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem' }}>Color Preset</label>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              {[
+                                { hex: '#ef4444', label: 'Crimson' },
+                                { hex: '#f97316', label: 'Orange' },
+                                { hex: '#eab308', label: 'Yellow' },
+                                { hex: '#10b981', label: 'Emerald' },
+                                { hex: '#0ea5e9', label: 'Sky' },
+                                { hex: '#6366f1', label: 'Indigo' },
+                                { hex: '#8b5cf6', label: 'Purple' },
+                                { hex: '#ec4899', label: 'Pink' },
+                                { hex: '#64748b', label: 'Slate' }
+                              ].map(swatch => {
+                                const isSelected = newTag.color === swatch.hex;
+                                return (
+                                  <div
+                                    key={swatch.hex}
+                                    onClick={() => setNewTag({ ...newTag, color: swatch.hex })}
+                                    title={swatch.label}
+                                    style={{
+                                      width: '26px',
+                                      height: '26px',
+                                      borderRadius: '50%',
+                                      backgroundColor: swatch.hex,
+                                      cursor: 'pointer',
+                                      boxShadow: isSelected ? '0 0 0 2px #0f172a' : 'none',
+                                      transform: isSelected ? 'scale(1.15)' : 'scale(1)',
+                                      transition: 'all 0.15s'
+                                    }}
+                                  />
+                                );
+                              })}
+                              <input
+                                type="color"
+                                value={newTag.color || '#ef4444'}
+                                onChange={e => setNewTag({ ...newTag, color: e.target.value })}
+                                style={{ width: '26px', height: '26px', border: 'none', cursor: 'pointer', borderRadius: '50%' }}
+                                title="Custom Hex Picker"
+                              />
+                            </div>
+                          </div>
+
+                          <button
+                            type="submit"
+                            style={{
+                              background: '#2563eb',
+                              color: '#ffffff',
+                              border: 'none',
+                              padding: '0.55rem 1.25rem',
+                              borderRadius: '6px',
+                              fontSize: '0.875rem',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              height: '38px',
+                              transition: 'background 0.15s'
+                            }}
+                          >
+                            + Add Tag
+                          </button>
+                        </div>
+                      </form>
+
+                      {/* Clean 4-Column Table */}
+                      <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', overflow: 'hidden', background: '#ffffff', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                          <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                            <tr>
+                              <th style={{ padding: '0.75rem 1.25rem', fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', width: '280px' }}>Visual Tag Badge</th>
+                              <th style={{ padding: '0.75rem 1.25rem', fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tag Name</th>
+                              <th style={{ padding: '0.75rem 1.25rem', fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', width: '180px' }}>Status</th>
+                              <th style={{ padding: '0.75rem 1.25rem', fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right', width: '100px' }}>Delete</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {tags.filter(t => !tagSearchQuery || t.name.toLowerCase().includes(tagSearchQuery.toLowerCase())).length === 0 ? (
+                              <tr>
+                                <td colSpan="4" style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>
+                                  No tags found for {selectedModule}. Add your first tag using the quick form above!
+                                </td>
+                              </tr>
+                            ) : (
+                              tags
+                                .filter(t => !tagSearchQuery || t.name.toLowerCase().includes(tagSearchQuery.toLowerCase()))
+                                .map((tag, idx, arr) => {
+                                  const isTagActive = tag.isActive !== false;
+                                  const isInUse = tag.isInUse === true || (tag.usageCount || 0) > 0;
+
+                                  return (
+                                    <tr key={tag.id} style={{ borderBottom: idx === arr.length - 1 ? 'none' : '1px solid #f1f5f9', background: isTagActive ? 'transparent' : '#fafafa', transition: 'background-color 0.15s' }}>
+
+                                      {/* 1. Visual Badge */}
+                                      <td style={{ padding: '0.9rem 1.25rem' }}>
+                                        <span style={{
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: '7px',
+                                          padding: '0.35rem 0.75rem',
+                                          borderRadius: '16px',
+                                          fontSize: '0.825rem',
+                                          fontWeight: 600,
+                                          background: isTagActive ? '#f8fafc' : '#f1f5f9',
+                                          color: isTagActive ? tag.color : '#94a3b8',
+                                          border: `1px solid ${isTagActive ? tag.color + '40' : '#e2e8f0'}`
+                                        }}>
+                                          <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: isTagActive ? tag.color : '#cbd5e1' }}></span>
+                                          {tag.name}
+                                        </span>
+                                      </td>
+
+                                      {/* 2. Tag Name (Clean - No Leads Count Subtext) */}
+                                      <td style={{ padding: '0.9rem 1.25rem', color: isTagActive ? '#0f172a' : '#64748b', fontWeight: 600 }}>
+                                        {tag.name}
+                                      </td>
+
+                                      {/* 3. Active / Inactive Switch */}
+                                      <td style={{ padding: '0.9rem 1.25rem' }}>
+                                        <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                                          <input
+                                            type="checkbox"
+                                            style={{ display: 'none' }}
+                                            checked={isTagActive}
+                                            onChange={() => handleToggleTagStatus(tag.id, isTagActive)}
+                                          />
+                                          <div style={{ position: 'relative', width: '36px', height: '20px', backgroundColor: isTagActive ? '#10b981' : '#cbd5e1', borderRadius: '10px', transition: 'background-color 0.2s' }}>
+                                            <div style={{ position: 'absolute', top: '2px', left: isTagActive ? '18px' : '2px', width: '16px', height: '16px', backgroundColor: 'white', borderRadius: '50%', transition: 'all 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.15)' }}></div>
+                                          </div>
+                                          <span style={{ fontSize: '0.85rem', color: isTagActive ? '#10b981' : '#94a3b8', fontWeight: 600 }}>
+                                            {isTagActive ? 'Active' : 'Inactive'}
+                                          </span>
+                                        </label>
+                                      </td>
+
+                                      {/* 4. Delete Action (Protected if In-Use) */}
+                                      <td style={{ padding: '0.9rem 1.25rem', textAlign: 'right' }}>
+                                        {isInUse ? (
+                                          <button
+                                            disabled
+                                            title="Tag is currently in use by records. Mark it Inactive instead."
+                                            style={{ background: 'none', border: 'none', color: '#cbd5e1', cursor: 'not-allowed', padding: '6px' }}
+                                          >
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6" /></svg>
+                                          </button>
+                                        ) : (
+                                          <button
+                                            onClick={() => handleDeleteTag(tag.id)}
+                                            title="Delete unused tag"
+                                            style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '6px', borderRadius: '4px' }}
+                                          >
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6" /></svg>
+                                          </button>
+                                        )}
+                                      </td>
+
+                                    </tr>
+                                  );
+                                })
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+
+                    </div>
+                  )}
+                  {/* PROFILES TAB */}
+                  {currentView === 'profiles' && (
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                        <h2 style={{ fontSize: '1.25rem', fontWeight: 600, margin: 0 }}>Roles & Profiles</h2>
+                        <button className="btn-primary" onClick={() => {
+                          setSelectedProfile({
+                            name: '',
+                            canAccessSettings: false,
+                            canExportData: false,
+                            permissions: {
+                              Lead: { view: false, create: false, edit: false, delete: false, export: false },
+                              Deal: { view: false, create: false, edit: false, delete: false, export: false },
+                              Account: { view: false, create: false, edit: false, delete: false, export: false },
+                              Task: { view: false, create: false, edit: false, delete: false, export: false },
+                              Product: { view: false, create: false, edit: false, delete: false, export: false },
+                              ...customModules.reduce((acc, m) => ({ ...acc, [m.name]: { view: false, create: false, edit: false, delete: false, export: false } }), {})
+                            }
+                          });
+                          setIsProfileModalOpen(true);
+                        }}>+ New Profile</button>
+                      </div>
+
+                      <div style={{ display: 'grid', gap: '1rem' }}>
+                        {profiles
+                          .filter(profile => !['administrator', 'admin'].includes(profile.name?.toLowerCase()))
+                          .map(profile => (
+                            <div key={profile.id} style={{ padding: '1.5rem', background: 'white', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <div>
+                                <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem', color: '#0f172a' }}>{profile.name}</h3>
+                                <div style={{ display: 'flex', gap: '1rem', fontSize: '0.85rem', color: '#64748b' }}>
+                                  <span>Admin: {profile.canAccessSettings ? 'Yes' : 'No'}</span>
+                                  <span>Export: {profile.canExportData ? 'Yes' : 'No'}</span>
+                                </div>
+                              </div>
+                              {profile.name?.toLowerCase() !== 'standard user' && (
+                                <button className="btn-outline" onClick={() => {
+                                  setSelectedProfile(profile);
+                                  setIsProfileModalOpen(true);
+                                }}>Edit Permissions</button>
+                              )}
+                            </div>
+                          ))}
+                        {profiles.filter(p => !['administrator', 'admin'].includes(p.name?.toLowerCase())).length === 0 && (
+                          <p>No profiles found.</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* BILLING TAB */}
+                  {currentView === 'billing' && (
+                    <WalletDashboard />
+                  )}
+
+                  {/* PROFILE SETTINGS TAB */}
+                  {currentView === 'profile-settings' && (
+                    <ProfileSettingsView />
+                  )}
 
 
+                </div>
               </div>
             </div>
           )}
