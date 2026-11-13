@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getAuthUser } from '../../../../lib/auth';
+import { getAuthUser, clearUserCache } from '../../../../lib/auth';
 import prisma from '../../../../lib/prisma';
 
 export async function POST(req) {
@@ -21,6 +21,8 @@ export async function POST(req) {
         activeModules: activeModules
       }
     });
+
+    clearUserCache(user.id);
 
     return NextResponse.json({ success: true, activeModules: updatedOrg.activeModules });
   } catch (error) {

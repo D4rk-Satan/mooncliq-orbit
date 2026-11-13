@@ -109,7 +109,7 @@ export default function SettingsPage() {
             router.push('/'); // Redirect unauthorized user to dashboard
           } else {
             const defaultModules = ["Lead", "Deal", "Account", "Task", "Products"];
-            if (userData.organization?.activeModules && userData.organization.activeModules.length > 0) {
+            if (Array.isArray(userData.organization?.activeModules)) {
               setActiveModules(userData.organization.activeModules);
             } else {
               setActiveModules(defaultModules);
@@ -138,9 +138,9 @@ export default function SettingsPage() {
     }
   };
 
-  // Jab user 'Users in Organization' dekhega, tabhi ye fetch hoga
+  // Jab user 'Users' ya 'Profiles' view me ho tab users fetch honge
   useEffect(() => {
-    if (currentView === 'users') {
+    if (['users', 'profiles'].includes(currentView)) {
       fetchUsersAndInvites();
     }
   }, [currentView]);
@@ -465,9 +465,12 @@ export default function SettingsPage() {
   const [profiles, setProfiles] = useState([]);
   const [selectedProfile, setSelectedProfile] = useState(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [rolesSubTab, setRolesSubTab] = useState('tree'); // 'tree' | 'profiles'
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
-  const [inviteData, setInviteData] = useState({ email: '', profileId: '' });
+  const [inviteData, setInviteData] = useState({ name: '', email: '', role: '', reportsToId: '', profileId: '' });
   const [inviteStatus, setInviteStatus] = useState(null);
+  const [editingMember, setEditingMember] = useState(null);
+  const [editMemberStatus, setEditMemberStatus] = useState(null);
 
   const fetchBlueprint = async (modOverride) => {
     const targetModule = modOverride || selectedModule;
@@ -528,21 +531,61 @@ export default function SettingsPage() {
       const res = await fetch('/api/invitations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ email: inviteData.email, profileId: inviteData.profileId })
+        body: JSON.stringify({
+          name: inviteData.name || null,
+          email: inviteData.email,
+          role: inviteData.role || null,
+          reportsToId: inviteData.reportsToId || null,
+          profileId: inviteData.profileId
+        })
       });
       if (res.ok) {
         setInviteStatus('success');
+        fetchUsersAndInvites();
         setTimeout(() => {
           setIsInviteModalOpen(false);
-          setInviteData({ email: '', profileId: '' });
+          setInviteData({ name: '', email: '', role: '', reportsToId: '', profileId: '' });
           setInviteStatus(null);
-        }, 2000);
+        }, 1500);
       } else {
         const data = await res.json();
         setInviteStatus(`Error: ${data.error || 'Failed to send invite'}`);
       }
     } catch (err) {
       setInviteStatus(`Error: ${err.message}`);
+    }
+  };
+
+  const handleUpdateMember = async (e) => {
+    e.preventDefault();
+    if (!editingMember) return;
+    setEditMemberStatus('saving');
+    try {
+      const token = await getAuthToken();
+      const res = await fetch('/api/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({
+          userId: editingMember.id,
+          name: editingMember.name,
+          role: editingMember.role,
+          reportsToId: editingMember.reportsToId || null,
+          profileId: editingMember.profileId
+        })
+      });
+      if (res.ok) {
+        setEditMemberStatus('success');
+        fetchUsersAndInvites();
+        setTimeout(() => {
+          setEditingMember(null);
+          setEditMemberStatus(null);
+        }, 1200);
+      } else {
+        const data = await res.json();
+        setEditMemberStatus(`Error: ${data.error || 'Failed to update member'}`);
+      }
+    } catch (err) {
+      setEditMemberStatus(`Error: ${err.message}`);
     }
   };
 
@@ -900,6 +943,7 @@ export default function SettingsPage() {
         alert("Failed to update module settings.");
       } else {
         // Force reload to update Sidebar globally
+        try { localStorage.removeItem('mooncliq_bootstrap_cache'); } catch (e) { }
         window.location.reload();
       }
     } catch (err) {
@@ -1647,14 +1691,14 @@ export default function SettingsPage() {
                   </div>
 
                   {/* Contextual back button if inside deep sub-view */}
-                  {['layout-builder', 'tags', 'blueprint'].includes(currentView) && (
+                  {['layout-builder', 'blueprint'].includes(currentView) && (
                     <button
                       onClick={() => {
                         if (isLayoutDirty) {
                           setShakeTrigger(prev => prev + 1);
                           return;
                         }
-                        if (['layout-builder', 'tags'].includes(currentView)) {
+                        if (currentView === 'layout-builder') {
                           setCurrentView('module-list');
                         } else if (currentView === 'blueprint') {
                           setCurrentView('blueprint-list');
@@ -1947,7 +1991,7 @@ export default function SettingsPage() {
                   {/* MODULE LIST TAB */}
                   {currentView === 'module-list' && (
                     <div>
-                      <p style={{ color: '#475569', marginBottom: '1.5rem', fontSize: '0.95rem' }}>Select a module to customize its {activeFeature === 'tags' ? 'tags' : activeFeature === 'layout-builder' ? 'layout' : 'blueprint'}.</p>
+                      <p style={{ color: '#475569', marginBottom: '1.5rem', fontSize: '0.95rem' }}>Select a module to customize its form layout.</p>
 
                       <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
@@ -2147,116 +2191,193 @@ export default function SettingsPage() {
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                           <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
                             <tr>
-                              <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Email Address</th>
-                              <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>RBAC Profile</th>
+                              <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Team Member</th>
+                              <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Role</th>
+                              <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Reports To (Manager)</th>
+                              <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Security Profile</th>
                               <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Status</th>
-                              <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Actions</th>
+                              <th style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600, textAlign: 'right' }}>Actions</th>
                             </tr>
                           </thead>
                           <tbody>
                             {/* 1. Asli Active Users Dikhayenge (Including Super Admin) */}
                             {orgUsers.map(user => {
                               const isSuperAdmin = user.profile?.canAccessSettings || ['administrator', 'admin', 'superadmin', 'super admin'].includes(user.profile?.name?.toLowerCase());
+                              const managerName = user.reportsTo?.name || user.reportsTo?.nickname || user.reportsTo?.email?.split('@')[0] || (user.reportsTo?.email ? user.reportsTo.email : null);
 
                               return (
                                 <tr key={user.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
                                   <td style={{ padding: '1rem', color: '#0f172a', fontWeight: 500 }}>
-                                    {user.email}
-                                    {isSuperAdmin && (
-                                      <span style={{ marginLeft: '0.5rem', fontSize: '0.7rem', backgroundColor: '#e0e7ff', color: '#3730a3', padding: '0.15rem 0.5rem', borderRadius: '12px', fontWeight: 600 }}>
-                                        Owner / Admin
-                                      </span>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                      <div>
+                                        <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#0f172a' }}>
+                                          {user.name || user.nickname || user.email?.split('@')[0]}
+                                          {isSuperAdmin && (
+                                            <span style={{ marginLeft: '0.5rem', fontSize: '0.7rem', backgroundColor: '#e0e7ff', color: '#3730a3', padding: '0.15rem 0.5rem', borderRadius: '12px', fontWeight: 600 }}>
+                                              Owner / Admin
+                                            </span>
+                                          )}
+                                        </div>
+                                        <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{user.email}</div>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td style={{ padding: '1rem' }}>
+                                    <span style={{ backgroundColor: '#f1f5f9', padding: '0.25rem 0.6rem', borderRadius: '4px', fontSize: '0.8rem', color: '#334155', fontWeight: 600 }}>
+                                      {user.role || 'Member'}
+                                    </span>
+                                  </td>
+                                  <td style={{ padding: '1rem' }}>
+                                    {managerName ? (
+                                      <div>
+                                        <div style={{ fontSize: '0.85rem', fontWeight: 500, color: '#0f172a' }}>{managerName}</div>
+                                        {user.reportsTo?.role && <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{user.reportsTo.role}</div>}
+                                      </div>
+                                    ) : (
+                                      <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>— (Top Level)</span>
                                     )}
                                   </td>
                                   <td style={{ padding: '1rem' }}>
-                                    <span style={{ backgroundColor: '#f1f5f9', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem', color: '#475569', fontWeight: 600 }}>
+                                    <span style={{ backgroundColor: isSuperAdmin ? '#ecfdf5' : '#f8fafc', border: '1px solid #e2e8f0', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem', color: isSuperAdmin ? '#047857' : '#475569', fontWeight: 600 }}>
                                       {user.profile?.name || 'No Role'}
                                     </span>
                                   </td>
                                   <td style={{ padding: '1rem' }}>
                                     <span style={{ color: '#10b981', fontWeight: 600, fontSize: '0.85rem' }}>● Active</span>
                                   </td>
-                                  <td style={{ padding: '1rem' }}>
-                                    {isSuperAdmin ? (
-                                      <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic', fontWeight: 500 }}>
-                                        Primary Admin
-                                      </span>
-                                    ) : (
+                                  <td style={{ padding: '1rem', textAlign: 'right' }}>
+                                    <div style={{ display: 'inline-flex', gap: '0.5rem', alignItems: 'center' }}>
                                       <button
-                                        onClick={() => handleRevokeAccess(user.id)}
-                                        style={{ background: 'none', border: '1px solid #ef4444', color: '#ef4444', padding: '0.25rem 0.75rem', borderRadius: '4px', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600 }}
+                                        onClick={() => setEditingMember({
+                                          id: user.id,
+                                          name: user.name || user.nickname || '',
+                                          role: user.role || '',
+                                          reportsToId: user.reportsToId || '',
+                                          profileId: user.profileId || ''
+                                        })}
+                                        style={{
+                                          background: '#ffffff',
+                                          border: '1px solid #cbd5e1',
+                                          color: '#334155',
+                                          padding: '0.25rem 0.65rem',
+                                          borderRadius: '4px',
+                                          fontSize: '0.8rem',
+                                          cursor: 'pointer',
+                                          fontWeight: 600
+                                        }}
                                       >
-                                        Revoke Access
+                                        Edit
                                       </button>
-                                    )}
+                                      {!isSuperAdmin && (
+                                        <button
+                                          onClick={() => handleRevokeAccess(user.id)}
+                                          style={{ background: 'none', border: '1px solid #ef4444', color: '#ef4444', padding: '0.25rem 0.65rem', borderRadius: '4px', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600 }}
+                                        >
+                                          Revoke
+                                        </button>
+                                      )}
+                                    </div>
                                   </td>
                                 </tr>
                               );
                             })}
 
                             {/* 2. Pending Invites Dikhayenge */}
-                            {pendingInvites.map(invite => (
-                              <tr key={invite.id} style={{ borderBottom: '1px solid #e2e8f0', backgroundColor: '#fdf8f6' }}>
-                                <td style={{ padding: '1rem', color: '#0f172a', fontWeight: 500 }}>{invite.email} <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>(Invited)</span></td>
-                                <td style={{ padding: '1rem' }}><span style={{ backgroundColor: '#f1f5f9', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem', color: '#475569', fontWeight: 600 }}>{invite.profile?.name || 'Pending'}</span></td>
-                                <td style={{ padding: '1rem' }}><span style={{ color: '#f59e0b', fontWeight: 600, fontSize: '0.85rem' }}>○ Pending</span></td>
-                                <td style={{ padding: '1rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const inviteUrl = `${window.location.origin}/invite/${invite.token}`;
-                                      navigator.clipboard.writeText(inviteUrl);
-                                      alert("Invite link copied to clipboard!\n" + inviteUrl);
-                                    }}
-                                    style={{
-                                      backgroundColor: '#2563eb',
-                                      border: 'none',
-                                      color: '#ffffff',
-                                      padding: '0.25rem 0.75rem',
-                                      borderRadius: '4px',
-                                      fontSize: '0.8rem',
-                                      cursor: 'pointer',
-                                      fontWeight: 600
-                                    }}
-                                  >
-                                    Copy Link
-                                  </button>
+                            {pendingInvites.map(invite => {
+                              const manager = orgUsers.find(u => u.id === invite.reportsToId);
+                              const managerLabel = manager?.name || manager?.nickname || manager?.email?.split('@')[0];
 
-                                  <button
-                                    type="button"
-                                    onClick={async () => {
-                                      if (!window.confirm("Are you sure you want to revoke this pending invite?")) return;
-                                      try {
-                                        const token = await getAuthToken();
-                                        const res = await fetch('/api/invitations/revoke', {
-                                          method: 'POST',
-                                          headers: {
-                                            'Content-Type': 'application/json',
-                                            'Authorization': `Bearer ${token}`
-                                          },
-                                          body: JSON.stringify({ inviteId: invite.id })
-                                        });
-                                        if (res.ok) {
-                                          alert("Pending Invitation Revoked!");
-                                          setPendingInvites(prev => prev.filter(i => i.id !== invite.id));
-                                        } else {
-                                          const errorData = await res.json();
-                                          alert(errorData.error || "Failed to revoke invitation");
-                                        }
-                                      } catch (e) {
-                                        alert("Error revoking invite");
-                                      }
-                                    }}
-                                    style={{ background: 'none', border: '1px solid #ef4444', color: '#ef4444', padding: '0.25rem 0.75rem', borderRadius: '4px', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600 }}
-                                  >
-                                    Revoke Invite
-                                  </button>
-                                </td>
-                              </tr>
-                            ))}
+                              return (
+                                <tr key={invite.id} style={{ borderBottom: '1px solid #e2e8f0', backgroundColor: '#fdf8f6' }}>
+                                  <td style={{ padding: '1rem', color: '#0f172a', fontWeight: 500 }}>
+                                    <div>
+                                      <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#0f172a' }}>
+                                        {invite.name || invite.email?.split('@')[0]}
+                                        <span style={{ marginLeft: '0.4rem', fontSize: '0.75rem', color: '#d97706', fontWeight: 500 }}>(Invited)</span>
+                                      </div>
+                                      <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{invite.email}</div>
+                                    </div>
+                                  </td>
+                                  <td style={{ padding: '1rem' }}>
+                                    <span style={{ backgroundColor: '#fffbeb', border: '1px solid #fde68a', padding: '0.25rem 0.6rem', borderRadius: '4px', fontSize: '0.8rem', color: '#b45309', fontWeight: 600 }}>
+                                      {invite.role || 'Member'}
+                                    </span>
+                                  </td>
+                                  <td style={{ padding: '1rem' }}>
+                                    {managerLabel ? (
+                                      <span style={{ fontSize: '0.85rem', color: '#0f172a' }}>{managerLabel}</span>
+                                    ) : (
+                                      <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>— (Top Level)</span>
+                                    )}
+                                  </td>
+                                  <td style={{ padding: '1rem' }}>
+                                    <span style={{ backgroundColor: '#f1f5f9', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem', color: '#475569', fontWeight: 600 }}>
+                                      {invite.profile?.name || 'Pending'}
+                                    </span>
+                                  </td>
+                                  <td style={{ padding: '1rem' }}>
+                                    <span style={{ color: '#f59e0b', fontWeight: 600, fontSize: '0.85rem' }}>○ Pending</span>
+                                  </td>
+                                  <td style={{ padding: '1rem', textAlign: 'right' }}>
+                                    <div style={{ display: 'inline-flex', gap: '0.5rem', alignItems: 'center' }}>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const inviteUrl = `${window.location.origin}/invite/${invite.token}`;
+                                          navigator.clipboard.writeText(inviteUrl);
+                                          alert("Invite link copied to clipboard!\n" + inviteUrl);
+                                        }}
+                                        style={{
+                                          backgroundColor: '#2563eb',
+                                          border: 'none',
+                                          color: '#ffffff',
+                                          padding: '0.25rem 0.75rem',
+                                          borderRadius: '4px',
+                                          fontSize: '0.8rem',
+                                          cursor: 'pointer',
+                                          fontWeight: 600
+                                        }}
+                                      >
+                                        Copy Link
+                                      </button>
+
+                                      <button
+                                        type="button"
+                                        onClick={async () => {
+                                          if (!window.confirm("Are you sure you want to revoke this pending invite?")) return;
+                                          try {
+                                            const token = await getAuthToken();
+                                            const res = await fetch('/api/invitations/revoke', {
+                                              method: 'POST',
+                                              headers: {
+                                                'Content-Type': 'application/json',
+                                                'Authorization': `Bearer ${token}`
+                                              },
+                                              body: JSON.stringify({ inviteId: invite.id })
+                                            });
+                                            if (res.ok) {
+                                              alert("Pending Invitation Revoked!");
+                                              setPendingInvites(prev => prev.filter(i => i.id !== invite.id));
+                                            } else {
+                                              const errorData = await res.json();
+                                              alert(errorData.error || "Failed to revoke invitation");
+                                            }
+                                          } catch (e) {
+                                            alert("Error revoking invite");
+                                          }
+                                        }}
+                                        style={{ background: 'none', border: '1px solid #ef4444', color: '#ef4444', padding: '0.25rem 0.75rem', borderRadius: '4px', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600 }}
+                                      >
+                                        Revoke Invite
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
 
                             {orgUsers.length === 0 && pendingInvites.length === 0 && (
-                              <tr><td colSpan="4" style={{ padding: '1rem', textAlign: 'center', color: '#64748b' }}>No users found.</td></tr>
+                              <tr><td colSpan="6" style={{ padding: '1rem', textAlign: 'center', color: '#64748b' }}>No users found.</td></tr>
                             )}
                           </tbody>
 
@@ -3277,53 +3398,224 @@ export default function SettingsPage() {
 
                     </div>
                   )}
-                  {/* PROFILES TAB */}
+                  {/* ROLES & PROFILES (WITH HIERARCHY TREE) */}
                   {currentView === 'profiles' && (
                     <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                        <h2 style={{ fontSize: '1.25rem', fontWeight: 600, margin: 0 }}>Roles & Profiles</h2>
-                        <button className="btn-primary" onClick={() => {
-                          setSelectedProfile({
-                            name: '',
-                            canAccessSettings: false,
-                            canExportData: false,
-                            permissions: {
-                              Lead: { view: false, create: false, edit: false, delete: false, export: false },
-                              Deal: { view: false, create: false, edit: false, delete: false, export: false },
-                              Account: { view: false, create: false, edit: false, delete: false, export: false },
-                              Task: { view: false, create: false, edit: false, delete: false, export: false },
-                              Product: { view: false, create: false, edit: false, delete: false, export: false },
-                              ...customModules.reduce((acc, m) => ({ ...acc, [m.name]: { view: false, create: false, edit: false, delete: false, export: false } }), {})
-                            }
-                          });
-                          setIsProfileModalOpen(true);
-                        }}>+ New Profile</button>
-                      </div>
-
-                      <div style={{ display: 'grid', gap: '1rem' }}>
-                        {profiles
-                          .filter(profile => !['administrator', 'admin'].includes(profile.name?.toLowerCase()))
-                          .map(profile => (
-                            <div key={profile.id} style={{ padding: '1.5rem', background: 'white', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <div>
-                                <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem', color: '#0f172a' }}>{profile.name}</h3>
-                                <div style={{ display: 'flex', gap: '1rem', fontSize: '0.85rem', color: '#64748b' }}>
-                                  <span>Admin: {profile.canAccessSettings ? 'Yes' : 'No'}</span>
-                                  <span>Export: {profile.canExportData ? 'Yes' : 'No'}</span>
-                                </div>
-                              </div>
-                              {profile.name?.toLowerCase() !== 'standard user' && (
-                                <button className="btn-outline" onClick={() => {
-                                  setSelectedProfile(profile);
-                                  setIsProfileModalOpen(true);
-                                }}>Edit Permissions</button>
-                              )}
-                            </div>
-                          ))}
-                        {profiles.filter(p => !['administrator', 'admin'].includes(p.name?.toLowerCase())).length === 0 && (
-                          <p>No profiles found.</p>
+                      {/* Top Header with Action */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+                        <div>
+                          <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: '0 0 0.25rem 0', color: '#0f172a' }}>Roles & Profiles</h2>
+                          <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b' }}>
+                            Manage organizational reporting hierarchy and granular module security profiles.
+                          </p>
+                        </div>
+                        {rolesSubTab === 'profiles' && (
+                          <button className="btn-primary" onClick={() => {
+                            setSelectedProfile({
+                              name: '',
+                              canAccessSettings: false,
+                              canExportData: false,
+                              permissions: {
+                                Lead: { view: false, create: false, edit: false, delete: false, export: false },
+                                Deal: { view: false, create: false, edit: false, delete: false, export: false },
+                                Account: { view: false, create: false, edit: false, delete: false, export: false },
+                                Task: { view: false, create: false, edit: false, delete: false, export: false },
+                                Product: { view: false, create: false, edit: false, delete: false, export: false },
+                                ...customModules.reduce((acc, m) => ({ ...acc, [m.name]: { view: false, create: false, edit: false, delete: false, export: false } }), {})
+                              }
+                            });
+                            setIsProfileModalOpen(true);
+                          }}>+ New Profile</button>
+                        )}
+                        {rolesSubTab === 'tree' && (
+                          <button className="btn-primary" onClick={() => setIsInviteModalOpen(true)}>
+                            + Assign Role / Member
+                          </button>
                         )}
                       </div>
+
+                      {/* Sub-Tabs Switcher */}
+                      <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '1px solid #e2e8f0', marginBottom: '1.5rem' }}>
+                        <button
+                          onClick={() => setRolesSubTab('tree')}
+                          style={{
+                            padding: '0.6rem 1rem',
+                            border: 'none',
+                            background: 'transparent',
+                            borderBottom: rolesSubTab === 'tree' ? '2px solid #2563eb' : '2px solid transparent',
+                            color: rolesSubTab === 'tree' ? '#2563eb' : '#64748b',
+                            fontWeight: rolesSubTab === 'tree' ? 600 : 500,
+                            fontSize: '0.9rem',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '8px'
+                          }}
+                        >
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="5" r="3"/><circle cx="5" cy="19" r="3"/><circle cx="19" cy="19" r="3"/><path d="M12 8v4M5 16v-2a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v2"/></svg>
+                          <span>Organizational Hierarchy Tree</span>
+                        </button>
+                        <button
+                          onClick={() => setRolesSubTab('profiles')}
+                          style={{
+                            padding: '0.6rem 1rem',
+                            border: 'none',
+                            background: 'transparent',
+                            borderBottom: rolesSubTab === 'profiles' ? '2px solid #2563eb' : '2px solid transparent',
+                            color: rolesSubTab === 'profiles' ? '#2563eb' : '#64748b',
+                            fontWeight: rolesSubTab === 'profiles' ? 600 : 500,
+                            fontSize: '0.9rem',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '8px'
+                          }}
+                        >
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                          <span>Security Profiles ({profiles.filter(p => !['administrator', 'admin'].includes(p.name?.toLowerCase())).length})</span>
+                        </button>
+                      </div>
+
+                      {/* SUBTAB 1: HIERARCHY TREE */}
+                      {rolesSubTab === 'tree' && (() => {
+                        // Hierarchy Tree Construction
+                        const topLevelUsers = orgUsers.filter(u => !u.reportsToId || !orgUsers.some(parent => parent.id === u.reportsToId));
+
+                        const renderTreeNode = (userNode, level = 0) => {
+                          const subordinates = orgUsers.filter(u => u.reportsToId === userNode.id);
+                          const isSuperAdmin = userNode.profile?.canAccessSettings || ['administrator', 'admin', 'superadmin', 'super admin'].includes(userNode.profile?.name?.toLowerCase());
+
+                          return (
+                            <div key={userNode.id} style={{ marginBottom: '10px' }}>
+                              <div
+                                style={{
+                                  marginLeft: `${level * 28}px`,
+                                  border: '1px solid #e2e8f0',
+                                  borderLeft: level === 0 ? '4px solid #2563eb' : level === 1 ? '4px solid #10b981' : '4px solid #f59e0b',
+                                  borderRadius: '8px',
+                                  padding: '12px 16px',
+                                  background: '#ffffff',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)'
+                                }}
+                              >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                  <div style={{
+                                    width: '34px',
+                                    height: '34px',
+                                    borderRadius: '50%',
+                                    background: level === 0 ? '#eff6ff' : level === 1 ? '#ecfdf5' : '#fffbeb',
+                                    color: level === 0 ? '#1d4ed8' : level === 1 ? '#047857' : '#b45309',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontWeight: 700,
+                                    fontSize: '0.85rem'
+                                  }}>
+                                    {(userNode.name || userNode.nickname || userNode.email || 'U').slice(0, 2).toUpperCase()}
+                                  </div>
+                                  <div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                      <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#0f172a' }}>
+                                        {userNode.name || userNode.nickname || userNode.email?.split('@')[0]}
+                                      </span>
+                                      <span style={{ fontSize: '0.75rem', color: '#475569', backgroundColor: '#f1f5f9', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>
+                                        {userNode.role || (isSuperAdmin ? 'Primary Owner' : 'Team Member')}
+                                      </span>
+                                      {isSuperAdmin && (
+                                        <span style={{ fontSize: '0.7rem', backgroundColor: '#e0e7ff', color: '#3730a3', padding: '1px 6px', borderRadius: '10px', fontWeight: 600 }}>
+                                          Full Access
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
+                                      {userNode.email} • {subordinates.length} direct reportee{subordinates.length === 1 ? '' : 's'}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <span style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 600 }}>● Active</span>
+                                  <button
+                                    onClick={() => {
+                                      setInviteData({ name: '', email: '', role: '', reportsToId: userNode.id, profileId: '' });
+                                      setIsInviteModalOpen(true);
+                                    }}
+                                    style={{
+                                      padding: '4px 10px',
+                                      fontSize: '0.75rem',
+                                      background: '#ffffff',
+                                      border: '1px solid #cbd5e1',
+                                      borderRadius: '6px',
+                                      color: '#334155',
+                                      fontWeight: 500,
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    + Add Subordinate
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Render Children Recursively */}
+                              {subordinates.length > 0 && (
+                                <div style={{ marginTop: '8px' }}>
+                                  {subordinates.map(child => renderTreeNode(child, level + 1))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        };
+
+                        return (
+                          <div>
+                            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '1.25rem', marginBottom: '1.5rem' }}>
+                              <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>How Hierarchy Controls Visibility</div>
+                              <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b', lineHeight: 1.5 }}>
+                                Members higher in this tree automatically see records (Leads, Deals, Tasks) owned by their direct and indirect subordinates when their security visibility is set to <strong>Hierarchy</strong>.
+                              </p>
+                            </div>
+
+                            {topLevelUsers.length === 0 ? (
+                              <div style={{ textAlign: 'center', padding: '3rem', color: '#64748b', background: 'white', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                No hierarchy records available. Add your first team member using the button above.
+                              </div>
+                            ) : (
+                              topLevelUsers.map(topUser => renderTreeNode(topUser, 0))
+                            )}
+                          </div>
+                        );
+                      })()}
+
+                      {/* SUBTAB 2: SECURITY PROFILES */}
+                      {rolesSubTab === 'profiles' && (
+                        <div style={{ display: 'grid', gap: '1rem' }}>
+                          {profiles
+                            .filter(profile => !['administrator', 'admin'].includes(profile.name?.toLowerCase()))
+                            .map(profile => (
+                              <div key={profile.id} style={{ padding: '1.25rem 1.5rem', background: 'white', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div>
+                                  <h3 style={{ margin: '0 0 0.35rem 0', fontSize: '1rem', fontWeight: 600, color: '#0f172a' }}>{profile.name}</h3>
+                                  <div style={{ display: 'flex', gap: '1rem', fontSize: '0.8rem', color: '#64748b' }}>
+                                    <span>Settings Access: <strong style={{ color: profile.canAccessSettings ? '#10b981' : '#64748b' }}>{profile.canAccessSettings ? 'Yes' : 'No'}</strong></span>
+                                    <span>Data Export: <strong style={{ color: profile.canExportData ? '#10b981' : '#64748b' }}>{profile.canExportData ? 'Yes' : 'No'}</strong></span>
+                                  </div>
+                                </div>
+                                {profile.name?.toLowerCase() !== 'standard user' && (
+                                  <button className="btn-outline" onClick={() => {
+                                    setSelectedProfile(profile);
+                                    setIsProfileModalOpen(true);
+                                  }}>Edit Permissions</button>
+                                )}
+                              </div>
+                            ))}
+                          {profiles.filter(p => !['administrator', 'admin'].includes(p.name?.toLowerCase())).length === 0 && (
+                            <p style={{ color: '#64748b', textAlign: 'center', padding: '2rem' }}>No custom profiles found.</p>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -4090,7 +4382,8 @@ export default function SettingsPage() {
                               setSelectedProfile({ ...selectedProfile, permissions: newPerms });
                             }}
                           >
-                            <option value="public">Public Read/Write</option>
+                            <option value="public">Public (All Records)</option>
+                            <option value="hierarchy">Hierarchy (Self + Subordinates)</option>
                             <option value="private">Private (Owner Only)</option>
                           </select>
                         </td>
@@ -4113,37 +4406,91 @@ export default function SettingsPage() {
       }
 
 
-      {/* INVITE USER MODAL */}
+      {/* SMART INVITE USER MODAL */}
       {
         isInviteModalOpen && (
           <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)' }} onClick={() => setIsInviteModalOpen(false)}></div>
-            <div style={{ background: 'white', padding: '2rem', borderRadius: '12px', width: '100%', maxWidth: '400px', position: 'relative', zIndex: 10 }}>
-              <h3 style={{ marginTop: 0, fontSize: '1.25rem', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                Invite User
-                <button onClick={() => setIsInviteModalOpen(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#94a3b8' }}>✕</button>
-              </h3>
-              <form onSubmit={handleInviteUser}>
-                <div style={{ marginBottom: '1rem' }}>
-                  <label className="form-label">Email Address</label>
-                  <input
-                    type="email"
-                    className="form-input bg-white"
-                    placeholder="colleague@company.com"
-                    value={inviteData.email}
-                    onChange={e => setInviteData({ ...inviteData, email: e.target.value })}
-                    required
-                  />
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(2px)' }} onClick={() => setIsInviteModalOpen(false)}></div>
+            <div style={{ background: 'white', padding: '1.75rem', borderRadius: '12px', width: '100%', maxWidth: '540px', position: 'relative', zIndex: 10, border: '1px solid #e2e8f0', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)' }}>
+              
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, color: '#0f172a' }}>Invite Team Member</h3>
+                  <p style={{ margin: '2px 0 0 0', fontSize: '0.8rem', color: '#64748b' }}>Configure member position, manager hierarchy and permission profile.</p>
                 </div>
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <label className="form-label">Assign Profile (Role)</label>
+                <button onClick={() => setIsInviteModalOpen(false)} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#94a3b8', padding: '2px' }}>✕</button>
+              </div>
+
+              <form onSubmit={handleInviteUser}>
+                {/* 1. Member Information */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                  <div>
+                    <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem', display: 'block' }}>Full Name</label>
+                    <input
+                      type="text"
+                      className="form-input bg-white"
+                      placeholder="e.g. Priya Sharma"
+                      value={inviteData.name}
+                      onChange={e => setInviteData({ ...inviteData, name: e.target.value })}
+                      style={{ fontSize: '0.85rem' }}
+                    />
+                  </div>
+                  <div>
+                    <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem', display: 'block' }}>Email Address *</label>
+                    <input
+                      type="email"
+                      className="form-input bg-white"
+                      placeholder="colleague@company.com"
+                      value={inviteData.email}
+                      onChange={e => setInviteData({ ...inviteData, email: e.target.value })}
+                      required
+                      style={{ fontSize: '0.85rem' }}
+                    />
+                  </div>
+                </div>
+
+                {/* 2. Position & Hierarchy */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                  <div>
+                    <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem', display: 'block' }}>Role / Designation</label>
+                    <input
+                      type="text"
+                      className="form-input bg-white"
+                      placeholder="e.g. Sales Executive"
+                      value={inviteData.role}
+                      onChange={e => setInviteData({ ...inviteData, role: e.target.value })}
+                      style={{ fontSize: '0.85rem' }}
+                    />
+                  </div>
+                  <div>
+                    <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem', display: 'block' }}>Reports To (Manager)</label>
+                    <select
+                      className="form-input bg-white"
+                      value={inviteData.reportsToId}
+                      onChange={e => setInviteData({ ...inviteData, reportsToId: e.target.value })}
+                      style={{ fontSize: '0.85rem' }}
+                    >
+                      <option value="">No Direct Manager (Top Level)</option>
+                      {orgUsers.map(u => (
+                        <option key={u.id} value={u.id}>
+                          {u.name || u.nickname || u.email?.split('@')[0]} {u.role ? `(${u.role})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* 3. Security Profile */}
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem', display: 'block' }}>Security Profile *</label>
                   <select
                     className="form-input bg-white"
                     value={inviteData.profileId}
                     onChange={e => setInviteData({ ...inviteData, profileId: e.target.value })}
                     required
+                    style={{ fontSize: '0.85rem' }}
                   >
-                    <option value="">Select a Profile...</option>
+                    <option value="">Select a Profile Template...</option>
                     {profiles
                       .filter(p => !p.canAccessSettings && !['administrator', 'admin', 'superadmin', 'super admin'].includes(p.name?.toLowerCase()))
                       .map(p => (
@@ -4151,22 +4498,121 @@ export default function SettingsPage() {
                       ))
                     }
                   </select>
+                  <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block', marginTop: '4px' }}>
+                    Defines module action rights (View, Edit, Delete, Export).
+                  </span>
                 </div>
 
                 {inviteStatus === 'success' ? (
-                  <div style={{ padding: '1rem', background: '#dcfce3', color: '#166534', borderRadius: '8px', textAlign: 'center', fontWeight: 500, marginBottom: '1rem' }}>
+                  <div style={{ padding: '0.75rem', background: '#dcfce3', color: '#166534', borderRadius: '6px', textAlign: 'center', fontWeight: 600, fontSize: '0.85rem', marginBottom: '1rem' }}>
                     ✓ Invitation Sent Successfully!
                   </div>
                 ) : inviteStatus && inviteStatus.startsWith('Error') ? (
-                  <div style={{ padding: '1rem', background: '#fee2e2', color: '#991b1b', borderRadius: '8px', textAlign: 'center', fontWeight: 500, marginBottom: '1rem' }}>
+                  <div style={{ padding: '0.75rem', background: '#fee2e2', color: '#991b1b', borderRadius: '6px', textAlign: 'center', fontWeight: 500, fontSize: '0.85rem', marginBottom: '1rem' }}>
                     {inviteStatus}
                   </div>
                 ) : null}
 
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-                  <button type="button" onClick={() => setIsInviteModalOpen(false)} style={{ padding: '0.5rem 1rem', background: 'white', border: '1px solid #cbd5e1', borderRadius: '6px', fontWeight: 500, cursor: 'pointer' }}>Cancel</button>
-                  <button type="submit" disabled={inviteStatus === 'sending'} className="btn-primary" style={{ cursor: inviteStatus === 'sending' ? 'not-allowed' : 'pointer' }}>
-                    {inviteStatus === 'sending' ? 'Sending...' : 'Send Invite'}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid #f1f5f9' }}>
+                  <button type="button" onClick={() => setIsInviteModalOpen(false)} style={{ padding: '0.45rem 1rem', background: 'white', border: '1px solid #cbd5e1', borderRadius: '6px', fontWeight: 500, fontSize: '0.85rem', color: '#475569', cursor: 'pointer' }}>Cancel</button>
+                  <button type="submit" disabled={inviteStatus === 'sending'} className="btn-primary" style={{ padding: '0.45rem 1.25rem', fontSize: '0.85rem', cursor: inviteStatus === 'sending' ? 'not-allowed' : 'pointer' }}>
+                    {inviteStatus === 'sending' ? 'Sending...' : 'Send Invitation'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )
+      }
+
+      {/* EDIT MEMBER (HIERARCHY & ROLE) MODAL */}
+      {
+        editingMember && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(2px)' }} onClick={() => setEditingMember(null)}></div>
+            <div style={{ background: 'white', padding: '1.75rem', borderRadius: '12px', width: '100%', maxWidth: '520px', position: 'relative', zIndex: 10, border: '1px solid #e2e8f0', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)' }}>
+              
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, color: '#0f172a' }}>Edit Team Member</h3>
+                  <p style={{ margin: '2px 0 0 0', fontSize: '0.8rem', color: '#64748b' }}>Update reporting manager, organizational role, or security profile.</p>
+                </div>
+                <button onClick={() => setEditingMember(null)} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#94a3b8', padding: '2px' }}>✕</button>
+              </div>
+
+              <form onSubmit={handleUpdateMember}>
+                <div style={{ marginBottom: '1rem' }}>
+                  <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem', display: 'block' }}>Full Name</label>
+                  <input
+                    type="text"
+                    className="form-input bg-white"
+                    value={editingMember.name || ''}
+                    onChange={e => setEditingMember({ ...editingMember, name: e.target.value })}
+                    style={{ fontSize: '0.85rem' }}
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                  <div>
+                    <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem', display: 'block' }}>Role / Designation</label>
+                    <input
+                      type="text"
+                      className="form-input bg-white"
+                      placeholder="e.g. Sales Manager"
+                      value={editingMember.role || ''}
+                      onChange={e => setEditingMember({ ...editingMember, role: e.target.value })}
+                      style={{ fontSize: '0.85rem' }}
+                    />
+                  </div>
+                  <div>
+                    <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem', display: 'block' }}>Reports To (Manager)</label>
+                    <select
+                      className="form-input bg-white"
+                      value={editingMember.reportsToId || ''}
+                      onChange={e => setEditingMember({ ...editingMember, reportsToId: e.target.value })}
+                      style={{ fontSize: '0.85rem' }}
+                    >
+                      <option value="">No Direct Manager (Top Level)</option>
+                      {orgUsers
+                        .filter(u => u.id !== editingMember.id) // Cannot report to self
+                        .map(u => (
+                          <option key={u.id} value={u.id}>
+                            {u.name || u.nickname || u.email?.split('@')[0]} {u.role ? `(${u.role})` : ''}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem', display: 'block' }}>Security Profile</label>
+                  <select
+                    className="form-input bg-white"
+                    value={editingMember.profileId || ''}
+                    onChange={e => setEditingMember({ ...editingMember, profileId: e.target.value })}
+                    style={{ fontSize: '0.85rem' }}
+                  >
+                    <option value="">Select a Profile...</option>
+                    {profiles.map(p => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {editMemberStatus === 'success' ? (
+                  <div style={{ padding: '0.75rem', background: '#dcfce3', color: '#166534', borderRadius: '6px', textAlign: 'center', fontWeight: 600, fontSize: '0.85rem', marginBottom: '1rem' }}>
+                    ✓ Member Updated Successfully!
+                  </div>
+                ) : editMemberStatus && editMemberStatus.startsWith('Error') ? (
+                  <div style={{ padding: '0.75rem', background: '#fee2e2', color: '#991b1b', borderRadius: '6px', textAlign: 'center', fontWeight: 500, fontSize: '0.85rem', marginBottom: '1rem' }}>
+                    {editMemberStatus}
+                  </div>
+                ) : null}
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid #f1f5f9' }}>
+                  <button type="button" onClick={() => setEditingMember(null)} style={{ padding: '0.45rem 1rem', background: 'white', border: '1px solid #cbd5e1', borderRadius: '6px', fontWeight: 500, fontSize: '0.85rem', color: '#475569', cursor: 'pointer' }}>Cancel</button>
+                  <button type="submit" disabled={editMemberStatus === 'saving'} className="btn-primary" style={{ padding: '0.45rem 1.25rem', fontSize: '0.85rem', cursor: editMemberStatus === 'saving' ? 'not-allowed' : 'pointer' }}>
+                    {editMemberStatus === 'saving' ? 'Saving...' : 'Save Changes'}
                   </button>
                 </div>
               </form>

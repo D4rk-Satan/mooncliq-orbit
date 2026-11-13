@@ -468,7 +468,7 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, refresh
 
                 // Category ke wahi items nikalo jinki user ke paas Permission hai
                 const visibleItems = category.items.filter((item) => {
-                  if ((category.name === "CRM" || category.name === "WORK") && !activeMods.includes(item.name)) {
+                  if ((category.name === "SALES & CRM" || category.name === "WORK") && !activeMods.includes(item.name)) {
                     return false;
                   }
                   const permissionControlledModules = ["Lead", "Deal", "Account", "Task", "Products", "Whatsapp", "Campaigns"];

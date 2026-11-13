@@ -3,6 +3,7 @@ import prisma from '../../../lib/prisma';
 import { getAuthUser } from '../../../lib/auth';
 import { executeBackendWorkflows } from '../../../utils/workflowEngine';
 import { withPermission } from '@/lib/rbac';
+import { getSubordinateUserIds, getUserIdentifiersList } from '../../../lib/hierarchy';
 
 export const POST = withPermission('Account', 'create', async (request, user) => {
   try {
@@ -86,13 +87,41 @@ export const GET = withPermission('Account', 'view', async (request, user) => {
       orderBy: { createdAt: 'desc' }
     });
 
-    if (!user.profile?.canAccessSettings && user.profile?.permissions?.Account?.visibility === 'private') {
+    const accountVisibility = user.profile?.permissions?.Account?.visibility || 'public';
+
+    if (!user.profile?.canAccessSettings && (accountVisibility === 'private' || accountVisibility === 'hierarchy')) {
+      const allowedIdentifiers = new Set([
+        user.id,
+        user.email,
+        user.name,
+        user.profile?.nickname,
+        user.nickname
+      ].filter(Boolean).map(val => String(val).trim().toLowerCase()));
+
+      if (accountVisibility === 'hierarchy') {
+        const subIds = await getSubordinateUserIds(user.id, user.organizationId);
+        if (subIds.length > 0) {
+          const subIdentifiers = await getUserIdentifiersList(subIds);
+          subIdentifiers.forEach(id => allowedIdentifiers.add(id));
+        }
+      }
+
       accounts = accounts.filter(acc => {
         let customData = acc.customData;
         if (typeof customData === 'string') {
           try { customData = JSON.parse(customData); } catch (e) { customData = {}; }
         }
-        return customData?.owner === user.email;
+
+        const explicitOwner = String(acc.owner || '').trim().toLowerCase();
+        const customOwner = String(customData?.owner || '').trim().toLowerCase();
+        const isCreator = acc.lastModifiedById === user.id;
+
+        const isAllowed = Boolean(
+          (explicitOwner && allowedIdentifiers.has(explicitOwner)) ||
+          (customOwner && allowedIdentifiers.has(customOwner))
+        );
+
+        return isCreator || isAllowed;
       });
     }
 

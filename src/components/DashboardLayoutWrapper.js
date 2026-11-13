@@ -45,10 +45,11 @@ export default function DashboardLayoutWrapper({
       });
       if (res.ok) {
         const userData = await res.json();
-        if (userData?.profile) {
-          if (!userData.profile.onboardingCompleted) {
+        if (userData) {
+          const isCompleted = userData.onboardingCompleted ?? userData.profile?.onboardingCompleted;
+          if (!isCompleted) {
             setShowOnboarding(true);
-            setIsAdmin(userData.profile.canManageUsers === true);
+            setIsAdmin(userData.profile?.canManageUsers === true);
             localStorage.setItem('mooncliq_onboarding_done', 'false');
             document.cookie = "mooncliq_onboarding_done=false; path=/; max-age=31536000";
           } else {

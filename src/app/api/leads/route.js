@@ -3,16 +3,35 @@ import prisma from '../../../lib/prisma';
 import { withPermission } from '../../../lib/rbac';
 import { executeBiDirectionalSync } from '../../../lib/syncLookups';
 import { executeBackendWorkflows } from '../../../utils/workflowEngine';
+import { getSubordinateUserIds, getUserIdentifiersList } from '../../../lib/hierarchy';
 
 export const GET = withPermission('Lead', 'view', async (request, user) => {
   try {
-
-
     const whereClause = { organizationId: user.organizationId };
+    const leadVisibility = user.profile?.permissions?.Lead?.visibility || 'public';
 
-    // Apply Data Visibility Rules
-    if (!user.profile?.canAccessSettings && user.profile?.permissions?.Lead?.visibility === 'private') {
-      whereClause.owner = user.email; // Assuming owner field holds email
+    // Apply Data Visibility Rules (Private / Hierarchy)
+    if (!user.profile?.canAccessSettings && (leadVisibility === 'private' || leadVisibility === 'hierarchy')) {
+      const allowedIdentifiers = new Set([
+        user.id,
+        user.email,
+        user.name,
+        user.profile?.nickname,
+        user.nickname
+      ].filter(Boolean).map(val => String(val).trim().toLowerCase()));
+
+      if (leadVisibility === 'hierarchy') {
+        const subIds = await getSubordinateUserIds(user.id, user.organizationId);
+        if (subIds.length > 0) {
+          const subIdentifiers = await getUserIdentifiersList(subIds);
+          subIdentifiers.forEach(id => allowedIdentifiers.add(id));
+        }
+      }
+
+      whereClause.OR = [
+        { owner: { in: Array.from(allowedIdentifiers) } },
+        { lastModifiedById: user.id }
+      ];
     }
 
     const searchParams = request.nextUrl.searchParams;

@@ -72,8 +72,42 @@ export async function getAuthUser(request) {
 
 
     if (!user) {
-      // Auto-provisioning!
-      // 1. Create Organization
+      // 1. Check if user was invited to an existing organization
+      if (email) {
+        const pendingInvite = await prisma.invitation.findFirst({
+          where: {
+            email: email,
+            status: { in: ['PENDING', 'ACCEPTED'] }
+          },
+          orderBy: { createdAt: 'desc' }
+        });
+
+        if (pendingInvite) {
+          user = await prisma.user.create({
+            data: {
+              id: userId,
+              email: email,
+              name: pendingInvite.name || null,
+              role: pendingInvite.role || null,
+              reportsToId: pendingInvite.reportsToId || null,
+              organizationId: pendingInvite.organizationId,
+              profileId: pendingInvite.profileId,
+              isActive: true
+            },
+            include: { organization: true, profile: true }
+          });
+
+          await prisma.invitation.update({
+            where: { id: pendingInvite.id },
+            data: { status: 'ACCEPTED' }
+          });
+
+          userCache.set(userId, { user, timestamp: Date.now() });
+          return user;
+        }
+      }
+
+      // 2. Auto-provisioning a brand new organization (Self-signup)
       const orgName = email ? `${email.split('@')[0]}'s Workspace` : 'My Workspace';
 
       const newOrg = await prisma.organization.create({

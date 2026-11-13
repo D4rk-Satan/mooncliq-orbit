@@ -274,7 +274,6 @@ export async function runTaskAudit(taskId) {
         data: {
           stageId: overdueStage.id,
           completionSource: 'Automatic',
-          notes: updatedNotes
         }
       });
 

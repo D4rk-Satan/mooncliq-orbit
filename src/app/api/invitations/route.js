@@ -6,7 +6,7 @@ import { withPermission } from '@/lib/rbac';
 
 export const POST = withPermission('Settings', 'manageUsers', async (request, user) => {
   try {
-    const { email, profileId } = await request.json();
+    const { email, profileId, name, role, reportsToId } = await request.json();
 
     if (!email || !profileId) {
       return NextResponse.json({ error: "Email and Profile ID are required" }, { status: 400 });
@@ -41,7 +41,15 @@ export const POST = withPermission('Settings', 'manageUsers', async (request, us
     if (existingInvite) {
       invitation = await prisma.invitation.update({
         where: { id: existingInvite.id },
-        data: { token, status: 'PENDING', profileId, expiresAt }
+        data: {
+          token,
+          status: 'PENDING',
+          profileId,
+          expiresAt,
+          name: name || null,
+          role: role || null,
+          reportsToId: reportsToId || null
+        }
       });
     } else {
       invitation = await prisma.invitation.create({
@@ -50,7 +58,10 @@ export const POST = withPermission('Settings', 'manageUsers', async (request, us
           token,
           organizationId: user.organizationId,
           profileId,
-          expiresAt
+          expiresAt,
+          name: name || null,
+          role: role || null,
+          reportsToId: reportsToId || null
         }
       });
     }

@@ -81,6 +81,9 @@ model User {
 model Invitation {
   id             String       @id @default(uuid())
   email          String
+  name           String?
+  role           String?      // Position / Job title (e.g. Sales Executive)
+  reportsToId    String?      // Reporting Manager
   token          String       @unique
   organizationId String
   profileId      String

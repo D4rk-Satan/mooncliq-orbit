@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getAuthUser } from '@/lib/auth';
+import { getSubordinateUserIds, getUserIdentifiersList } from '@/lib/hierarchy';
 
 async function enrichWithUserNames(recordsOrRecord) {
     const isArray = Array.isArray(recordsOrRecord);
@@ -41,7 +42,7 @@ export async function GET(request) {
             return NextResponse.json({ error: 'moduleId is required' }, { status: 400 });
         }
 
-        const records = await prisma.customRecord.findMany({
+        let records = await prisma.customRecord.findMany({
             where: {
                 organizationId: user.organizationId,
                 customModuleId: moduleId
@@ -53,6 +54,50 @@ export async function GET(request) {
                 createdAt: 'desc'
             }
         });
+
+        // Determine custom module name from database or user permissions
+        const customMod = await prisma.customModule.findUnique({
+            where: { id: moduleId },
+            select: { name: true }
+        });
+        const modName = customMod?.name || moduleId;
+        const modVisibility = user.profile?.permissions?.[modName]?.visibility || 'public';
+
+        if (!user.profile?.canAccessSettings && (modVisibility === 'private' || modVisibility === 'hierarchy')) {
+            const allowedIdentifiers = new Set([
+                user.id,
+                user.email,
+                user.name,
+                user.profile?.nickname,
+                user.nickname
+            ].filter(Boolean).map(val => String(val).trim().toLowerCase()));
+
+            if (modVisibility === 'hierarchy') {
+                const subIds = await getSubordinateUserIds(user.id, user.organizationId);
+                if (subIds.length > 0) {
+                    const subIdentifiers = await getUserIdentifiersList(subIds);
+                    subIdentifiers.forEach(id => allowedIdentifiers.add(id));
+                }
+            }
+
+            records = records.filter(r => {
+                let customData = r.customData;
+                if (typeof customData === 'string') {
+                    try { customData = JSON.parse(customData); } catch (e) { customData = {}; }
+                }
+
+                const explicitOwner = String(r.owner || '').trim().toLowerCase();
+                const customOwner = String(customData?.owner || '').trim().toLowerCase();
+                const isCreator = r.lastModifiedById === user.id;
+
+                const isAllowed = Boolean(
+                    (explicitOwner && allowedIdentifiers.has(explicitOwner)) ||
+                    (customOwner && allowedIdentifiers.has(customOwner))
+                );
+
+                return isCreator || isAllowed;
+            });
+        }
 
         const enrichedRecords = await enrichWithUserNames(records);
         return NextResponse.json(enrichedRecords);

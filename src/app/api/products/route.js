@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import prisma from '../../../lib/prisma';
 import { getAuthUser } from '../../../lib/auth';
 import { withPermission } from '@/lib/rbac';
+import { getSubordinateUserIds, getUserIdentifiersList } from '../../../lib/hierarchy';
 
 export const POST = withPermission('Product', 'create', async (request, user) => {
   try {
@@ -64,13 +65,41 @@ export const GET = withPermission('Product', 'view', async (request, user) => {
       orderBy: { createdAt: 'desc' }
     });
 
-    if (!user.profile?.canAccessSettings && user.profile?.permissions?.Product?.visibility === 'private') {
+    const productVisibility = user.profile?.permissions?.Product?.visibility || 'public';
+
+    if (!user.profile?.canAccessSettings && (productVisibility === 'private' || productVisibility === 'hierarchy')) {
+      const allowedIdentifiers = new Set([
+        user.id,
+        user.email,
+        user.name,
+        user.profile?.nickname,
+        user.nickname
+      ].filter(Boolean).map(val => String(val).trim().toLowerCase()));
+
+      if (productVisibility === 'hierarchy') {
+        const subIds = await getSubordinateUserIds(user.id, user.organizationId);
+        if (subIds.length > 0) {
+          const subIdentifiers = await getUserIdentifiersList(subIds);
+          subIdentifiers.forEach(id => allowedIdentifiers.add(id));
+        }
+      }
+
       products = products.filter(p => {
         let customData = p.customData;
         if (typeof customData === 'string') {
           try { customData = JSON.parse(customData); } catch (e) { customData = {}; }
         }
-        return customData?.owner === user.email;
+
+        const explicitOwner = String(p.owner || '').trim().toLowerCase();
+        const customOwner = String(customData?.owner || '').trim().toLowerCase();
+        const isCreator = p.lastModifiedById === user.id;
+
+        const isAllowed = Boolean(
+          (explicitOwner && allowedIdentifiers.has(explicitOwner)) ||
+          (customOwner && allowedIdentifiers.has(customOwner))
+        );
+
+        return isCreator || isAllowed;
       });
     }
 

@@ -5,6 +5,7 @@ import { executeBiDirectionalSync } from '../../../lib/syncLookups';
 import { executeBackendWorkflows } from '../../../utils/workflowEngine';
 import { withPermission } from '../../../lib/rbac';
 import { scheduleTaskDueCheck, scheduleTaskAlert } from '../../../lib/delayScheduler';
+import { getSubordinateUserIds, getUserIdentifiersList } from '../../../lib/hierarchy';
 
 export const POST = withPermission('Task', 'create', async (request, user) => {
   try {
@@ -107,9 +108,26 @@ export const GET = withPermission('Task', 'view', async (request, user) => {
       orderBy: { createdAt: 'desc' }
     });
 
-    if (!user.profile?.canAccessSettings && user.profile?.permissions?.Task?.visibility === 'private') {
-      const userEmail = (user.email || '').toLowerCase();
-      const userNick = (user.profile?.nickname || user.nickname || '').toLowerCase();
+    const taskVisibility = user.profile?.permissions?.Task?.visibility || 'public';
+
+    if (!user.profile?.canAccessSettings && (taskVisibility === 'private' || taskVisibility === 'hierarchy')) {
+      // Current user ke saare possible identifiers (id, email, name, nickname)
+      const allowedIdentifiers = new Set([
+        user.id,
+        user.email,
+        user.name,
+        user.profile?.nickname,
+        user.nickname
+      ].filter(Boolean).map(val => String(val).trim().toLowerCase()));
+
+      let subordinateUserIds = [];
+      if (taskVisibility === 'hierarchy') {
+        subordinateUserIds = await getSubordinateUserIds(user.id, user.organizationId);
+        if (subordinateUserIds.length > 0) {
+          const subIdentifiers = await getUserIdentifiersList(subordinateUserIds);
+          subIdentifiers.forEach(id => allowedIdentifiers.add(id));
+        }
+      }
 
       tasks = tasks.filter(t => {
         let customData = t.customData;
@@ -117,14 +135,22 @@ export const GET = withPermission('Task', 'view', async (request, user) => {
           try { customData = JSON.parse(customData); } catch (e) { customData = {}; }
         }
 
-        const taskOwner = (t.owner || '').toLowerCase();
-        const customOwner = (customData?.owner || '').toLowerCase();
+        const taskOwner = String(t.owner || '').trim().toLowerCase();
+        const customOwner = String(customData?.owner || '').trim().toLowerCase();
 
-        return (
-          (taskOwner && (taskOwner === userEmail || taskOwner === userNick)) ||
-          (customOwner && (customOwner === userEmail || customOwner === userNick)) ||
-          t.assignedBy === user.id
+        // 1. User is task ka creator/assigner hai
+        const isCreator = t.assignedBy === user.id;
+
+        // 2. Agar hierarchy enabled hai aur task kisi subordinate ne banaya hai
+        const isCreatedBySubordinate = subordinateUserIds.includes(t.assignedBy);
+
+        // 3. Agar task ka owner user ya uske kisi subordinate ke identifier se match karta hai
+        const isAllowedOwner = Boolean(
+          (taskOwner && allowedIdentifiers.has(taskOwner)) ||
+          (customOwner && allowedIdentifiers.has(customOwner))
         );
+
+        return isCreator || isCreatedBySubordinate || isAllowedOwner;
       });
     }
 
@@ -237,7 +263,7 @@ export const PATCH = withPermission('Task', 'edit', async (request, user) => {
     if (updateData.stageId) {
       const newStage = await prisma.stage.findUnique({ where: { id: updateData.stageId } });
       const prevStageName = existingTask.stage?.name?.toLowerCase() || '';
-      
+
       // Whenever a user updates the stage manually, set completionSource = 'Manual'
       updateData.completionSource = 'Manual';
 

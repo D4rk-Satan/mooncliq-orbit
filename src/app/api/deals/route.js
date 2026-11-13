@@ -4,19 +4,36 @@ import { getAuthUser } from '../../../lib/auth';
 import { executeBiDirectionalSync } from '../../../lib/syncLookups';
 import { executeBackendWorkflows } from '../../../utils/workflowEngine';
 import { withPermission } from '../../../lib/rbac';
+import { getSubordinateUserIds, getUserIdentifiersList } from '../../../lib/hierarchy';
 
 
 export const GET = withPermission('Deal', 'view', async (request, user) => {
-  console.log("PRISMA KEYS:", Object.keys(prisma));
-  console.log("PRISMA USER:", typeof prisma.user);
   try {
-
-
     const whereClause = { organizationId: user.organizationId };
+    const dealVisibility = user.profile?.permissions?.Deal?.visibility || 'public';
 
-    // Apply Data Visibility Rules
-    if (!user.profile?.canAccessSettings && user.profile?.permissions?.Deal?.visibility === 'private') {
-      whereClause.owner = user.email; // Assuming owner field holds email
+    // Apply Data Visibility Rules (Private / Hierarchy)
+    if (!user.profile?.canAccessSettings && (dealVisibility === 'private' || dealVisibility === 'hierarchy')) {
+      const allowedIdentifiers = new Set([
+        user.id,
+        user.email,
+        user.name,
+        user.profile?.nickname,
+        user.nickname
+      ].filter(Boolean).map(val => String(val).trim().toLowerCase()));
+
+      if (dealVisibility === 'hierarchy') {
+        const subIds = await getSubordinateUserIds(user.id, user.organizationId);
+        if (subIds.length > 0) {
+          const subIdentifiers = await getUserIdentifiersList(subIds);
+          subIdentifiers.forEach(id => allowedIdentifiers.add(id));
+        }
+      }
+
+      whereClause.OR = [
+        { owner: { in: Array.from(allowedIdentifiers) } },
+        { lastModifiedById: user.id }
+      ];
     }
 
     const Deals = await prisma.deal.findMany({
