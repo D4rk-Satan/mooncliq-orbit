@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Button from './ui/Button';
 
@@ -7,12 +7,65 @@ export default function OnboardingModal({ onComplete }) {
   const router = useRouter();
   const [isUploading, setIsUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isAutoOnboarding, setIsAutoOnboarding] = useState(false);
 
   const [formData, setFormData] = useState({
     avatarUrl: '',
     nickname: '',
     role: ''
   });
+
+  // AUTO-ONBOARDING FOR SUPER ADMIN:
+  // If Super Admin already filled nickname & org setup during Sign-Up, bypass the modal completely!
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('pending_org_setup');
+      if (raw) {
+        const orgData = JSON.parse(raw);
+        if (orgData.nickname) {
+          setIsAutoOnboarding(true);
+          autoSubmitOnboarding(orgData);
+        }
+      }
+    } catch (e) {
+      console.warn('Auto-onboarding check error:', e);
+    }
+  }, []);
+
+  const autoSubmitOnboarding = async (orgData) => {
+    try {
+      const { fetchAuthSession } = await import('aws-amplify/auth');
+      const { tokens } = await fetchAuthSession();
+      const token = tokens?.idToken?.toString();
+      if (!token) return;
+
+      const res = await fetch('/api/me/onboarding', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          nickname: orgData.nickname,
+          avatarUrl: orgData.avatarUrl || null,
+          role: 'CEO / Founder',
+          ...orgData
+        })
+      });
+
+      if (res.ok) {
+        try { localStorage.removeItem('pending_org_setup'); } catch (e) {}
+        if (onComplete) onComplete();
+        router.refresh();
+      } else {
+        // If auto onboarding fails (e.g. session lag), show manual modal as fallback
+        setIsAutoOnboarding(false);
+      }
+    } catch (err) {
+      console.error('Auto onboarding error:', err);
+      setIsAutoOnboarding(false);
+    }
+  };
 
   // Photo ko AWS S3 par bhejkar uska Link nikalna (5MB Limit + Auto Compression)
   const handleFileUpload = async (e) => {
@@ -114,6 +167,19 @@ export default function OnboardingModal({ onComplete }) {
   const modalOverlay = { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 };
   const modalBox = { background: '#fff', borderRadius: '16px', padding: '2.5rem', width: '100%', maxWidth: '450px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', textAlign: 'center', position: 'relative' };
   const inputStyle = { width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid #e2e8f0', marginTop: '0.5rem', fontSize: '0.95rem', outline: 'none', boxSizing: 'border-box' };
+
+  if (isAutoOnboarding) {
+    return (
+      <div style={modalOverlay}>
+        <div style={{ ...modalBox, maxWidth: '360px', padding: '2rem' }}>
+          <div style={{ width: '40px', height: '40px', border: '4px solid #e2e8f0', borderTopColor: '#3b82f6', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 1rem' }}></div>
+          <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+          <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#0f172a', marginBottom: '0.35rem' }}>Setting up your workspace...</h3>
+          <p style={{ fontSize: '0.85rem', color: '#64748b', margin: 0 }}>Almost ready, redirecting to dashboard</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={modalOverlay}>

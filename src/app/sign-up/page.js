@@ -30,10 +30,15 @@ const PasswordRequirements = ({ password }) => {
 export default function SignUp() {
   const router = useRouter();
   const [step, setStep] = useState('account'); // 'account', 'organization', or 'confirm'
-  const [formData, setFormData] = useState({ name: '', company: '', email: '', password: '', gstNumber: '', industry: '', teamSize: '', logoUrl: '', code: '' });
+  const [formData, setFormData] = useState({ name: '', nickname: '', company: '', email: '', password: '', gstNumber: '', industry: '', teamSize: '', logoUrl: '', avatarUrl: '', code: '' });
   const [gstError, setGstError] = useState('');
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [emailError, setEmailError] = useState('');
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
   const [error, setError] = useState('');
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [gstUniqueError, setGstUniqueError] = useState('');
+  const [nicknameError, setNicknameError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [invitedContext, setInvitedContext] = useState(null);
@@ -51,6 +56,63 @@ export default function SignUp() {
     return () => clearInterval(interval);
   }, [step, resendTimer]);
 
+  useEffect(() => {
+    const email = formData.email.trim();
+    // Valid email format check
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setEmailError('');
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsCheckingEmail(true);
+      try {
+        const res = await fetch(`/api/auth/check-email?email=${encodeURIComponent(email)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.exists) {
+            setEmailError('This email is already registered.');
+          } else {
+            setEmailError('');
+          }
+        }
+      } catch (err) {
+        console.error('Email check failed', err);
+      } finally {
+        setIsCheckingEmail(false);
+      }
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(timer);
+  }, [formData.email]);
+
+
+  useEffect(() => {
+    const gst = formData.gstNumber.trim().toUpperCase();
+    if (gst.length !== 15) {
+      setGstUniqueError('');
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/auth/check-gst?gst=${encodeURIComponent(gst)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.exists) {
+            setGstUniqueError('This GST Number is already registered with another organization.');
+          } else {
+            setGstUniqueError('');
+          }
+        }
+      } catch (err) {
+        console.error('GST check error', err);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [formData.gstNumber]);
+
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -62,7 +124,25 @@ export default function SignUp() {
     }
   }, []);
 
+  const handleNameChange = (e) => {
+    const val = e.target.value;
+    const autoNick = val.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
+    setFormData(prev => ({
+      ...prev,
+      name: val,
+      nickname: prev.nickname === '' || prev.nickname === autoNick.slice(0, -1) ? autoNick : prev.nickname
+    }));
+  };
 
+  const handleNicknameChange = (e) => {
+    const val = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''); // no spaces, lowercase only
+    setFormData(prev => ({ ...prev, nickname: val }));
+    if (val.length > 0 && val.length < 3) {
+      setNicknameError('Nickname must be at least 3 characters.');
+    } else {
+      setNicknameError('');
+    }
+  };
   // 1. GST Validation (Auto-Uppercase + Optional + 15-char Regex)
   const handleGstChange = (e) => {
     const val = e.target.value.toUpperCase().replace(/[^0-9A-Z]/g, '');
@@ -131,11 +211,71 @@ export default function SignUp() {
     }
   };
 
+  // Admin Avatar Upload to S3 (Pre-signed URL flow)
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size must be under 5MB');
+      e.target.value = '';
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    try {
+      let fileToUpload = file;
+      try {
+        const imageCompression = (await import('browser-image-compression')).default;
+        const options = { maxSizeMB: 0.5, maxWidthOrHeight: 1024, useWebWorker: true };
+        fileToUpload = await imageCompression(file, options);
+      } catch (compErr) {
+        console.warn('Avatar compression skipped:', compErr);
+      }
+
+      const res = await fetch(`/api/upload-url?file=${encodeURIComponent(fileToUpload.name || file.name)}&fileType=${encodeURIComponent(fileToUpload.type || file.type)}&folder=avatars`);
+      const data = await res.json();
+      if (data.uploadUrl) {
+        await fetch(data.uploadUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': fileToUpload.type || file.type },
+          body: fileToUpload
+        });
+        setFormData(prev => ({ ...prev, avatarUrl: data.fileUrl }));
+      } else {
+        alert('Failed to get upload URL');
+      }
+    } catch (err) {
+      console.error('Avatar upload error:', err);
+      alert('Failed to upload profile photo');
+    } finally {
+      setIsUploadingAvatar(false);
+      e.target.value = '';
+    }
+  };
+
+
   // 3. Step 1 se Step 2 par jane ka handler
   const handleNextToOrg = (e) => {
     e.preventDefault();
     setError('');
 
+
+
+    if (emailError) {
+      setError('This email is already registered. Please sign in or use a different email.');
+      return;
+    }
+
+    if (!formData.name.trim() || !formData.nickname.trim() || !formData.email.trim() || formData.password.length < 8) {
+      setError('Please fill in all mandatory details and fulfill password requirements.');
+      return;
+    }
+
+    if (formData.nickname.trim().length < 3) {
+      setError('Nickname must be at least 3 characters.');
+      return;
+    }
     if (!formData.name.trim() || !formData.email.trim() || formData.password.length < 8) {
       setError('Please fill in all details and fulfill password requirements.');
       return;
@@ -159,6 +299,21 @@ export default function SignUp() {
       return;
     }
 
+    if (!formData.industry) {
+      setError('Please select an Industry.');
+      return;
+    }
+
+    if (!formData.teamSize) {
+      setError('Please select your Team Size.');
+      return;
+    }
+
+    if (gstUniqueError) {
+      setError('Please resolve the GST error before proceeding.');
+      return;
+    }
+
     if (formData.gstNumber) {
       const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
       if (formData.gstNumber.length !== 15 || !gstRegex.test(formData.gstNumber)) {
@@ -176,16 +331,16 @@ export default function SignUp() {
     setError('');
     try {
       // Organization details ko localStorage me save kar lete hain taaki login ke baad persist rahe
-      if (!invitedContext) {
-        localStorage.setItem('pending_org_setup', JSON.stringify({
-          companyName: formData.company.trim(),
-          orgName: formData.company.trim(),
-          gstNumber: formData.gstNumber ? formData.gstNumber.trim().toUpperCase() : null,
-          industry: formData.industry || null,
-          teamSize: formData.teamSize || null,
-          logoUrl: formData.logoUrl || null
-        }));
-      }
+      localStorage.setItem('pending_org_setup', JSON.stringify({
+        companyName: formData.company.trim(),
+        orgName: formData.company.trim(),
+        gstNumber: formData.gstNumber ? formData.gstNumber.trim().toUpperCase() : null,
+        industry: formData.industry || null,
+        teamSize: formData.teamSize || null,
+        logoUrl: formData.logoUrl || null,
+        nickname: formData.nickname.trim(), // 👉 NAYA
+        avatarUrl: formData.avatarUrl || null // 👉 NAYA
+      }));
 
       await signUp({
         username: formData.email,
@@ -297,20 +452,41 @@ export default function SignUp() {
         {step === 'account' && (
           <form onSubmit={handleNextToOrg}>
             <div className="form-group">
-              <label className="form-label" htmlFor="name">Full Name</label>
+              <label className="form-label" htmlFor="name">Full Name<span style={{ color: '#ef4444' }}>*</span> </label>
               <input
                 type="text"
                 id="name"
                 className="form-input"
                 placeholder="John Doe"
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={handleNameChange}
                 required
               />
+
             </div>
 
             <div className="form-group">
-              <label className="form-label" htmlFor="email">Email Address</label>
+              <label className="form-label" htmlFor="nickname">
+                Nickname <span style={{ color: '#ef4444' }}>*</span>
+              </label>
+              <input
+                type="text"
+                id="nickname"
+                className="form-input"
+                placeholder="e.g. jdoe"
+                value={formData.nickname}
+                onChange={handleNicknameChange}
+                required
+                minLength={3}
+                maxLength={15}
+              />
+              {nicknameError && (
+                <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.75rem', color: '#ef4444' }}>{nicknameError}</p>
+              )}
+            </div>
+
+            <div className="form-group">
+              <label className="form-label" htmlFor="email">Email Address <span style={{ color: '#ef4444' }}>*</span></label>
               <input
                 type="email"
                 id="email"
@@ -322,12 +498,21 @@ export default function SignUp() {
                 disabled={!!invitedContext}
                 style={invitedContext ? { backgroundColor: '#f1f5f9', color: '#64748b', cursor: 'not-allowed' } : {}}
               />
+
+              {emailError && (
+                <p style={{ color: '#ef4444', fontSize: '0.85rem', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>⚠️ {emailError}</span>
+                  <Link href={`/sign-in?email=${encodeURIComponent(formData.email)}`} style={{ textDecoration: 'underline', fontWeight: 600, color: '#2563eb' }}>
+                    Sign In instead?
+                  </Link>
+                </p>
+              )}
             </div>
 
             <div className="password-input-wrapper" style={{ display: 'none' }}></div>
 
             <div className="form-group">
-              <label className="form-label" htmlFor="password">Password</label>
+              <label className="form-label" htmlFor="password">Password <span style={{ color: '#ef4444' }}>*</span></label>
               <div className="password-input-wrapper">
                 <input
                   type={showPassword ? "text" : "password"}
@@ -360,7 +545,7 @@ export default function SignUp() {
         {step === 'organization' && (
           <form onSubmit={handleOrgSubmit}>
             <div className="form-group">
-              <label className="form-label" htmlFor="company">Company Name</label>
+              <label className="form-label" htmlFor="company">Company Name <span style={{ color: '#ef4444' }}>*</span></label>
               <input
                 type="text"
                 id="company"
@@ -386,10 +571,15 @@ export default function SignUp() {
               {gstError && (
                 <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.75rem', color: '#ef4444' }}>{gstError}</p>
               )}
+              {gstUniqueError && (
+                <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.75rem', color: '#ef4444' }}>
+                  ⚠️ {gstUniqueError}
+                </p>
+              )}
             </div>
 
             <div className="form-group">
-              <label className="form-label" htmlFor="industry">Industry</label>
+              <label className="form-label" htmlFor="industry">Industry <span style={{ color: '#ef4444' }}>*</span></label>
               <select
                 id="industry"
                 className="form-input"
@@ -406,7 +596,7 @@ export default function SignUp() {
             </div>
 
             <div className="form-group">
-              <label className="form-label" htmlFor="teamSize">Team Size</label>
+              <label className="form-label" htmlFor="teamSize">Team Size<span style={{ color: '#ef4444' }}>*</span></label>
               <select
                 id="teamSize"
                 className="form-input"
@@ -421,27 +611,125 @@ export default function SignUp() {
               </select>
             </div>
 
-            <div className="form-group">
-              <label className="form-label">Company Logo (Optional)</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="form-input"
-                  onChange={handleLogoUpload}
-                  disabled={isUploadingLogo}
-                  style={{ flex: 1 }}
-                />
-                {formData.logoUrl && (
-                  <img
-                    src={formData.logoUrl}
-                    alt="Logo Preview"
-                    style={{ width: '40px', height: '40px', objectFit: 'contain', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: '#f8fafc' }}
+            {/* Profile Photo & Company Logo Upload Cards (Sleek Professional Design) */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem', marginBottom: '1.25rem' }}>
+              {/* Admin Profile Photo Card */}
+              <div style={{
+                border: '1px dashed #cbd5e1',
+                borderRadius: '10px',
+                padding: '0.85rem',
+                backgroundColor: '#f8fafc',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textAlign: 'center',
+                position: 'relative'
+              }}>
+                <div style={{
+                  width: '46px',
+                  height: '46px',
+                  borderRadius: '50%',
+                  backgroundColor: '#e2e8f0',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  overflow: 'hidden',
+                  marginBottom: '0.5rem',
+                  border: formData.avatarUrl ? '2px solid #3b82f6' : '1px solid #cbd5e1'
+                }}>
+                  {formData.avatarUrl ? (
+                    <img src={formData.avatarUrl} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <span style={{ fontSize: '1.25rem' }}>👤</span>
+                  )}
+                </div>
+                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#1e293b', marginBottom: '0.2rem' }}>
+                  Your Photo
+                </span>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', marginBottom: '0.5rem' }}>
+                  (Optional)
+                </span>
+                <label style={{
+                  display: 'inline-block',
+                  padding: '4px 10px',
+                  fontSize: '0.72rem',
+                  fontWeight: 600,
+                  color: '#2563eb',
+                  backgroundColor: '#eff6ff',
+                  borderRadius: '6px',
+                  cursor: isUploadingAvatar ? 'not-allowed' : 'pointer',
+                  border: '1px solid #bfdbfe'
+                }}>
+                  {isUploadingAvatar ? 'Uploading...' : (formData.avatarUrl ? 'Change' : 'Upload')}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarUpload}
+                    disabled={isUploadingAvatar}
+                    style={{ display: 'none' }}
                   />
-                )}
+                </label>
               </div>
-              {isUploadingLogo && <p style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.25rem' }}>Uploading logo...</p>}
-              {formData.logoUrl && !isUploadingLogo && <p style={{ fontSize: '0.8rem', color: '#16a34a', marginTop: '0.25rem' }}>✓ Logo uploaded successfully</p>}
+
+              {/* Company Logo Card */}
+              <div style={{
+                border: '1px dashed #cbd5e1',
+                borderRadius: '10px',
+                padding: '0.85rem',
+                backgroundColor: '#f8fafc',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textAlign: 'center',
+                position: 'relative'
+              }}>
+                <div style={{
+                  width: '46px',
+                  height: '46px',
+                  borderRadius: '8px',
+                  backgroundColor: '#e2e8f0',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  overflow: 'hidden',
+                  marginBottom: '0.5rem',
+                  border: formData.logoUrl ? '2px solid #10b981' : '1px solid #cbd5e1'
+                }}>
+                  {formData.logoUrl ? (
+                    <img src={formData.logoUrl} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '2px' }} />
+                  ) : (
+                    <span style={{ fontSize: '1.25rem' }}>🏢</span>
+                  )}
+                </div>
+                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#1e293b', marginBottom: '0.2rem' }}>
+                  Company Logo
+                </span>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', marginBottom: '0.5rem' }}>
+                  (Optional)
+                </span>
+                <label style={{
+                  display: 'inline-block',
+                  padding: '4px 10px',
+                  fontSize: '0.72rem',
+                  fontWeight: 600,
+                  color: '#059669',
+                  backgroundColor: '#ecfdf5',
+                  borderRadius: '6px',
+                  cursor: isUploadingLogo ? 'not-allowed' : 'pointer',
+                  border: '1px solid #a7f3d0'
+                }}>
+                  {isUploadingLogo ? 'Uploading...' : (formData.logoUrl ? 'Change' : 'Upload')}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                    disabled={isUploadingLogo}
+                    style={{ display: 'none' }}
+                  />
+                </label>
+              </div>
             </div>
 
             <button type="submit" className="form-button" disabled={isLoading || isUploadingLogo}>

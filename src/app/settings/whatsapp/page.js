@@ -18,7 +18,52 @@ export default function WhatsAppSettings() {
   useEffect(() => {
     fetchSettings();
     loadFacebookSDK();
+    checkForRedirectCode();
   }, []);
+
+  const checkForRedirectCode = async () => {
+    if (typeof window === 'undefined') return;
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+    if (code) {
+      setIsConnectingMeta(true);
+      setMessage({ text: 'Processing Meta WhatsApp Authorization...', type: 'info' });
+      try {
+        const { fetchAuthSession } = await import('aws-amplify/auth');
+        const { tokens } = await fetchAuthSession();
+
+        const exchangeRes = await fetch('/api/whatsapp/embedded-signup', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${tokens?.idToken?.toString() || ''}`
+          },
+          body: JSON.stringify({ code })
+        });
+
+        const result = await exchangeRes.json();
+        if (exchangeRes.ok && result.success) {
+          setMessage({
+            text: `🎉 Successfully connected to Meta WhatsApp Business! (WABA ID: ${result.wabaId})`,
+            type: 'success'
+          });
+          // Clean the query parameter from URL
+          window.history.replaceState({}, document.title, window.location.pathname);
+          fetchSettings();
+        } else {
+          setMessage({
+            text: result.error || 'Failed to exchange credentials with Meta.',
+            type: 'error'
+          });
+        }
+      } catch (err) {
+        console.error('Redirect exchange error:', err);
+        setMessage({ text: 'Error connecting WhatsApp account from Meta redirect.', type: 'error' });
+      } finally {
+        setIsConnectingMeta(false);
+      }
+    }
+  };
 
   const loadFacebookSDK = () => {
     if (window.FB) return;

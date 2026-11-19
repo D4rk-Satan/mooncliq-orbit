@@ -25,6 +25,9 @@ export async function GET(request) {
         id: user.id,
         email: user.email,
         name: user.name,
+        nickname: user.nickname,
+        avatarUrl: user.avatarUrl,
+        role: user.role,
         organizationId: user.organizationId,
         organization: {
           id: user.organization?.id,

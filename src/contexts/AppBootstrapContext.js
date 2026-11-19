@@ -54,7 +54,7 @@ export function AppBootstrapProvider({ children, initialData = null }) {
 
   // useSyncExternalStore guarantees 0ms synchronous hydration
   const rawCache = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
-  
+
   const parsed = React.useMemo(() => {
     try {
       const data = JSON.parse(rawCache);
@@ -98,9 +98,9 @@ export function AppBootstrapProvider({ children, initialData = null }) {
         const formattedUserInfo = {
           orgName: user.organization?.name || "",
           email: user.email || "",
-          nickname: user.profile?.nickname || user.name || "User",
-          role: user.profile?.role || "Member",
-          avatarUrl: user.profile?.avatarUrl || null,
+          nickname: user.nickname || user.name || "User",
+          role: user.role || user.profile?.name || "Administrator",
+          avatarUrl: user.avatarUrl || null,
           canAccessSettings: user.profile?.canAccessSettings || false,
           activeModules: user.organization?.activeModules || [],
           profile: user.profile || null
@@ -115,7 +115,7 @@ export function AppBootstrapProvider({ children, initialData = null }) {
         try {
           // 1. Update localStorage cache
           localStorage.setItem(CACHE_KEY, JSON.stringify(freshData));
-          
+
           // 2. Update cookie for Next.js Server (so Ctrl+Shift+R renders instantly on server)
           // Keep lightweight for cookie size limit
           const ssrPayload = {
@@ -169,7 +169,7 @@ export function useBootstrap() {
       customModules: [],
       isLoaded: false,
       isLoading: false,
-      refreshBootstrap: () => {}
+      refreshBootstrap: () => { }
     };
   }
   return context;
