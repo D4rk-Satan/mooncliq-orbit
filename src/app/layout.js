@@ -8,7 +8,7 @@ const outfit = Outfit({ subsets: ["latin"], variable: '--font-outfit' });
 
 export const metadata = {
   title: "MoonCliq CRM",
-  description: "Textile Industry CRM developed by MoonCliq",
+  description: "All in one CRM developed by MoonCliq",
   icons: {
     icon: "/icon.png",
     shortcut: "/favicon.ico",
