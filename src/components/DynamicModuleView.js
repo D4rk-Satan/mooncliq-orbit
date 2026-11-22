@@ -102,6 +102,43 @@ export default function DynamicModuleView({
   const defaultCols = ['firstName', 'companyName', 'email', 'owner', 'stage', 'createdAt'];
   const [visibleColumns, setVisibleColumns] = useState([]);
   const [isManageColsMenuOpen, setIsManageColsMenuOpen] = useState(false);
+  const [usersMap, setUsersMap] = useState({});
+
+  // Resolve user IDs or emails to nicknames
+  useEffect(() => {
+    const loadUsers = async () => {
+      try {
+        const { fetchAuthSession } = await import('aws-amplify/auth');
+        const session = await fetchAuthSession();
+        const token = session.tokens?.idToken?.toString();
+        if (!token) return;
+
+        const res = await fetch('/api/users', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const list = await res.json();
+          const map = {};
+          list.forEach(u => {
+            const nick = u.nickname || u.profile?.nickname || u.name || u.email?.split('@')[0] || u.email;
+            if (u.id) map[u.id] = nick;
+            if (u.email) map[u.email] = nick;
+            if (u.name) map[u.name] = nick;
+            if (u.nickname) map[u.nickname] = nick;
+          });
+          setUsersMap(map);
+        }
+      } catch (e) {
+        console.error("Error loading users in DynamicModuleView:", e);
+      }
+    };
+    loadUsers();
+  }, []);
+
+  const getOwnerDisplayName = (owner) => {
+    if (!owner) return '';
+    return usersMap[owner] || (owner.includes('@') ? owner.split('@')[0] : owner);
+  };
 
   // Sort States
   const [sortConfig, setSortConfig] = useState({ key: "createdAt", direction: "desc" });
@@ -479,9 +516,9 @@ export default function DynamicModuleView({
                                       alignItems: 'center',
                                       justifyContent: 'center'
                                     }}>
-                                      {record.owner.charAt(0).toUpperCase()}
+                                      {getOwnerDisplayName(record.owner).charAt(0).toUpperCase()}
                                     </div>
-                                    <span>{record.owner}</span>
+                                    <span>{getOwnerDisplayName(record.owner)}</span>
                                   </div>
                                 )}
                               </div>

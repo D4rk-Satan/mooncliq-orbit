@@ -156,7 +156,7 @@ export default function ProfileSettingsView() {
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto', paddingBottom: '3rem' }}>
       <div style={{ marginBottom: '2rem' }}>
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#0f172a', margin: 0 }}>Profile & Organization</h2>
+        <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#0f172a', margin: 0 }}>Organization Profile</h2>
         <p style={{ color: '#64748b', fontSize: '0.95rem', margin: '0.25rem 0 0 0' }}>Update your personal details and company information.</p>
       </div>
 

@@ -23,6 +23,7 @@ import {
   Search, Sliders, Code2, Users, CreditCard, MessageSquare, ChevronRight, ArrowLeft
 } from 'lucide-react';
 import GlobalLoader from "../../components/ui/GlobalLoader";
+import toast from 'react-hot-toast';
 
 
 
@@ -145,24 +146,91 @@ export default function SettingsPage() {
     }
   }, [currentView]);
 
-  const handleRevokeAccess = async (userId) => {
-    if (!window.confirm("Are you sure you want to revoke this user's access?")) return;
+  const handleRevokeAccess = async (targetUser) => {
     try {
-      const token = await getAuthToken(); // NAYA: Yahan bhi token nikala
+      const token = await getAuthToken();
+
+      // 1. Pehle check karo ki user ke paas records hain ya nahi
+      const checkRes = await fetch(`/api/users?checkRecords=${targetUser.id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (!checkRes.ok) {
+        toast.error("Failed to check user records.");
+        return;
+      }
+
+      const stats = await checkRes.json();
+
+      // 2. Agar user ke paas records hain (> 0), to Reassign Modal open karo
+      if (stats.totalRecords > 0) {
+        setReassignModal({
+          isOpen: true,
+          user: targetUser,
+          stats: stats,
+          newOwnerId: '',
+          isSubmitting: false
+        });
+        return;
+      }
+
+      // 3. Agar 0 records hain, to seedha confirm karke revoke kar do
+      if (!window.confirm(`Are you sure you want to revoke access for ${targetUser.name || targetUser.email}?`)) {
+        return;
+      }
+
       const res = await fetch('/api/users', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ userId, isActive: false })
+        body: JSON.stringify({ userId: targetUser.id, isActive: false })
       });
+
       if (res.ok) {
-        alert("Access Revoked Successfully!");
-        fetchUsersAndInvites(); // Refresh table
+        toast.success("Access Revoked Successfully!");
+        fetchUsersAndInvites();
       } else {
         const data = await res.json();
-        alert(data.error || "Failed to revoke access");
+        toast.error(data.error || "Failed to revoke access");
       }
     } catch (error) {
       console.error(error);
+      toast.error("An error occurred while revoking access.");
+    }
+  };
+
+  // Reassign Modal Submit Handler
+  const handleConfirmReassignAndRevoke = async () => {
+    if (!reassignModal.newOwnerId) {
+      toast.error("Please select a new owner to reassign records.");
+      return;
+    }
+
+    setReassignModal(prev => ({ ...prev, isSubmitting: true }));
+    try {
+      const token = await getAuthToken();
+      const res = await fetch('/api/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({
+          userId: reassignModal.user.id,
+          isActive: false,
+          reassignToUserId: reassignModal.newOwnerId
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(data.message || "Records reassigned and access revoked successfully!");
+        setReassignModal({ isOpen: false, user: null, stats: null, newOwnerId: '', isSubmitting: false });
+        fetchUsersAndInvites();
+      } else {
+        toast.error(data.error || "Failed to reassign records.");
+        setReassignModal(prev => ({ ...prev, isSubmitting: false }));
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Something went wrong.");
+      setReassignModal(prev => ({ ...prev, isSubmitting: false }));
     }
   };
 
@@ -468,6 +536,13 @@ export default function SettingsPage() {
   const [rolesSubTab, setRolesSubTab] = useState('tree'); // 'tree' | 'profiles'
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [inviteData, setInviteData] = useState({ name: '', email: '', role: '', reportsToId: '', profileId: '' });
+  const [reassignModal, setReassignModal] = useState({
+    isOpen: false,
+    user: null,
+    stats: null,
+    newOwnerId: '',
+    isSubmitting: false
+  });
   const [inviteStatus, setInviteStatus] = useState(null);
   const [editingMember, setEditingMember] = useState(null);
   const [editMemberStatus, setEditMemberStatus] = useState(null);
@@ -747,6 +822,11 @@ export default function SettingsPage() {
   };
 
   const handleSaveProfile = async () => {
+
+    if (!selectedProfile?.name?.trim()) {
+      toast.error("Profile Name is mandatory.");
+      return;
+    }
     try {
       const token = await getAuthToken();
       const method = selectedProfile.id ? 'PUT' : 'POST';
@@ -1245,7 +1325,7 @@ export default function SettingsPage() {
                         onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#f8fafc'; e.currentTarget.style.color = '#059669'; }}
                         onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#334155'; }}
                       >
-                        <span>Profile & Organization</span>
+                        <span>Organization Profile</span>
                         <ChevronRight size={15} color="#94a3b8" />
                       </button>
                     </div>
@@ -1685,7 +1765,7 @@ export default function SettingsPage() {
                       {currentView === 'layout-builder' && `Layout Builder: ${selectedModule}`}
                       {currentView === 'billing' && "Billing & Wallet"}
                       {currentView === 'custom-modules' && "Custom Modules"}
-                      {currentView === 'profile-settings' && "Profile & Organization"}
+                      {currentView === 'profile-settings' && "Organization Profile"}
                       {currentView === 'profiles' && "Roles & Profiles"}
                     </span>
                   </div>
@@ -2270,7 +2350,7 @@ export default function SettingsPage() {
                                       </button>
                                       {!isSuperAdmin && (
                                         <button
-                                          onClick={() => handleRevokeAccess(user.id)}
+                                          onClick={() => handleRevokeAccess(user)}
                                           style={{ background: 'none', border: '1px solid #ef4444', color: '#ef4444', padding: '0.25rem 0.65rem', borderRadius: '4px', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600 }}
                                         >
                                           Revoke
@@ -3452,7 +3532,7 @@ export default function SettingsPage() {
                             gap: '8px'
                           }}
                         >
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="5" r="3"/><circle cx="5" cy="19" r="3"/><circle cx="19" cy="19" r="3"/><path d="M12 8v4M5 16v-2a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v2"/></svg>
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="5" r="3" /><circle cx="5" cy="19" r="3" /><circle cx="19" cy="19" r="3" /><path d="M12 8v4M5 16v-2a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v2" /></svg>
                           <span>Organizational Hierarchy Tree</span>
                         </button>
                         <button
@@ -3471,7 +3551,7 @@ export default function SettingsPage() {
                             gap: '8px'
                           }}
                         >
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
                           <span>Security Profiles ({profiles.filter(p => !['administrator', 'admin'].includes(p.name?.toLowerCase())).length})</span>
                         </button>
                       </div>
@@ -4319,8 +4399,17 @@ export default function SettingsPage() {
               </div>
 
               <div style={{ marginBottom: '2rem' }}>
-                <label className="form-label" style={{ marginBottom: '0.5rem', display: 'block', fontWeight: 600 }}>Profile Name</label>
-                <input type="text" className="form-input" placeholder="e.g. Sales Representative" value={selectedProfile.name} onChange={e => setSelectedProfile({ ...selectedProfile, name: e.target.value })} />
+                <label className="form-label" style={{ marginBottom: '0.5rem', display: 'block', fontWeight: 600 }}>
+                  Profile Name <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="e.g. Sales Representative"
+                  value={selectedProfile.name}
+                  onChange={e => setSelectedProfile({ ...selectedProfile, name: e.target.value })}
+                  required
+                />
               </div>
 
 
@@ -4412,7 +4501,7 @@ export default function SettingsPage() {
           <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <div style={{ position: 'absolute', inset: 0, background: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(2px)' }} onClick={() => setIsInviteModalOpen(false)}></div>
             <div style={{ background: 'white', padding: '1.75rem', borderRadius: '12px', width: '100%', maxWidth: '540px', position: 'relative', zIndex: 10, border: '1px solid #e2e8f0', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)' }}>
-              
+
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
                 <div>
                   <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, color: '#0f172a' }}>Invite Team Member</h3>
@@ -4531,7 +4620,7 @@ export default function SettingsPage() {
           <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <div style={{ position: 'absolute', inset: 0, background: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(2px)' }} onClick={() => setEditingMember(null)}></div>
             <div style={{ background: 'white', padding: '1.75rem', borderRadius: '12px', width: '100%', maxWidth: '520px', position: 'relative', zIndex: 10, border: '1px solid #e2e8f0', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)' }}>
-              
+
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
                 <div>
                   <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, color: '#0f172a' }}>Edit Team Member</h3>
@@ -4620,6 +4709,89 @@ export default function SettingsPage() {
           </div>
         )
       }
+
+
+      {/* OFFBOARDING / REASSIGN RECORDS MODAL */}
+      {reassignModal.isOpen && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(15, 23, 42, 0.5)', backdropFilter: 'blur(3px)' }} onClick={() => !reassignModal.isSubmitting && setReassignModal(prev => ({ ...prev, isOpen: false }))}></div>
+          <div style={{ background: 'white', padding: '2rem', borderRadius: '14px', width: '100%', maxWidth: '520px', position: 'relative', zIndex: 10, border: '1px solid #e2e8f0', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15)' }}>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+              <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#fee2e2', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', fontWeight: 'bold' }}>⚠️</div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: '#0f172a' }}>Reassign Records & Revoke</h3>
+                <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b' }}>User has active records that cannot be left without an owner.</p>
+              </div>
+            </div>
+
+            {/* Records Summary Box */}
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '1rem', marginBottom: '1.5rem' }}>
+              <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem', fontWeight: 600, color: '#334155' }}>
+                <strong>{reassignModal.stats?.userName}</strong> owns a total of <span style={{ color: '#ef4444', fontWeight: 700 }}>{reassignModal.stats?.totalRecords}</span> records:
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.5rem', fontSize: '0.85rem', color: '#64748b' }}>
+                <div>• Leads: <strong>{reassignModal.stats?.leadsCount}</strong></div>
+                <div>• Deals: <strong>{reassignModal.stats?.dealsCount}</strong></div>
+                <div>• Tasks: <strong>{reassignModal.stats?.tasksCount}</strong></div>
+                <div>• Custom Modules: <strong>{reassignModal.stats?.customRecordsCount}</strong></div>
+              </div>
+            </div>
+
+            {/* Select New Owner Dropdown */}
+            <div style={{ marginBottom: '1.75rem' }}>
+              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: '#334155', marginBottom: '0.5rem' }}>
+                Select New Owner for these records <span style={{ color: '#ef4444' }}>*</span>
+              </label>
+              <select
+                value={reassignModal.newOwnerId}
+                onChange={e => setReassignModal(prev => ({ ...prev, newOwnerId: e.target.value }))}
+                style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none', background: 'white' }}
+              >
+                <option value="">-- Choose an active team member --</option>
+                {orgUsers
+                  .filter(u => u.id !== reassignModal.user?.id && u.isActive)
+                  .map(u => (
+                    <option key={u.id} value={u.id}>
+                      {u.name || u.nickname || u.email} ({u.role || u.profile?.name || 'Member'})
+                    </option>
+                  ))}
+              </select>
+            </div>
+
+            {/* Actions */}
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                disabled={reassignModal.isSubmitting}
+                onClick={() => setReassignModal(prev => ({ ...prev, isOpen: false }))}
+                style={{ padding: '0.55rem 1rem', background: 'white', border: '1px solid #cbd5e1', borderRadius: '6px', fontWeight: 500, fontSize: '0.85rem', color: '#475569', cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={reassignModal.isSubmitting || !reassignModal.newOwnerId}
+                onClick={handleConfirmReassignAndRevoke}
+                style={{
+                  padding: '0.55rem 1.25rem',
+                  background: (!reassignModal.newOwnerId || reassignModal.isSubmitting) ? '#94a3b8' : '#ef4444',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontWeight: 600,
+                  fontSize: '0.85rem',
+                  cursor: (!reassignModal.newOwnerId || reassignModal.isSubmitting) ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {reassignModal.isSubmitting ? 'Transferring & Revoking...' : 'Reassign All & Revoke'}
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
 
       <ConfirmModal {...confirmState} />
       {/* CREATE BLUEPRINT MODAL */}

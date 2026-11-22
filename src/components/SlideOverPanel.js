@@ -104,6 +104,7 @@ export default function SlideOverPanel({ isOpen, onClose, lead, blueprint, tags 
   // Helper to get human friendly action labels and colors
   const getActionBadge = (actionType) => {
     const act = (actionType || '').toUpperCase();
+    if (act.includes('REASSIGN') || act.includes('OWNER')) return { label: 'Ownership Reassigned', color: '#d97706', bg: '#fef3c7', icon: '👤' };
     if (act.includes('AUTO')) return { label: 'Automated', color: '#059669', bg: '#ecfdf5', icon: '🤖' };
     if (act.includes('CREATE')) return { label: 'Created', color: '#10b981', bg: '#ecfdf5', icon: '✨' };
     if (act.includes('DELETE')) return { label: 'Deleted', color: '#ef4444', bg: '#fef2f2', icon: '🗑️' };
