@@ -49,6 +49,7 @@ export async function POST(request) {
         id: mockCognitoId,
         email: invitation.email,
         name: invitation.name || null,
+        nickname: invitation.nickname || null,
         role: invitation.role || null,
         reportsToId: invitation.reportsToId || null,
         organizationId: invitation.organizationId,

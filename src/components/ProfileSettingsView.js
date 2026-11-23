@@ -1,14 +1,17 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Button from './ui/Button';
 import toast from 'react-hot-toast';
 
-export default function ProfileSettingsView() {
+export default function ProfileSettingsView({ onDirtyChange, shakeTrigger = 0 }) {
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [isShaking, setIsShaking] = useState(false);
 
+  // Original pristine data from backend (for discard / dirty tracking)
+  const [initialData, setInitialData] = useState(null);
 
   const [profileData, setProfileData] = useState({
     avatarUrl: '',
@@ -22,22 +25,28 @@ export default function ProfileSettingsView() {
   });
 
   const [isAdmin, setIsAdmin] = useState(false);
+  const [designations, setDesignations] = useState([]);
+  const [nickCheckStatus, setNickCheckStatus] = useState(null); // 'checking' | 'available' | 'taken'
 
-  // 1. Fetch Existing Data
+  // Ref to hold pending photo files for deferred upload upon Save Changes
+  const pendingFilesRef = useRef({ avatar: null, logo: null });
+
+  // 1. Fetch Existing Data & Designations
   useEffect(() => {
-    const fetchProfile = async () => {
+    const fetchProfileAndDesignations = async () => {
       try {
         const { fetchAuthSession } = await import('aws-amplify/auth');
         const { tokens } = await fetchAuthSession();
         const token = tokens?.idToken?.toString();
 
-        const res = await fetch('/api/me', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const [meRes, desigRes] = await Promise.all([
+          fetch('/api/me', { headers: { 'Authorization': `Bearer ${token}` } }),
+          fetch('/api/designations', { headers: { 'Authorization': `Bearer ${token}` } })
+        ]);
 
-        if (res.ok) {
-          const data = await res.json();
-          setProfileData({
+        if (meRes.ok) {
+          const data = await meRes.json();
+          const loaded = {
             avatarUrl: data.avatarUrl || data.profile?.avatarUrl || '',
             nickname: data.nickname || data.profile?.nickname || '',
             role: data.role || data.profile?.role || '',
@@ -46,8 +55,15 @@ export default function ProfileSettingsView() {
             industry: data.organization?.industry || '',
             teamSize: data.organization?.teamSize || '',
             gstNumber: data.organization?.gstNumber || ''
-          });
+          };
+          setProfileData(loaded);
+          setInitialData(loaded);
           setIsAdmin(data.profile?.canManageUsers === true);
+        }
+
+        if (desigRes.ok) {
+          const dData = await desigRes.json();
+          setDesignations(dData.designations || []);
         }
       } catch (error) {
         console.error("Failed to fetch profile", error);
@@ -55,15 +71,83 @@ export default function ProfileSettingsView() {
         setLoading(false);
       }
     };
-    fetchProfile();
+    fetchProfileAndDesignations();
   }, []);
 
-  // 2. Photo Upload to S3 (5MB Limit + Auto Compression)
-  const handleFileUpload = async (e, folder) => {
-    const file = e.target.files[0];
+  // 2. Debounced Nickname Check (excludes own current nickname)
+  useEffect(() => {
+    const trimmed = (profileData.nickname || '').trim().toLowerCase();
+    const initialTrimmed = (initialData?.nickname || '').trim().toLowerCase();
+
+    if (!trimmed || trimmed === initialTrimmed || trimmed.length < 2) {
+      setNickCheckStatus(null);
+      return;
+    }
+
+    setNickCheckStatus('checking');
+    const timer = setTimeout(async () => {
+      try {
+        const { fetchAuthSession } = await import('aws-amplify/auth');
+        const { tokens } = await fetchAuthSession();
+        const token = tokens?.idToken?.toString();
+
+        const res = await fetch(`/api/auth/check-nickname?nickname=${encodeURIComponent(trimmed)}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        setNickCheckStatus(data.available ? 'available' : 'taken');
+      } catch (e) {
+        setNickCheckStatus(null);
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [profileData.nickname, initialData?.nickname]);
+
+  // 3. Compute isDirty (hasUnsavedChanges) & notify parent
+  const isDirty = useMemo(() => {
+    if (!initialData) return false;
+    return (
+      (profileData.nickname || '') !== (initialData.nickname || '') ||
+      (profileData.role || '') !== (initialData.role || '') ||
+      (profileData.avatarUrl || '') !== (initialData.avatarUrl || '') ||
+      (profileData.logoUrl || '') !== (initialData.logoUrl || '') ||
+      (profileData.industry || '') !== (initialData.industry || '') ||
+      (profileData.teamSize || '') !== (initialData.teamSize || '') ||
+      (profileData.gstNumber || '') !== (initialData.gstNumber || '')
+    );
+  }, [profileData, initialData]);
+
+  useEffect(() => {
+    if (onDirtyChange) onDirtyChange(isDirty);
+  }, [isDirty, onDirtyChange]);
+
+  // Shake trigger from parent / blocked navigation
+  useEffect(() => {
+    if (shakeTrigger > 0) {
+      setIsShaking(true);
+      const timer = setTimeout(() => setIsShaking(false), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [shakeTrigger]);
+
+  // 4. BeforeUnload listener if there are unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isDirty]);
+
+  // 5. Photo Selection with Instant Local Preview (Upload happens on Save)
+  const handlePhotoSelect = (e, type) => {
+    const file = e.target.files?.[0];
     if (!file) return;
 
-    // Max 5MB Limit check
     const MAX_SIZE_MB = 5;
     if (file.size > MAX_SIZE_MB * 1024 * 1024) {
       toast.error(`File size must be less than ${MAX_SIZE_MB}MB`);
@@ -71,62 +155,107 @@ export default function ProfileSettingsView() {
       return;
     }
 
-    const isAvatar = folder === 'avatars';
-    if (isAvatar) setIsUploadingAvatar(true);
-    else setIsUploadingLogo(true);
-
-    try {
-      // Auto compress image
-      let fileToUpload = file;
-      try {
-        const imageCompression = (await import('browser-image-compression')).default;
-        const options = {
-          maxSizeMB: 0.5, // Compress to max 500KB
-          maxWidthOrHeight: 1024,
-          useWebWorker: true
-        };
-        fileToUpload = await imageCompression(file, options);
-      } catch (compErr) {
-        console.warn('Compression skipped, uploading original file:', compErr);
-      }
-
-      const res = await fetch(`/api/upload-url?file=${encodeURIComponent(fileToUpload.name || file.name)}&fileType=${encodeURIComponent(fileToUpload.type || file.type)}&folder=${folder}`);
-      const data = await res.json();
-
-      if (data.uploadUrl) {
-        await fetch(data.uploadUrl, {
-          method: 'PUT',
-          headers: { 'Content-Type': fileToUpload.type || file.type },
-          body: fileToUpload
-        });
-
-        if (folder === 'avatars') {
-          setProfileData(prev => ({ ...prev, avatarUrl: data.fileUrl }));
-          toast.success("Profile photo updated!");
-        }
-        if (folder === 'logos') {
-          setProfileData(prev => ({ ...prev, logoUrl: data.fileUrl }));
-          toast.success("Organization logo updated!");
-        }
-      }
-    } catch (error) {
-      console.error('Upload error:', error);
-      toast.error("Failed to upload image.");
-    } finally {
-      if (isAvatar) setIsUploadingAvatar(false);
-      else setIsUploadingLogo(false);
-      e.target.value = '';
+    // Local object URL for instant preview
+    const previewUrl = URL.createObjectURL(file);
+    if (type === 'avatars') {
+      pendingFilesRef.current.avatar = file;
+      setProfileData(prev => ({ ...prev, avatarUrl: previewUrl }));
+    } else {
+      pendingFilesRef.current.logo = file;
+      setProfileData(prev => ({ ...prev, logoUrl: previewUrl }));
     }
   };
 
+  // Helper to upload a single file to S3
+  const uploadFileToS3 = async (file, folder) => {
+    let fileToUpload = file;
+    try {
+      const imageCompression = (await import('browser-image-compression')).default;
+      fileToUpload = await imageCompression(file, {
+        maxSizeMB: 0.5,
+        maxWidthOrHeight: 1024,
+        useWebWorker: true
+      });
+    } catch (compErr) {
+      console.warn('Compression skipped:', compErr);
+    }
 
-  // 3. Save Changes
+    const res = await fetch(`/api/upload-url?file=${encodeURIComponent(fileToUpload.name || file.name)}&fileType=${encodeURIComponent(fileToUpload.type || file.type)}&folder=${folder}`);
+    const data = await res.json();
+    if (data.uploadUrl) {
+      await fetch(data.uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': fileToUpload.type || file.type },
+        body: fileToUpload
+      });
+      return data.fileUrl;
+    }
+    throw new Error("Failed to obtain upload URL");
+  };
+
+  // 6. Discard Changes
+  const handleDiscard = () => {
+    if (!initialData) return;
+    setProfileData({ ...initialData });
+    pendingFilesRef.current = { avatar: null, logo: null };
+    setNickCheckStatus(null);
+    toast("Changes discarded", { icon: '↩️' });
+  };
+
+  // 7. Save Changes
   const handleSave = async () => {
+    if (!profileData.nickname?.trim()) {
+      toast.error("Nickname is required!");
+      return;
+    }
+    if (nickCheckStatus === 'taken') {
+      toast.error("This nickname is already taken in your organization.");
+      return;
+    }
+
     setIsSaving(true);
     try {
       const { fetchAuthSession } = await import('aws-amplify/auth');
       const { tokens } = await fetchAuthSession();
       const token = tokens?.idToken?.toString();
+
+      let finalAvatarUrl = profileData.avatarUrl;
+      let finalLogoUrl = profileData.logoUrl;
+
+      // Upload avatar if new file is pending
+      if (pendingFilesRef.current.avatar) {
+        setIsUploadingAvatar(true);
+        try {
+          finalAvatarUrl = await uploadFileToS3(pendingFilesRef.current.avatar, 'avatars');
+        } catch (e) {
+          toast.error("Failed to upload profile photo.");
+          setIsSaving(false);
+          setIsUploadingAvatar(false);
+          return;
+        }
+        setIsUploadingAvatar(false);
+      }
+
+      // Upload logo if new file is pending
+      if (pendingFilesRef.current.logo) {
+        setIsUploadingLogo(true);
+        try {
+          finalLogoUrl = await uploadFileToS3(pendingFilesRef.current.logo, 'logos');
+        } catch (e) {
+          toast.error("Failed to upload organization logo.");
+          setIsSaving(false);
+          setIsUploadingLogo(false);
+          return;
+        }
+        setIsUploadingLogo(false);
+      }
+
+      const payload = {
+        ...profileData,
+        avatarUrl: finalAvatarUrl,
+        logoUrl: finalLogoUrl,
+        nickname: profileData.nickname.trim().toLowerCase()
+      };
 
       const res = await fetch('/api/me/onboarding', {
         method: 'POST',
@@ -134,18 +263,28 @@ export default function ProfileSettingsView() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(profileData)
+        body: JSON.stringify(payload)
       });
 
       if (res.ok) {
-        toast.success("Profile updated successfully! Refresh page to see changes in sidebar");
+        const updated = {
+          ...profileData,
+          avatarUrl: finalAvatarUrl,
+          logoUrl: finalLogoUrl,
+          nickname: payload.nickname
+        };
+        setProfileData(updated);
+        setInitialData(updated);
+        pendingFilesRef.current = { avatar: null, logo: null };
+        setNickCheckStatus(null);
+        toast.success("Profile updated successfully!");
       } else {
         const errData = await res.json().catch(() => ({}));
         toast.error(errData.error || "Failed to save changes.");
       }
-
     } catch (error) {
       console.error('Save error:', error);
+      toast.error("Failed to save profile changes.");
     } finally {
       setIsSaving(false);
     }
@@ -154,7 +293,7 @@ export default function ProfileSettingsView() {
   if (loading) return <div style={{ padding: '2rem', color: '#64748b' }}>Loading profile...</div>;
 
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto', paddingBottom: '3rem' }}>
+    <div style={{ maxWidth: '800px', margin: '0 auto', paddingBottom: '5rem', position: 'relative' }}>
       <div style={{ marginBottom: '2rem' }}>
         <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#0f172a', margin: 0 }}>Organization Profile</h2>
         <p style={{ color: '#64748b', fontSize: '0.95rem', margin: '0.25rem 0 0 0' }}>Update your personal details and company information.</p>
@@ -177,19 +316,83 @@ export default function ProfileSettingsView() {
 
             <label style={{ color: '#4f46e5', fontSize: '0.85rem', cursor: 'pointer', fontWeight: 600 }}>
               {isUploadingAvatar ? 'Uploading...' : 'Change Photo'}
-              <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => handleFileUpload(e, 'avatars')} disabled={isUploadingAvatar} />
+              <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => handlePhotoSelect(e, 'avatars')} disabled={isSaving} />
             </label>
+            {profileData.avatarUrl && (
+              <div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    pendingFilesRef.current.avatar = null;
+                    setProfileData(prev => ({ ...prev, avatarUrl: '' }));
+                  }}
+                  style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.75rem', cursor: 'pointer', marginTop: '0.25rem', textDecoration: 'underline' }}
+                >
+                  Remove
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Form Fields */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '0.4rem' }}>Nickname / Name</label>
-              <input type="text" value={profileData.nickname} onChange={(e) => setProfileData({ ...profileData, nickname: e.target.value })} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '0.95rem' }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569', margin: 0 }}>Nickname *</label>
+                {nickCheckStatus === 'checking' && (
+                  <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Checking availability...</span>
+                )}
+                {nickCheckStatus === 'available' && (
+                  <span style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 600 }}>✓ Available</span>
+                )}
+                {nickCheckStatus === 'taken' && (
+                  <span style={{ fontSize: '0.72rem', color: '#dc2626', fontWeight: 600 }}>✕ Already taken</span>
+                )}
+              </div>
+              <input
+                type="text"
+                value={profileData.nickname}
+                onChange={(e) => setProfileData({ ...profileData, nickname: e.target.value.toLowerCase().replace(/[^a-z0-9.]/g, '') })}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 1rem',
+                  borderRadius: '8px',
+                  border: `1px solid ${nickCheckStatus === 'taken' ? '#f87171' : nickCheckStatus === 'available' ? '#86efac' : '#cbd5e1'}`,
+                  outline: 'none',
+                  fontSize: '0.95rem'
+                }}
+              />
+              <span style={{ fontSize: '0.72rem', color: '#94a3b8', display: 'block', marginTop: '4px' }}>
+                Used on cards, tags, and team mentions.
+              </span>
             </div>
+
             <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '0.4rem' }}>Job Role</label>
-              <input type="text" value={profileData.role} onChange={(e) => setProfileData({ ...profileData, role: e.target.value })} style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '0.95rem' }} />
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '0.4rem' }}>Role / Designation</label>
+              {isAdmin ? (
+                <select
+                  value={profileData.role || ''}
+                  onChange={(e) => setProfileData({ ...profileData, role: e.target.value })}
+                  style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '0.95rem', backgroundColor: 'white' }}
+                >
+                  <option value="">Select Designation...</option>
+                  {designations.map(d => (
+                    <option key={d.name} value={d.name}>{d.name}</option>
+                  ))}
+                  {profileData.role && !designations.some(d => d.name === profileData.role) && (
+                    <option value={profileData.role}>{profileData.role} (Current)</option>
+                  )}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  value={profileData.role || ''}
+                  readOnly
+                  disabled
+                  title="Only organization administrators can modify employee designations"
+                  style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid #e2e8f0', backgroundColor: '#f8fafc', color: '#64748b', outline: 'none', fontSize: '0.95rem', cursor: 'not-allowed' }}
+                />
+              )}
             </div>
           </div>
         </div>
@@ -212,8 +415,22 @@ export default function ProfileSettingsView() {
               </div>
               <label style={{ color: '#4f46e5', fontSize: '0.85rem', cursor: 'pointer', fontWeight: 600 }}>
                 {isUploadingLogo ? 'Uploading...' : 'Change Logo'}
-                <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => handleFileUpload(e, 'logos')} disabled={isUploadingLogo} />
+                <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => handlePhotoSelect(e, 'logos')} disabled={isSaving} />
               </label>
+              {profileData.logoUrl && (
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      pendingFilesRef.current.logo = null;
+                      setProfileData(prev => ({ ...prev, logoUrl: '' }));
+                    }}
+                    style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.75rem', cursor: 'pointer', marginTop: '0.25rem', textDecoration: 'underline' }}
+                  >
+                    Remove
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Form Fields */}
@@ -262,11 +479,92 @@ export default function ProfileSettingsView() {
         </div>
       )}
 
-      <div style={{ textAlign: 'right' }}>
-        <Button onClick={handleSave} disabled={isSaving || isUploadingAvatar || isUploadingLogo} style={{ padding: '0.75rem 2.5rem' }}>
-          {isSaving ? 'Saving...' : 'Save Changes'}
-        </Button>
-      </div>
+      {/* FLOATING ACTION PILL (Top-Centered Unsaved Changes with Shake) */}
+      <style>{`
+        @keyframes profile-shake-banner {
+          0%, 100% { transform: translateX(-50%); }
+          10%, 30%, 50%, 70%, 90% { transform: translateX(calc(-50% - 8px)); }
+          20%, 40%, 60%, 80% { transform: translateX(calc(-50% + 8px)); }
+        }
+        @keyframes profileSlideDown {
+          from { transform: translate(-50%, -100%); opacity: 0; }
+          to { transform: translate(-50%, 0); opacity: 1; }
+        }
+      `}</style>
+
+      {isDirty && (
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 99999,
+          backgroundColor: '#0f172a',
+          color: 'white',
+          padding: '12px 24px',
+          borderRadius: '50px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '24px',
+          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+          whiteSpace: 'nowrap',
+          animation: isShaking ? 'profile-shake-banner 0.4s ease-in-out' : 'profileSlideDown 0.3s ease-out forwards'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#f59e0b' }}></span>
+            <span style={{ fontSize: '0.92rem', fontWeight: 500 }}>Unsaved changes</span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <button
+              type="button"
+              onClick={handleDiscard}
+              disabled={isSaving}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#94a3b8',
+                cursor: 'pointer',
+                fontWeight: 500,
+                padding: '4px 8px',
+                fontSize: '0.85rem',
+                transition: 'color 0.2s'
+              }}
+              onMouseEnter={e => e.target.style.color = 'white'}
+              onMouseLeave={e => e.target.style.color = '#94a3b8'}
+            >
+              Discard
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={isSaving || nickCheckStatus === 'taken'}
+              style={{
+                backgroundColor: nickCheckStatus === 'taken' ? '#64748b' : '#10b981',
+                color: 'white',
+                border: 'none',
+                borderRadius: '24px',
+                padding: '6px 18px',
+                cursor: (isSaving || nickCheckStatus === 'taken') ? 'not-allowed' : 'pointer',
+                fontWeight: 600,
+                fontSize: '0.85rem',
+                transition: 'background-color 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+              onMouseEnter={e => {
+                if (nickCheckStatus !== 'taken') e.target.style.backgroundColor = '#059669';
+              }}
+              onMouseLeave={e => {
+                if (nickCheckStatus !== 'taken') e.target.style.backgroundColor = '#10b981';
+              }}
+            >
+              {isSaving ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        </div>
+      )}
 
     </div>
   );

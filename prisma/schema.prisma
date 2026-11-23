@@ -19,6 +19,7 @@ model Organization {
   teamSize              String?
   gstNumber             String?             @unique
   activeModules         String[]            @default(["Lead", "Deal", "Account", "Task", "Products"])
+  designations          String[]            @default(["Junior Associate", "Senior Associate", "Manager", "Senior Manager", "CEO"])
   accounts              Account[]
   auditLogs             AuditLog[]
   blueprints            Blueprint[]
@@ -82,6 +83,7 @@ model Invitation {
   id             String       @id @default(uuid())
   email          String
   name           String?
+  nickname       String?      // Auto-generated unique nickname
   role           String?      // Position / Job title (e.g. Sales Executive)
   reportsToId    String?      // Reporting Manager
   token          String       @unique

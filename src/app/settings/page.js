@@ -298,6 +298,7 @@ export default function SettingsPage() {
   const [targetBlueprintFields, setTargetBlueprintFields] = useState([]);
   const [selectedModule, setSelectedModule] = useState("Lead");
   const [isLayoutDirty, setIsLayoutDirty] = useState(false);
+  const [isProfileDirty, setIsProfileDirty] = useState(false);
   const [shakeTrigger, setShakeTrigger] = useState(0);
   const [customModules, setCustomModules] = useState([]);
   const [showCustomModuleModal, setShowCustomModuleModal] = useState(false);
@@ -447,11 +448,17 @@ export default function SettingsPage() {
     }
   }, [createRecordBuilder.isOpen, createRecordBuilder.targetModule]);
 
-  // Prevent navigation when layout is dirty
+  // Prevent navigation when layout or profile settings are dirty
   useEffect(() => {
+    const isAnyDirty = isLayoutDirty || isProfileDirty;
     const handleGlobalClick = (e) => {
-      if (isLayoutDirty) {
-        const targetLink = e.target.closest('a');
+      if (isAnyDirty) {
+        // If clicking on any link or button that navigates away or switches tabs
+        const targetLink = e.target.closest('a, button');
+        // Ignore clicks inside the floating action pill or inside the current active form
+        if (targetLink && (targetLink.closest('[style*="translateX(-50%)"]') || targetLink.closest('form') || targetLink.closest('[type="file"]'))) {
+          return;
+        }
         if (targetLink) {
           e.preventDefault();
           e.stopPropagation();
@@ -461,7 +468,7 @@ export default function SettingsPage() {
     };
 
     const handleBeforeUnload = (e) => {
-      if (isLayoutDirty) {
+      if (isAnyDirty) {
         e.preventDefault();
         e.returnValue = '';
       }
@@ -474,7 +481,7 @@ export default function SettingsPage() {
       document.removeEventListener('click', handleGlobalClick, { capture: true });
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [isLayoutDirty]);
+  }, [isLayoutDirty, isProfileDirty]);
 
 
   const tagColors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#0ea5e9', '#8b5cf6', '#ec4899', '#64748b', '#84cc16'];
@@ -535,7 +542,13 @@ export default function SettingsPage() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [rolesSubTab, setRolesSubTab] = useState('tree'); // 'tree' | 'profiles'
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
-  const [inviteData, setInviteData] = useState({ name: '', email: '', role: '', reportsToId: '', profileId: '' });
+  const [inviteData, setInviteData] = useState({ name: '', nickname: '', email: '', role: '', reportsToId: '', profileId: '' });
+  const [nickCheckStatus, setNickCheckStatus] = useState(null); // 'checking' | 'available' | 'taken'
+  const [isNickManuallyEdited, setIsNickManuallyEdited] = useState(false);
+  const [designations, setDesignations] = useState([]);
+  const [isDesignationModalOpen, setIsDesignationModalOpen] = useState(false);
+  const [newDesignationName, setNewDesignationName] = useState('');
+  const [editingDesignation, setEditingDesignation] = useState(null);
   const [reassignModal, setReassignModal] = useState({
     isOpen: false,
     user: null,
@@ -546,6 +559,63 @@ export default function SettingsPage() {
   const [inviteStatus, setInviteStatus] = useState(null);
   const [editingMember, setEditingMember] = useState(null);
   const [editMemberStatus, setEditMemberStatus] = useState(null);
+
+
+  const fetchDesignations = async () => {
+    try {
+      const token = await getAuthToken();
+      const res = await fetch('/api/designations', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setDesignations(data.designations || []);
+      }
+    } catch (e) {
+      console.error("Failed to load designations:", e);
+    }
+  };
+
+  useEffect(() => {
+    fetchDesignations();
+  }, []);
+
+  // Nickname Debounced Unique Check
+  useEffect(() => {
+    if (!inviteData.nickname || inviteData.nickname.trim().length < 2) {
+      setNickCheckStatus(null);
+      return;
+    }
+    setNickCheckStatus('checking');
+    const timer = setTimeout(async () => {
+      try {
+        const token = await getAuthToken();
+        const res = await fetch(`/api/auth/check-nickname?nickname=${encodeURIComponent(inviteData.nickname.trim())}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        setNickCheckStatus(data.available ? 'available' : 'taken');
+      } catch (err) {
+        setNickCheckStatus(null);
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [inviteData.nickname]);
+
+  // Full Name type karte hi Nickname auto-prefill (slugify)
+  const handleFullNameChange = (val) => {
+    const updated = { ...inviteData, name: val };
+    if (!isNickManuallyEdited) {
+      const slug = val.toLowerCase().replace(/[^a-z0-9]/g, '.').replace(/\.+/g, '.').replace(/^\.|\.$/g, '');
+      updated.nickname = slug;
+    }
+    setInviteData(updated);
+  };
+
+
+
+
 
   const fetchBlueprint = async (modOverride) => {
     const targetModule = modOverride || selectedModule;
@@ -599,7 +669,23 @@ export default function SettingsPage() {
 
   const handleInviteUser = async (e) => {
     e.preventDefault();
-    if (!inviteData.email || !inviteData.profileId) return;
+    if (!inviteData.name?.trim()) {
+      toast.error("Full Name is mandatory.");
+      return;
+    }
+    if (!inviteData.nickname?.trim()) {
+      toast.error("Nickname is mandatory.");
+      return;
+    }
+    if (nickCheckStatus === 'taken') {
+      toast.error("This nickname is already taken in your organization.");
+      return;
+    }
+    if (!inviteData.email || !inviteData.profileId) {
+      toast.error("Email and Security Profile are required.");
+      return;
+    }
+
     setInviteStatus('sending');
     try {
       const token = await getAuthToken();
@@ -607,27 +693,108 @@ export default function SettingsPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({
-          name: inviteData.name || null,
-          email: inviteData.email,
+          name: inviteData.name.trim(),
+          nickname: inviteData.nickname.trim().toLowerCase(),
+          email: inviteData.email.trim(),
           role: inviteData.role || null,
           reportsToId: inviteData.reportsToId || null,
           profileId: inviteData.profileId
         })
       });
+
+      const data = await res.json();
       if (res.ok) {
         setInviteStatus('success');
+        toast.success("Invitation sent successfully!");
         fetchUsersAndInvites();
         setTimeout(() => {
           setIsInviteModalOpen(false);
-          setInviteData({ name: '', email: '', role: '', reportsToId: '', profileId: '' });
+          setInviteData({ name: '', nickname: '', email: '', role: '', reportsToId: '', profileId: '' });
+          setNickCheckStatus(null);
+          setIsNickManuallyEdited(false);
           setInviteStatus(null);
-        }, 1500);
+        }, 1200);
       } else {
-        const data = await res.json();
         setInviteStatus(`Error: ${data.error || 'Failed to send invite'}`);
+        toast.error(data.error || "Failed to send invite");
       }
     } catch (err) {
       setInviteStatus(`Error: ${err.message}`);
+      toast.error(err.message);
+    }
+  };
+
+
+  const handleAddDesignation = async () => {
+    if (!newDesignationName.trim()) {
+      toast.error("Designation name is required.");
+      return;
+    }
+    try {
+      const token = await getAuthToken();
+      const res = await fetch('/api/designations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ name: newDesignationName.trim() })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(`Designation "${newDesignationName.trim()}" added!`);
+        setNewDesignationName('');
+        fetchDesignations();
+        setInviteData(prev => ({ ...prev, role: newDesignationName.trim() }));
+      } else {
+        toast.error(data.error || "Failed to add designation.");
+      }
+    } catch (err) {
+      toast.error("Failed to add designation.");
+    }
+  };
+
+  const handleUpdateDesignation = async (oldName, newName) => {
+    if (!newName.trim() || oldName === newName.trim()) {
+      setEditingDesignation(null);
+      return;
+    }
+    try {
+      const token = await getAuthToken();
+      const res = await fetch('/api/designations', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ oldName, newName: newName.trim() })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(data.message || "Designation updated!");
+        setEditingDesignation(null);
+        fetchDesignations();
+        fetchUsersAndInvites();
+      } else {
+        toast.error(data.error || "Failed to update designation.");
+      }
+    } catch (err) {
+      toast.error("Failed to update designation.");
+    }
+  };
+
+  const handleDeleteDesignation = async (name) => {
+    if (!window.confirm(`Are you sure you want to delete designation "${name}"?`)) return;
+    try {
+      const token = await getAuthToken();
+      const res = await fetch('/api/designations', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ name })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(data.message || "Designation deleted!");
+        fetchDesignations();
+      } else {
+        toast.error(data.error || "Failed to delete designation.");
+      }
+    } catch (err) {
+      toast.error("Failed to delete designation.");
     }
   };
 
@@ -3706,7 +3873,7 @@ export default function SettingsPage() {
 
                   {/* PROFILE SETTINGS TAB */}
                   {currentView === 'profile-settings' && (
-                    <ProfileSettingsView />
+                    <ProfileSettingsView onDirtyChange={setIsProfileDirty} shakeTrigger={shakeTrigger} />
                   )}
 
 
@@ -4500,7 +4667,7 @@ export default function SettingsPage() {
         isInviteModalOpen && (
           <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <div style={{ position: 'absolute', inset: 0, background: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(2px)' }} onClick={() => setIsInviteModalOpen(false)}></div>
-            <div style={{ background: 'white', padding: '1.75rem', borderRadius: '12px', width: '100%', maxWidth: '540px', position: 'relative', zIndex: 10, border: '1px solid #e2e8f0', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)' }}>
+            <div style={{ background: 'white', padding: '1.75rem', borderRadius: '12px', width: '100%', maxWidth: '560px', position: 'relative', zIndex: 10, border: '1px solid #e2e8f0', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)' }}>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
                 <div>
@@ -4511,45 +4678,92 @@ export default function SettingsPage() {
               </div>
 
               <form onSubmit={handleInviteUser}>
-                {/* 1. Member Information */}
+                {/* 1. Full Name & Nickname */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                   <div>
-                    <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem', display: 'block' }}>Full Name</label>
+                    <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem', display: 'block' }}>Full Name *</label>
                     <input
                       type="text"
                       className="form-input bg-white"
                       placeholder="e.g. Priya Sharma"
                       value={inviteData.name}
-                      onChange={e => setInviteData({ ...inviteData, name: e.target.value })}
-                      style={{ fontSize: '0.85rem' }}
-                    />
-                  </div>
-                  <div>
-                    <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem', display: 'block' }}>Email Address *</label>
-                    <input
-                      type="email"
-                      className="form-input bg-white"
-                      placeholder="colleague@company.com"
-                      value={inviteData.email}
-                      onChange={e => setInviteData({ ...inviteData, email: e.target.value })}
+                      onChange={e => handleFullNameChange(e.target.value)}
                       required
                       style={{ fontSize: '0.85rem' }}
                     />
                   </div>
-                </div>
-
-                {/* 2. Position & Hierarchy */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                   <div>
-                    <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem', display: 'block' }}>Role / Designation</label>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                      <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', margin: 0 }}>Nickname *</label>
+                      {nickCheckStatus === 'checking' && (
+                        <span style={{ fontSize: '0.7rem', color: '#64748b' }}>Checking...</span>
+                      )}
+                      {nickCheckStatus === 'available' && (
+                        <span style={{ fontSize: '0.7rem', color: '#16a34a', fontWeight: 600 }}>✓ Available</span>
+                      )}
+                      {nickCheckStatus === 'taken' && (
+                        <span style={{ fontSize: '0.7rem', color: '#dc2626', fontWeight: 600 }}>✕ Taken</span>
+                      )}
+                    </div>
                     <input
                       type="text"
                       className="form-input bg-white"
-                      placeholder="e.g. Sales Executive"
+                      placeholder="e.g. priya.s"
+                      value={inviteData.nickname}
+                      onChange={e => {
+                        setIsNickManuallyEdited(true);
+                        setInviteData({ ...inviteData, nickname: e.target.value.toLowerCase().replace(/[^a-z0-9.]/g, '') });
+                      }}
+                      required
+                      style={{
+                        fontSize: '0.85rem',
+                        borderColor: nickCheckStatus === 'taken' ? '#f87171' : nickCheckStatus === 'available' ? '#86efac' : undefined
+                      }}
+                    />
+                    <span style={{ fontSize: '0.68rem', color: '#94a3b8', display: 'block', marginTop: '2px' }}>
+                      Auto-generated from name. Used on cards & tags.
+                    </span>
+                  </div>
+                </div>
+
+                {/* 2. Email Address */}
+                <div style={{ marginBottom: '1rem' }}>
+                  <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem', display: 'block' }}>Email Address *</label>
+                  <input
+                    type="email"
+                    className="form-input bg-white"
+                    placeholder="colleague@company.com"
+                    value={inviteData.email}
+                    onChange={e => setInviteData({ ...inviteData, email: e.target.value })}
+                    required
+                    style={{ fontSize: '0.85rem' }}
+                  />
+                </div>
+
+                {/* 3. Position & Hierarchy */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                      <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', margin: 0 }}>Role / Designation</label>
+                      <button
+                        type="button"
+                        onClick={() => setIsDesignationModalOpen(true)}
+                        style={{ background: 'none', border: 'none', color: '#3b82f6', fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer', padding: 0 }}
+                      >
+                        + Manage
+                      </button>
+                    </div>
+                    <select
+                      className="form-input bg-white"
                       value={inviteData.role}
                       onChange={e => setInviteData({ ...inviteData, role: e.target.value })}
                       style={{ fontSize: '0.85rem' }}
-                    />
+                    >
+                      <option value="">Select Designation...</option>
+                      {designations.map(d => (
+                        <option key={d.name} value={d.name}>{d.name}</option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem', display: 'block' }}>Reports To (Manager)</label>
@@ -4569,7 +4783,7 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                {/* 3. Security Profile */}
+                {/* 4. Security Profile */}
                 <div style={{ marginBottom: '1.25rem' }}>
                   <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem', display: 'block' }}>Security Profile *</label>
                   <select
@@ -4604,11 +4818,192 @@ export default function SettingsPage() {
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid #f1f5f9' }}>
                   <button type="button" onClick={() => setIsInviteModalOpen(false)} style={{ padding: '0.45rem 1rem', background: 'white', border: '1px solid #cbd5e1', borderRadius: '6px', fontWeight: 500, fontSize: '0.85rem', color: '#475569', cursor: 'pointer' }}>Cancel</button>
-                  <button type="submit" disabled={inviteStatus === 'sending'} className="btn-primary" style={{ padding: '0.45rem 1.25rem', fontSize: '0.85rem', cursor: inviteStatus === 'sending' ? 'not-allowed' : 'pointer' }}>
+                  <button type="submit" disabled={inviteStatus === 'sending' || nickCheckStatus === 'taken'} className="btn-primary" style={{ padding: '0.45rem 1.25rem', fontSize: '0.85rem', cursor: (inviteStatus === 'sending' || nickCheckStatus === 'taken') ? 'not-allowed' : 'pointer' }}>
                     {inviteStatus === 'sending' ? 'Sending...' : 'Send Invitation'}
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )
+      }
+
+      {/* MANAGE DESIGNATIONS MODAL */}
+      {
+        isDesignationModalOpen && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(2px)' }} onClick={() => setIsDesignationModalOpen(false)}></div>
+            <div style={{ background: 'white', padding: '1.5rem', borderRadius: '12px', width: '100%', maxWidth: '480px', position: 'relative', zIndex: 10, border: '1px solid #e2e8f0', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15)' }}>
+              
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#0f172a' }}>Manage Designations / Roles</h3>
+                  <p style={{ margin: '2px 0 0 0', fontSize: '0.78rem', color: '#64748b' }}>Add, rename, or clean up organizational designations.</p>
+                </div>
+                <button onClick={() => setIsDesignationModalOpen(false)} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#94a3b8', padding: '2px' }}>✕</button>
+              </div>
+
+              {/* Add New Designation Input */}
+              <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem' }}>
+                <input
+                  type="text"
+                  className="form-input bg-white"
+                  placeholder="e.g. Senior Account Executive"
+                  value={newDesignationName}
+                  onChange={e => setNewDesignationName(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddDesignation(); } }}
+                  style={{ fontSize: '0.85rem', flex: 1 }}
+                />
+                <button
+                  type="button"
+                  onClick={handleAddDesignation}
+                  className="btn-primary"
+                  style={{ padding: '0.45rem 1rem', fontSize: '0.82rem', whiteSpace: 'nowrap' }}
+                >
+                  + Add
+                </button>
+              </div>
+
+              {/* Designations List */}
+              <div style={{ maxHeight: '280px', overflowY: 'auto', border: '1px solid #f1f5f9', borderRadius: '8px' }}>
+                {designations.length === 0 ? (
+                  <div style={{ padding: '1.5rem', textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>
+                    No designations configured yet.
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', divideY: '1px solid #f8fafc' }}>
+                    {designations.map((d) => (
+                      <div
+                        key={d.name}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '0.65rem 0.85rem',
+                          borderBottom: '1px solid #f1f5f9',
+                          background: editingDesignation?.oldName === d.name ? '#f8fafc' : 'transparent'
+                        }}
+                      >
+                        {editingDesignation?.oldName === d.name ? (
+                          <div style={{ display: 'flex', gap: '0.4rem', flex: 1, marginRight: '0.5rem' }}>
+                            <input
+                              type="text"
+                              className="form-input bg-white"
+                              value={editingDesignation.newName}
+                              onChange={e => setEditingDesignation({ ...editingDesignation, newName: e.target.value })}
+                              onKeyDown={e => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  handleUpdateDesignation(editingDesignation.oldName, editingDesignation.newName);
+                                }
+                              }}
+                              autoFocus
+                              style={{ fontSize: '0.82rem', padding: '0.25rem 0.5rem' }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateDesignation(editingDesignation.oldName, editingDesignation.newName)}
+                              style={{ padding: '0.25rem 0.6rem', background: '#10b981', color: 'white', border: 'none', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
+                            >
+                              Save
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEditingDesignation(null)}
+                              style={{ padding: '0.25rem 0.6rem', background: '#e2e8f0', color: '#475569', border: 'none', borderRadius: '4px', fontSize: '0.75rem', cursor: 'pointer' }}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <span style={{ fontSize: '0.85rem', fontWeight: 500, color: '#1e293b' }}>{d.name}</span>
+                              <span style={{
+                                fontSize: '0.7rem',
+                                padding: '1px 6px',
+                                borderRadius: '10px',
+                                background: d.assignedCount > 0 ? '#e0f2fe' : '#f1f5f9',
+                                color: d.assignedCount > 0 ? '#0369a1' : '#64748b',
+                                fontWeight: 600
+                              }}>
+                                {d.assignedCount} assigned
+                              </span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                              <button
+                                type="button"
+                                onClick={() => setEditingDesignation({ oldName: d.name, newName: d.name })}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.25rem',
+                                  padding: '0.25rem 0.6rem',
+                                  background: '#f8fafc',
+                                  border: '1px solid #e2e8f0',
+                                  borderRadius: '6px',
+                                  color: '#475569',
+                                  cursor: 'pointer',
+                                  fontSize: '0.75rem',
+                                  fontWeight: 500,
+                                  transition: 'all 0.15s ease'
+                                }}
+                                onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.borderColor = '#cbd5e1'; }}
+                                onMouseLeave={e => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.borderColor = '#e2e8f0'; }}
+                              >
+                                ✏️ Rename
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteDesignation(d.name)}
+                                disabled={d.assignedCount > 0}
+                                title={d.assignedCount > 0 ? "Cannot delete: currently assigned to members or invites" : "Delete designation"}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.25rem',
+                                  padding: '0.25rem 0.6rem',
+                                  background: d.assignedCount > 0 ? '#f8fafc' : '#fef2f2',
+                                  border: d.assignedCount > 0 ? '1px solid #e2e8f0' : '1px solid #fecaca',
+                                  borderRadius: '6px',
+                                  color: d.assignedCount > 0 ? '#94a3b8' : '#dc2626',
+                                  cursor: d.assignedCount > 0 ? 'not-allowed' : 'pointer',
+                                  fontSize: '0.75rem',
+                                  fontWeight: 500,
+                                  opacity: d.assignedCount > 0 ? 0.6 : 1,
+                                  transition: 'all 0.15s ease'
+                                }}
+                                onMouseEnter={e => {
+                                  if (d.assignedCount === 0) {
+                                    e.currentTarget.style.background = '#fee2e2';
+                                  }
+                                }}
+                                onMouseLeave={e => {
+                                  if (d.assignedCount === 0) {
+                                    e.currentTarget.style.background = '#fef2f2';
+                                  }
+                                }}
+                              >
+                                🗑️ Delete
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.25rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsDesignationModalOpen(false)}
+                  style={{ padding: '0.45rem 1rem', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '6px', fontWeight: 500, fontSize: '0.85rem', color: '#475569', cursor: 'pointer' }}
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         )
@@ -4643,15 +5038,30 @@ export default function SettingsPage() {
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                   <div>
-                    <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem', display: 'block' }}>Role / Designation</label>
-                    <input
-                      type="text"
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                      <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', margin: 0 }}>Role / Designation</label>
+                      <button
+                        type="button"
+                        onClick={() => setIsDesignationModalOpen(true)}
+                        style={{ background: 'none', border: 'none', color: '#3b82f6', fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer', padding: 0 }}
+                      >
+                        + Manage
+                      </button>
+                    </div>
+                    <select
                       className="form-input bg-white"
-                      placeholder="e.g. Sales Manager"
                       value={editingMember.role || ''}
                       onChange={e => setEditingMember({ ...editingMember, role: e.target.value })}
                       style={{ fontSize: '0.85rem' }}
-                    />
+                    >
+                      <option value="">Select Designation...</option>
+                      {designations.map(d => (
+                        <option key={d.name} value={d.name}>{d.name}</option>
+                      ))}
+                      {editingMember.role && !designations.some(d => d.name === editingMember.role) && (
+                        <option value={editingMember.role}>{editingMember.role} (Legacy)</option>
+                      )}
+                    </select>
                   </div>
                   <div>
                     <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem', display: 'block' }}>Reports To (Manager)</label>

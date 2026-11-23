@@ -6,7 +6,23 @@ import { withPermission } from '@/lib/rbac';
 
 export const POST = withPermission('Settings', 'manageUsers', async (request, user) => {
   try {
-    const { email, profileId, name, role, reportsToId } = await request.json();
+    const { email, profileId, name, role, nickname, reportsToId } = await request.json();
+
+    if (!name || !name.trim()) {
+      return NextResponse.json({ error: "Full Name is mandatory" }, { status: 400 });
+    }
+    if (!nickname || !nickname.trim()) {
+      return NextResponse.json({ error: "Nickname is mandatory" }, { status: 400 });
+    }
+    // Nickname duplicate check
+    const duplicateNick = await prisma.user.findFirst({
+      where: { organizationId: user.organizationId, nickname: { equals: nickname.trim(), mode: 'insensitive' } }
+    });
+    if (duplicateNick) {
+      return NextResponse.json({ error: "This nickname is already taken in your organization" }, { status: 400 });
+    }
+
+
 
     if (!email || !profileId) {
       return NextResponse.json({ error: "Email and Profile ID are required" }, { status: 400 });
@@ -46,7 +62,8 @@ export const POST = withPermission('Settings', 'manageUsers', async (request, us
           status: 'PENDING',
           profileId,
           expiresAt,
-          name: name || null,
+          name: name.trim(),
+          nickname: nickname.trim().toLowerCase(),
           role: role || null,
           reportsToId: reportsToId || null
         }
@@ -59,7 +76,8 @@ export const POST = withPermission('Settings', 'manageUsers', async (request, us
           organizationId: user.organizationId,
           profileId,
           expiresAt,
-          name: name || null,
+          name: name.trim(),
+          nickname: nickname.trim().toLowerCase(),
           role: role || null,
           reportsToId: reportsToId || null
         }
