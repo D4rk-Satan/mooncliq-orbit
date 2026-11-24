@@ -34,9 +34,11 @@
   0% {
     transform: translateY(0);
   }
+
   50% {
     transform: translateY(-8px);
   }
+
   100% {
     transform: translateY(0);
   }
@@ -55,6 +57,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   .orbit-landing-root .orbit-spin,
   .orbit-landing-root .orbit-spin-rev,
   .orbit-landing-root .bob {
@@ -62,16 +65,160 @@
   }
 }
 
-.orbit-landing-root details > summary {
+.orbit-landing-root details>summary {
   list-style: none;
   cursor: pointer;
 }
 
-.orbit-landing-root details > summary::-webkit-details-marker {
+.orbit-landing-root details>summary::-webkit-details-marker {
   display: none;
 }
 
 .orbit-landing-root details[open] .faq-plus {
   transform: rotate(45deg);
   transition: transform 0.25s ease;
+}
+
+/* ====================================================
+   FIXED FLOATING HEADER & FROSTED GLASS
+==================================================== */
+.orbit-landing-root .orbit-fixed-header {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  z-index: 99999 !important;
+  background: rgba(30, 27, 75, 0.85) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-sizing: border-box !important;
+}
+
+.orbit-landing-root .orbit-header-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 16px 24px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+/* Hero section ke content ko header ke neeche se shuru karne ke liye */
+.orbit-landing-root section:first-of-type>div:last-of-type {
+  padding-top: 85px !important;
+}
+
+.desktop-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 26px;
+  font-size: 15px;
+  font-weight: 500;
+  color: #FFFFFF;
+}
+
+.desktop-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mobile-menu-btn {
+  display: none;
+  background: none;
+  border: none;
+  color: #FFFFFF;
+  cursor: pointer;
+}
+
+.mobile-drawer {
+  display: none;
+}
+
+/* Tablet & Mobile Screens (<= 1080px: iPad Pro, Tablets, Mobiles) */
+@media (max-width: 1080px) {
+  .desktop-nav {
+    display: none !important;
+  }
+
+  /* Mobile par buttons hide */
+  .desktop-actions .btn-signin,
+  .desktop-actions .btn-trial {
+    display: none !important;
+  }
+
+  .mobile-menu-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    padding: 8px !important;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    color: #FFFFFF;
+  }
+
+  .mobile-drawer {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 16px;
+    right: 16px;
+    max-height: calc(85vh - 80px);
+    overflow-y: auto;
+    background: rgba(21, 18, 43, 0.98);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 16px;
+    padding: 22px;
+    box-sizing: border-box;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+  }
+
+  .mobile-drawer.hidden {
+    display: none !important;
+  }
+
+  .mobile-drawer a {
+    font-size: 16px;
+    font-weight: 500;
+    color: #FFFFFF;
+    padding: 10px 4px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .mobile-drawer-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  .mobile-drawer-actions .btn-mobile-signin {
+    text-align: center;
+    padding: 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    font-size: 15px;
+    font-weight: 500;
+    color: #FFFFFF;
+  }
+
+  .mobile-drawer-actions .btn-mobile-trial {
+    text-align: center;
+    padding: 12px;
+    border-radius: 999px;
+    background: #FFFFFF;
+    color: #15122B;
+    font-size: 15px;
+    font-weight: 600;
+  }
 }
