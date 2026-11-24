@@ -556,10 +556,84 @@ export default function SettingsPage() {
     newOwnerId: '',
     isSubmitting: false
   });
+  const [transferModal, setTransferModal] = useState({
+    isOpen: false,
+    targetUserId: '',
+    reassignRecords: true,
+    isSubmitting: false
+  });
   const [inviteStatus, setInviteStatus] = useState(null);
   const [editingMember, setEditingMember] = useState(null);
   const [editMemberStatus, setEditMemberStatus] = useState(null);
+  const [editNickStatus, setEditNickStatus] = useState(null); // 'checking' | 'available' | 'taken'
+  const [isUploadingEditAvatar, setIsUploadingEditAvatar] = useState(false);
 
+  // Edit Member: Debounced Nickname check
+  useEffect(() => {
+    if (!editingMember?.nickname || editingMember.nickname.trim().length < 2) {
+      setEditNickStatus(null);
+      return;
+    }
+    // Agar wahi nickname hai jo pehle se user ka hai to check skip karein
+    const original = orgUsers.find(u => u.id === editingMember.id);
+    if (original?.nickname?.toLowerCase() === editingMember.nickname.trim().toLowerCase()) {
+      setEditNickStatus(null);
+      return;
+    }
+    setEditNickStatus('checking');
+    const timer = setTimeout(async () => {
+      try {
+        const token = await getAuthToken();
+        const res = await fetch(`/api/auth/check-nickname?nickname=${encodeURIComponent(editingMember.nickname.trim())}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        setEditNickStatus(data.available ? 'available' : 'taken');
+      } catch (err) {
+        setEditNickStatus(null);
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [editingMember?.nickname]);
+
+
+  const handleEditMemberPhoto = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !editingMember) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("File size must be less than 5MB");
+      return;
+    }
+
+    setIsUploadingEditAvatar(true);
+    try {
+      let fileToUpload = file;
+      try {
+        const imageCompression = (await import('browser-image-compression')).default;
+        fileToUpload = await imageCompression(file, { maxSizeMB: 0.5, maxWidthOrHeight: 1024, useWebWorker: true });
+      } catch (compErr) {
+        console.warn("Compression skipped", compErr);
+      }
+
+      const res = await fetch(`/api/upload-url?file=${encodeURIComponent(fileToUpload.name || file.name)}&fileType=${encodeURIComponent(fileToUpload.type || file.type)}&folder=avatars`);
+      const data = await res.json();
+      if (data.uploadUrl) {
+        await fetch(data.uploadUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': fileToUpload.type || file.type },
+          body: fileToUpload
+        });
+        setEditingMember(prev => ({ ...prev, avatarUrl: data.fileUrl }));
+        toast.success("Photo uploaded!");
+      }
+    } catch (err) {
+      toast.error("Failed to upload photo");
+    } finally {
+      setIsUploadingEditAvatar(false);
+      e.target.value = '';
+    }
+  };
 
   const fetchDesignations = async () => {
     try {
@@ -606,11 +680,30 @@ export default function SettingsPage() {
   // Full Name type karte hi Nickname auto-prefill (slugify)
   const handleFullNameChange = (val) => {
     const updated = { ...inviteData, name: val };
-    if (!isNickManuallyEdited) {
+    // Agar manually edit nahi hua ya nickname blank hai ya purane name se match karta hai, toh auto generate karein
+    if (!isNickManuallyEdited || !inviteData.nickname) {
       const slug = val.toLowerCase().replace(/[^a-z0-9]/g, '.').replace(/\.+/g, '.').replace(/^\.|\.$/g, '');
       updated.nickname = slug;
     }
     setInviteData(updated);
+  };
+
+  const openInviteModal = (customData = {}) => {
+    // Default first non-CEO designation or first available designation
+    const defaultRole = designations.find(d => d.name.toLowerCase() !== 'ceo')?.name || designations[0]?.name || 'Junior Associate';
+    setInviteData({
+      name: '',
+      nickname: '',
+      email: '',
+      role: defaultRole,
+      reportsToId: '',
+      profileId: '',
+      ...customData
+    });
+    setNickCheckStatus(null);
+    setIsNickManuallyEdited(false);
+    setInviteStatus(null);
+    setIsInviteModalOpen(true);
   };
 
 
@@ -809,7 +902,9 @@ export default function SettingsPage() {
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({
           userId: editingMember.id,
-          name: editingMember.name,
+          name: editingMember.name ? editingMember.name.trim() : null,
+          nickname: editingMember.nickname ? editingMember.nickname.trim().toLowerCase() : null,
+          avatarUrl: editingMember.avatarUrl || null,
           role: editingMember.role,
           reportsToId: editingMember.reportsToId || null,
           profileId: editingMember.profileId
@@ -817,17 +912,63 @@ export default function SettingsPage() {
       });
       if (res.ok) {
         setEditMemberStatus('success');
+        toast.success("Team member updated successfully!");
         fetchUsersAndInvites();
         setTimeout(() => {
           setEditingMember(null);
           setEditMemberStatus(null);
-        }, 1200);
+          setEditNickStatus(null);
+        }, 1000);
       } else {
         const data = await res.json();
-        setEditMemberStatus(`Error: ${data.error || 'Failed to update member'}`);
+        const errMsg = data.error || 'Failed to update member';
+        setEditMemberStatus(`Error: ${errMsg}`);
+        toast.error(errMsg);
       }
     } catch (err) {
       setEditMemberStatus(`Error: ${err.message}`);
+      toast.error(err.message);
+    }
+  };
+
+
+  // --- Transfer Superadmin Ownership Handler ---
+  const handleConfirmTransferOwnership = async () => {
+    if (!transferModal.targetUserId) {
+      toast.error("Please select an active team member to transfer ownership.");
+      return;
+    }
+    setTransferModal(prev => ({ ...prev, isSubmitting: true }));
+    try {
+      const token = await getAuthToken();
+      const res = await fetch('/api/users/transfer-ownership', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({
+          targetUserId: transferModal.targetUserId,
+          reassignRecords: transferModal.reassignRecords
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(data.message || "Ownership transferred successfully!");
+        setTransferModal({
+          isOpen: false,
+          targetUserId: '',
+          reassignRecords: true,
+          isSubmitting: false
+        });
+        setTimeout(() => {
+          window.location.href = '/dashboard';
+        }, 1500);
+      } else {
+        toast.error(data.error || "Failed to transfer ownership.");
+        setTransferModal(prev => ({ ...prev, isSubmitting: false }));
+      }
+    } catch (err) {
+      toast.error(err.message || "Failed to transfer ownership.");
+      setTransferModal(prev => ({ ...prev, isSubmitting: false }));
     }
   };
 
@@ -2426,12 +2567,33 @@ export default function SettingsPage() {
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                         <div>
                           <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.25rem' }}>Users in Organization</h2>
-                          <p className="text-muted" style={{ margin: 0, fontSize: '0.9rem' }}>Manage active members and pending invitations.</p>
+                          <p className="text-muted" style={{ margin: 0, fontSize: '0.9rem' }}>Manage active members, roles and organization ownership.</p>
                         </div>
-                        <button onClick={() => setIsInviteModalOpen(true)} style={{ padding: '0.5rem 1rem', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="M12 5v14" /></svg>
-                          Invite User
-                        </button>
+                        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                          <button
+                            type="button"
+                            onClick={() => setTransferModal(prev => ({ ...prev, isOpen: true }))}
+                            style={{
+                              padding: '0.5rem 1rem',
+                              background: '#f8fafc',
+                              color: '#4338ca',
+                              border: '1px solid #c7d2fe',
+                              borderRadius: '6px',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.45rem',
+                              fontSize: '0.85rem'
+                            }}
+                          >
+                            👑 Transfer Ownership
+                          </button>
+                          <button onClick={() => openInviteModal()} style={{ padding: '0.5rem 1rem', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="M12 5v14" /></svg>
+                            Invite User
+                          </button>
+                        </div>
                       </div>
 
                       <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
@@ -2455,17 +2617,46 @@ export default function SettingsPage() {
                               return (
                                 <tr key={user.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
                                   <td style={{ padding: '1rem', color: '#0f172a', fontWeight: 500 }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                      {/* User Avatar Circle */}
+                                      <div style={{
+                                        width: '36px',
+                                        height: '36px',
+                                        borderRadius: '50%',
+                                        backgroundColor: '#e2e8f0',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        overflow: 'hidden',
+                                        flexShrink: 0,
+                                        border: '1px solid #cbd5e1'
+                                      }}>
+                                        {user.avatarUrl ? (
+                                          <img src={user.avatarUrl} alt={user.name || 'User'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        ) : (
+                                          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569' }}>
+                                            {(user.name || user.nickname || user.email || 'U').charAt(0).toUpperCase()}
+                                          </span>
+                                        )}
+                                      </div>
+                                      {/* User Details */}
                                       <div>
-                                        <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#0f172a' }}>
-                                          {user.name || user.nickname || user.email?.split('@')[0]}
+                                        <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                          <span>{user.name || user.nickname || user.email?.split('@')[0]}</span>
                                           {isSuperAdmin && (
-                                            <span style={{ marginLeft: '0.5rem', fontSize: '0.7rem', backgroundColor: '#e0e7ff', color: '#3730a3', padding: '0.15rem 0.5rem', borderRadius: '12px', fontWeight: 600 }}>
-                                              Owner / Admin
+                                            <span style={{ fontSize: '0.68rem', backgroundColor: '#e0e7ff', color: '#3730a3', padding: '0.15rem 0.5rem', borderRadius: '12px', fontWeight: 600 }}>
+                                              SuperAdmin
                                             </span>
                                           )}
                                         </div>
-                                        <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{user.email}</div>
+                                        <div style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '1px' }}>
+                                          {user.nickname && (
+                                            <span style={{ color: '#0369a1', fontWeight: 600, background: '#f0f9ff', padding: '1px 5px', borderRadius: '4px', fontSize: '0.72rem' }}>
+                                              @{user.nickname}
+                                            </span>
+                                          )}
+                                          <span>{user.email}</span>
+                                        </div>
                                       </div>
                                     </div>
                                   </td>
@@ -2497,7 +2688,9 @@ export default function SettingsPage() {
                                       <button
                                         onClick={() => setEditingMember({
                                           id: user.id,
-                                          name: user.name || user.nickname || '',
+                                          name: user.name || '',
+                                          nickname: user.nickname || '',
+                                          avatarUrl: user.avatarUrl || '',
                                           role: user.role || '',
                                           reportsToId: user.reportsToId || '',
                                           profileId: user.profileId || ''
@@ -3675,7 +3868,7 @@ export default function SettingsPage() {
                           }}>+ New Profile</button>
                         )}
                         {rolesSubTab === 'tree' && (
-                          <button className="btn-primary" onClick={() => setIsInviteModalOpen(true)}>
+                          <button className="btn-primary" onClick={() => openInviteModal()}>
                             + Assign Role / Member
                           </button>
                         )}
@@ -3787,8 +3980,7 @@ export default function SettingsPage() {
                                   <span style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 600 }}>● Active</span>
                                   <button
                                     onClick={() => {
-                                      setInviteData({ name: '', email: '', role: '', reportsToId: userNode.id, profileId: '' });
-                                      setIsInviteModalOpen(true);
+                                      openInviteModal({ reportsToId: userNode.id });
                                     }}
                                     style={{
                                       padding: '4px 10px',
@@ -4681,7 +4873,9 @@ export default function SettingsPage() {
                 {/* 1. Full Name & Nickname */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                   <div>
-                    <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem', display: 'block' }}>Full Name *</label>
+                    <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem', display: 'block' }}>
+                      Full Name <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
                     <input
                       type="text"
                       className="form-input bg-white"
@@ -4694,7 +4888,9 @@ export default function SettingsPage() {
                   </div>
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-                      <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', margin: 0 }}>Nickname *</label>
+                      <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', margin: 0 }}>
+                        Nickname <span style={{ color: '#ef4444' }}>*</span>
+                      </label>
                       {nickCheckStatus === 'checking' && (
                         <span style={{ fontSize: '0.7rem', color: '#64748b' }}>Checking...</span>
                       )}
@@ -4711,8 +4907,10 @@ export default function SettingsPage() {
                       placeholder="e.g. priya.s"
                       value={inviteData.nickname}
                       onChange={e => {
-                        setIsNickManuallyEdited(true);
-                        setInviteData({ ...inviteData, nickname: e.target.value.toLowerCase().replace(/[^a-z0-9.]/g, '') });
+                        const sanitized = e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, '');
+                        // Agar user ne poora clear kar diya, toh auto-sync dubara activate karein
+                        setIsNickManuallyEdited(sanitized.length > 0);
+                        setInviteData({ ...inviteData, nickname: sanitized });
                       }}
                       required
                       style={{
@@ -4728,7 +4926,9 @@ export default function SettingsPage() {
 
                 {/* 2. Email Address */}
                 <div style={{ marginBottom: '1rem' }}>
-                  <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem', display: 'block' }}>Email Address *</label>
+                  <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem', display: 'block' }}>
+                    Email Address <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
                   <input
                     type="email"
                     className="form-input bg-white"
@@ -4753,17 +4953,28 @@ export default function SettingsPage() {
                         + Manage
                       </button>
                     </div>
-                    <select
-                      className="form-input bg-white"
-                      value={inviteData.role}
-                      onChange={e => setInviteData({ ...inviteData, role: e.target.value })}
-                      style={{ fontSize: '0.85rem' }}
-                    >
-                      <option value="">Select Designation...</option>
-                      {designations.map(d => (
-                        <option key={d.name} value={d.name}>{d.name}</option>
-                      ))}
-                    </select>
+                    {(() => {
+                      const activeCeo = orgUsers.find(u => u.role?.toLowerCase() === 'ceo');
+                      return (
+                        <select
+                          className="form-input bg-white"
+                          value={inviteData.role}
+                          onChange={e => setInviteData({ ...inviteData, role: e.target.value })}
+                          style={{ fontSize: '0.85rem' }}
+                        >
+                          {designations.map(d => {
+                            const isCeo = d.name.toLowerCase() === 'ceo';
+                            const isCeoDisabled = isCeo && activeCeo;
+                            return (
+                              <option key={d.name} value={d.name} disabled={isCeoDisabled}>
+                                {d.name} {isCeoDisabled ? `(Assigned to ${activeCeo.name || activeCeo.nickname || 'Existing CEO'})` : ''}
+                              </option>
+                            );
+                          })}
+                        </select>
+                      );
+                    })()}
+
                   </div>
                   <div>
                     <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem', display: 'block' }}>Reports To (Manager)</label>
@@ -4785,7 +4996,9 @@ export default function SettingsPage() {
 
                 {/* 4. Security Profile */}
                 <div style={{ marginBottom: '1.25rem' }}>
-                  <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem', display: 'block' }}>Security Profile *</label>
+                  <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem', display: 'block' }}>
+                    Security Profile <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
                   <select
                     className="form-input bg-white"
                     value={inviteData.profileId}
@@ -4834,7 +5047,7 @@ export default function SettingsPage() {
           <div style={{ position: 'fixed', inset: 0, zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <div style={{ position: 'absolute', inset: 0, background: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(2px)' }} onClick={() => setIsDesignationModalOpen(false)}></div>
             <div style={{ background: 'white', padding: '1.5rem', borderRadius: '12px', width: '100%', maxWidth: '480px', position: 'relative', zIndex: 10, border: '1px solid #e2e8f0', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15)' }}>
-              
+
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                 <div>
                   <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#0f172a' }}>Manage Designations / Roles</h3>
@@ -5010,7 +5223,7 @@ export default function SettingsPage() {
       }
 
       {/* EDIT MEMBER (HIERARCHY & ROLE) MODAL */}
-      {
+      {/* {
         editingMember && (
           <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <div style={{ position: 'absolute', inset: 0, background: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(2px)' }} onClick={() => setEditingMember(null)}></div>
@@ -5118,8 +5331,243 @@ export default function SettingsPage() {
             </div>
           </div>
         )
-      }
+      } */}
 
+      {/* EDIT MEMBER (PHOTO, NICKNAME, ROLE & HIERARCHY) MODAL */}
+      {
+        editingMember && (() => {
+          const isTargetSuperAdmin = editingMember.profileId && profiles.find(p => p.id === editingMember.profileId && (p.canAccessSettings || ['administrator', 'admin', 'superadmin', 'super admin'].includes(p.name?.toLowerCase())));
+
+          return (
+            <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ position: 'absolute', inset: 0, background: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(2px)' }} onClick={() => setEditingMember(null)}></div>
+              <div style={{ background: 'white', padding: '1.75rem', borderRadius: '12px', width: '100%', maxWidth: '540px', position: 'relative', zIndex: 10, border: '1px solid #e2e8f0', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)' }}>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, color: '#0f172a' }}>Edit Team Member</h3>
+                    <p style={{ margin: '2px 0 0 0', fontSize: '0.8rem', color: '#64748b' }}>Manage user photo, nickname, designation, and reporting hierarchy.</p>
+                  </div>
+                  <button onClick={() => setEditingMember(null)} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#94a3b8', padding: '2px' }}>✕</button>
+                </div>
+
+                <form onSubmit={handleUpdateMember}>
+                  {/* Avatar Upload Header */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.25rem', padding: '0.85rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
+                    <div style={{
+                      width: '64px',
+                      height: '64px',
+                      borderRadius: '50%',
+                      backgroundColor: '#e2e8f0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      overflow: 'hidden',
+                      position: 'relative',
+                      border: '2px dashed #cbd5e1'
+                    }}>
+                      {editingMember.avatarUrl ? (
+                        <img src={editingMember.avatarUrl} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <span style={{ fontSize: '1.5rem', color: '#94a3b8' }}>👤</span>
+                      )}
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+                        <label style={{
+                          padding: '0.35rem 0.75rem',
+                          background: '#ffffff',
+                          border: '1px solid #cbd5e1',
+                          borderRadius: '6px',
+                          color: '#4f46e5',
+                          fontSize: '0.78rem',
+                          fontWeight: 600,
+                          cursor: isUploadingEditAvatar ? 'not-allowed' : 'pointer'
+                        }}>
+                          {isUploadingEditAvatar ? 'Uploading...' : 'Change Photo'}
+                          <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleEditMemberPhoto} disabled={isUploadingEditAvatar} />
+                        </label>
+                        {editingMember.avatarUrl && (
+                          <button
+                            type="button"
+                            onClick={() => setEditingMember(prev => ({ ...prev, avatarUrl: '' }))}
+                            style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.78rem', cursor: 'pointer', textDecoration: 'underline' }}
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                      <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block', marginTop: '4px' }}>
+                        JPG, PNG or WEBP (Max 5MB)
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Full Name & Nickname */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                    <div>
+                      <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem', display: 'block' }}>Full Name</label>
+                      <input
+                        type="text"
+                        className="form-input bg-white"
+                        value={editingMember.name || ''}
+                        onChange={e => setEditingMember({ ...editingMember, name: e.target.value })}
+                        style={{ fontSize: '0.85rem' }}
+                      />
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                        <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', margin: 0 }}>Nickname</label>
+                        {editNickStatus === 'checking' && (
+                          <span style={{ fontSize: '0.7rem', color: '#64748b' }}>Checking...</span>
+                        )}
+                        {editNickStatus === 'available' && (
+                          <span style={{ fontSize: '0.7rem', color: '#16a34a', fontWeight: 600 }}>✓ Available</span>
+                        )}
+                        {editNickStatus === 'taken' && (
+                          <span style={{ fontSize: '0.7rem', color: '#dc2626', fontWeight: 600 }}>✕ Taken</span>
+                        )}
+                      </div>
+                      <input
+                        type="text"
+                        className="form-input bg-white"
+                        placeholder="e.g. gaurav.k"
+                        value={editingMember.nickname || ''}
+                        onChange={e => setEditingMember({ ...editingMember, nickname: e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, '') })}
+                        style={{
+                          fontSize: '0.85rem',
+                          borderColor: editNickStatus === 'taken' ? '#f87171' : editNickStatus === 'available' ? '#86efac' : undefined
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Position & Hierarchy */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                        <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', margin: 0 }}>Role / Designation</label>
+                        {!isTargetSuperAdmin && (
+                          <button
+                            type="button"
+                            onClick={() => setIsDesignationModalOpen(true)}
+                            style={{ background: 'none', border: 'none', color: '#3b82f6', fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer', padding: 0 }}
+                          >
+                            + Manage
+                          </button>
+                        )}
+                      </div>
+                      {isTargetSuperAdmin ? (
+                        <input
+                          type="text"
+                          value={`${editingMember.role || 'CEO'} (Primary Owner)`}
+                          disabled
+                          readOnly
+                          style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #e2e8f0', background: '#f8fafc', color: '#64748b', fontSize: '0.85rem', cursor: 'not-allowed' }}
+                        />
+                      ) : (
+                        (() => {
+                          const activeCeo = orgUsers.find(u => u.role?.toLowerCase() === 'ceo' && u.id !== editingMember.id);
+                          return (
+                            <select
+                              className="form-input bg-white"
+                              value={editingMember.role || ''}
+                              onChange={e => setEditingMember({ ...editingMember, role: e.target.value })}
+                              style={{ fontSize: '0.85rem' }}
+                            >
+                              {designations.map(d => {
+                                const isCeo = d.name.toLowerCase() === 'ceo';
+                                const isCeoDisabled = isCeo && activeCeo;
+                                return (
+                                  <option key={d.name} value={d.name} disabled={isCeoDisabled}>
+                                    {d.name} {isCeoDisabled ? `(Assigned to ${activeCeo.name || activeCeo.nickname || 'Existing CEO'})` : ''}
+                                  </option>
+                                );
+                              })}
+                              {editingMember.role && !designations.some(d => d.name === editingMember.role) && (
+                                <option value={editingMember.role}>{editingMember.role} (Legacy)</option>
+                              )}
+                            </select>
+                          );
+                        })()
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem', display: 'block' }}>Reports To (Manager)</label>
+                      {isTargetSuperAdmin ? (
+                        <input
+                          type="text"
+                          value="Top Level (Superadmin)"
+                          disabled
+                          readOnly
+                          style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #e2e8f0', background: '#f8fafc', color: '#64748b', fontSize: '0.85rem', cursor: 'not-allowed' }}
+                        />
+                      ) : (
+                        <select
+                          className="form-input bg-white"
+                          value={editingMember.reportsToId || ''}
+                          onChange={e => setEditingMember({ ...editingMember, reportsToId: e.target.value })}
+                          style={{ fontSize: '0.85rem' }}
+                        >
+                          <option value="">No Direct Manager (Top Level)</option>
+                          {orgUsers
+                            .filter(u => u.id !== editingMember.id)
+                            .map(u => (
+                              <option key={u.id} value={u.id}>
+                                {u.name || u.nickname || u.email?.split('@')[0]} {u.role ? `(${u.role})` : ''}
+                              </option>
+                            ))}
+                        </select>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Security Profile */}
+                  <div style={{ marginBottom: '1.25rem' }}>
+                    <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem', display: 'block' }}>Security Profile</label>
+                    {isTargetSuperAdmin ? (
+                      <div style={{ padding: '0.55rem 0.75rem', background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '6px', fontSize: '0.85rem', color: '#047857', fontWeight: 600 }}>
+                        Administrator (Reserved - System Superadmin)
+                      </div>
+                    ) : (
+                      <select
+                        className="form-input bg-white"
+                        value={editingMember.profileId || ''}
+                        onChange={e => setEditingMember({ ...editingMember, profileId: e.target.value })}
+                        style={{ fontSize: '0.85rem' }}
+                      >
+                        <option value="">Select a Profile...</option>
+                        {profiles
+                          .filter(p => !p.canAccessSettings && !['administrator', 'admin', 'superadmin', 'super admin'].includes(p.name?.toLowerCase())).map(p => (
+                            <option key={p.id} value={p.id}>{p.name}</option>
+                          ))}
+                      </select>
+                    )}
+                  </div>
+
+                  {editMemberStatus === 'success' ? (
+                    <div style={{ padding: '0.75rem', background: '#dcfce3', color: '#166534', borderRadius: '6px', textAlign: 'center', fontWeight: 600, fontSize: '0.85rem', marginBottom: '1rem' }}>
+                      ✓ Member Updated Successfully!
+                    </div>
+                  ) : editMemberStatus && editMemberStatus.startsWith('Error') ? (
+                    <div style={{ padding: '0.75rem', background: '#fee2e2', color: '#991b1b', borderRadius: '6px', textAlign: 'center', fontWeight: 500, fontSize: '0.85rem', marginBottom: '1rem' }}>
+                      {editMemberStatus}
+                    </div>
+                  ) : null}
+
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid #f1f5f9' }}>
+                    <button type="button" onClick={() => setEditingMember(null)} style={{ padding: '0.45rem 1rem', background: 'white', border: '1px solid #cbd5e1', borderRadius: '6px', fontWeight: 500, fontSize: '0.85rem', color: '#475569', cursor: 'pointer' }}>Cancel</button>
+                    <button type="submit" disabled={editMemberStatus === 'saving' || editNickStatus === 'taken'} className="btn-primary" style={{ padding: '0.45rem 1.25rem', fontSize: '0.85rem', cursor: (editMemberStatus === 'saving' || editNickStatus === 'taken') ? 'not-allowed' : 'pointer' }}>
+                      {editMemberStatus === 'saving' ? 'Saving...' : 'Save Changes'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          );
+        })()
+      }
 
       {/* OFFBOARDING / REASSIGN RECORDS MODAL */}
       {reassignModal.isOpen && (
@@ -5195,6 +5643,127 @@ export default function SettingsPage() {
                 }}
               >
                 {reassignModal.isSubmitting ? 'Transferring & Revoking...' : 'Reassign All & Revoke'}
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* TRANSFER SUPERADMIN OWNERSHIP MODAL */}
+      {transferModal.isOpen && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 10002, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(15, 23, 42, 0.55)', backdropFilter: 'blur(3px)' }} onClick={() => !transferModal.isSubmitting && setTransferModal(prev => ({ ...prev, isOpen: false }))}></div>
+          <div style={{ background: 'white', padding: '1.75rem', borderRadius: '12px', width: '100%', maxWidth: '520px', position: 'relative', zIndex: 10, border: '1px solid #e2e8f0', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
+
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
+              <div style={{ width: '42px', height: '42px', borderRadius: '50%', background: '#e0e7ff', color: '#4338ca', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem', flexShrink: 0 }}>
+                👑
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: '#0f172a' }}>Transfer Superadmin Ownership</h3>
+                <p style={{ margin: 0, fontSize: '0.82rem', color: '#64748b' }}>Hand over Primary Owner privileges, root hierarchy, and settings access.</p>
+              </div>
+            </div>
+
+            <div style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: '8px', padding: '0.85rem', marginBottom: '1.25rem', fontSize: '0.82rem', color: '#92400e', lineHeight: 1.45 }}>
+              ⚠️ <strong>Warning:</strong> You are transferring primary ownership of this organization. Once confirmed, you will be reassigned to standard permissions and automatically redirected to Dashboard.
+            </div>
+
+            {/* 1. Select Target Member */}
+            {/* 1. Select Target Member */}
+            <div style={{ marginBottom: '1.25rem' }}>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: '0.4rem' }}>
+                Select New Superadmin <span style={{ color: '#ef4444' }}>*</span>
+              </label>
+              <select
+                value={transferModal.targetUserId}
+                onChange={e => setTransferModal(prev => ({ ...prev, targetUserId: e.target.value }))}
+                style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none', background: 'white' }}
+              >
+                <option value="">-- Choose active member to promote --</option>
+                {orgUsers
+                  .filter(u => u.isActive && !u.profile?.canAccessSettings && !['administrator', 'admin', 'superadmin', 'super admin'].includes(u.profile?.name?.toLowerCase()))
+                  .map(u => (
+                    <option key={u.id} value={u.id}>
+                      {u.name || u.nickname || u.email} ({u.role || 'Member'})
+                    </option>
+                  ))}
+              </select>
+            </div>
+
+            {/* 2. Live Automatic Swap Preview Card */}
+            {transferModal.targetUserId && (() => {
+              const target = orgUsers.find(u => u.id === transferModal.targetUserId);
+              const currentUserRecord = orgUsers.find(u => u.id === user?.id) || user;
+              if (!target) return null;
+
+              return (
+                <div style={{
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  padding: '0.85rem 1rem',
+                  marginBottom: '1.25rem',
+                  fontSize: '0.82rem'
+                }}>
+                  <div style={{ fontWeight: 600, color: '#1e293b', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <span>🔄</span> Automatic 1:1 Exchange Preview:
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', color: '#475569' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #e2e8f0', paddingBottom: '0.35rem' }}>
+                      <span><strong>New Superadmin:</strong> {target.name || target.nickname || target.email}</span>
+                      <span style={{ color: '#16a34a', fontWeight: 600 }}>➡️ {currentUserRecord?.role || 'CEO'} (Administrator)</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.15rem' }}>
+                      <span><strong>You (Demoted):</strong> {currentUserRecord?.name || currentUserRecord?.nickname || currentUserRecord?.email}</span>
+                      <span style={{ color: '#4f46e5', fontWeight: 600 }}>➡️ {target.role || 'Junior Associate'} ({target.profile?.name || 'Standard User'})</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* 3. Reassign Records Checkbox */}
+            <div style={{ marginBottom: '1.5rem', background: '#f8fafc', padding: '0.75rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '0.85rem', color: '#1e293b', fontWeight: 500, cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={transferModal.reassignRecords}
+                  onChange={e => setTransferModal(prev => ({ ...prev, reassignRecords: e.target.checked }))}
+                  style={{ width: '16px', height: '16px', accentColor: '#4338ca', cursor: 'pointer' }}
+                />
+                Reassign all my existing records (Leads, Deals, Tasks) to the new Superadmin
+              </label>
+            </div>
+
+            {/* Actions */}
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                disabled={transferModal.isSubmitting}
+                onClick={() => setTransferModal(prev => ({ ...prev, isOpen: false }))}
+                style={{ padding: '0.55rem 1rem', background: 'white', border: '1px solid #cbd5e1', borderRadius: '6px', fontWeight: 500, fontSize: '0.85rem', color: '#475569', cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={transferModal.isSubmitting || !transferModal.targetUserId}
+                onClick={handleConfirmTransferOwnership}
+                style={{
+                  padding: '0.55rem 1.25rem',
+                  background: (!transferModal.targetUserId || transferModal.isSubmitting) ? '#94a3b8' : '#4338ca',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontWeight: 600,
+                  fontSize: '0.85rem',
+                  cursor: (!transferModal.targetUserId || transferModal.isSubmitting) ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {transferModal.isSubmitting ? 'Transferring Ownership...' : 'Confirm & Transfer Ownership'}
               </button>
             </div>
 

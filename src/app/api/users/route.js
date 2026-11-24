@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import prisma from "../../../lib/prisma";
 import { withPermission } from "../../../lib/rbac";
-import { getAuthUser } from "../../../lib/auth";
+import { getAuthUser, clearUserCache } from "../../../lib/auth";
 import { CognitoIdentityProviderClient, AdminDeleteUserCommand } from "@aws-sdk/client-cognito-identity-provider";
+
+
+
 
 const cognitoClient = new CognitoIdentityProviderClient({
   region: process.env.NEXT_PUBLIC_AWS_COGNITO_REGION || process.env.AWS_REGION || "ap-south-1"
@@ -87,7 +90,7 @@ export async function GET(request) {
 
 export const PATCH = withPermission('Settings', 'manageUsers', async (request, user) => {
   try {
-    const { userId, isActive, role, reportsToId, profileId, name, reassignToUserId } = await request.json();
+    const { userId, isActive, role, reportsToId, profileId, name, nickname, avatarUrl, reassignToUserId } = await request.json();
 
     if (!userId) {
       return NextResponse.json({ error: "userId is required" }, { status: 400 });
@@ -218,6 +221,24 @@ export const PATCH = withPermission('Settings', 'manageUsers', async (request, u
     if (reportsToId !== undefined) updateData.reportsToId = reportsToId || null;
     if (profileId !== undefined) updateData.profileId = profileId || null;
     if (name !== undefined) updateData.name = name ? name.trim() : null;
+    if (avatarUrl !== undefined) updateData.avatarUrl = avatarUrl || null;
+    if (nickname !== undefined) {
+      const cleanNick = nickname ? nickname.trim().toLowerCase() : null;
+      if (cleanNick) {
+        // Unique check in organization (excluding self)
+        const duplicate = await prisma.user.findFirst({
+          where: {
+            organizationId: user.organizationId,
+            nickname: { equals: cleanNick, mode: 'insensitive' },
+            id: { not: userId }
+          }
+        });
+        if (duplicate) {
+          return NextResponse.json({ error: `Nickname "${cleanNick}" is already taken.` }, { status: 400 });
+        }
+      }
+      updateData.nickname = cleanNick;
+    }
 
     const updatedUser = await prisma.user.update({
       where: { id: userId, organizationId: user.organizationId },
@@ -235,7 +256,7 @@ export const PATCH = withPermission('Settings', 'manageUsers', async (request, u
         }
       }
     });
-
+    clearUserCache(userId);
     return NextResponse.json(updatedUser);
   } catch (error) {
     console.error("Failed to update user:", error);

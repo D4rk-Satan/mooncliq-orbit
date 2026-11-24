@@ -135,7 +135,7 @@ export default function SignUp() {
   };
 
   const handleNicknameChange = (e) => {
-    const val = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''); // no spaces, lowercase only
+    const val = e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, ''); // no spaces, lowercase only
     setFormData(prev => ({ ...prev, nickname: val }));
     if (val.length > 0 && val.length < 3) {
       setNicknameError('Nickname must be at least 3 characters.');

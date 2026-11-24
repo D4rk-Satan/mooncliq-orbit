@@ -296,107 +296,12 @@ export default function ProfileSettingsView({ onDirtyChange, shakeTrigger = 0 })
     <div style={{ maxWidth: '800px', margin: '0 auto', paddingBottom: '5rem', position: 'relative' }}>
       <div style={{ marginBottom: '2rem' }}>
         <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#0f172a', margin: 0 }}>Organization Profile</h2>
-        <p style={{ color: '#64748b', fontSize: '0.95rem', margin: '0.25rem 0 0 0' }}>Update your personal details and company information.</p>
+        <p style={{ color: '#64748b', fontSize: '0.95rem', margin: '0.25rem 0 0 0' }}>
+          Manage company logo, legal business details, and organization size.
+        </p>
       </div>
 
-      {/* Personal Settings Card */}
-      <div style={{ backgroundColor: 'white', padding: '2rem', borderRadius: '16px', border: '1px solid #e2e8f0', marginBottom: '2rem', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
-        <h3 style={{ margin: '0 0 1.5rem 0', fontSize: '1.15rem', color: '#0f172a', fontWeight: 600 }}>Personal Details</h3>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '2rem' }}>
-          {/* Avatar Area */}
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ width: '100px', height: '100px', borderRadius: '50%', backgroundColor: '#f1f5f9', border: '2px dashed #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 0.75rem auto', overflow: 'hidden' }}>
-              {profileData.avatarUrl ? (
-                <img src={profileData.avatarUrl} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              ) : (
-                <span style={{ fontSize: '2.5rem', color: '#94a3b8' }}>👤</span>
-              )}
-            </div>
-
-            <label style={{ color: '#4f46e5', fontSize: '0.85rem', cursor: 'pointer', fontWeight: 600 }}>
-              {isUploadingAvatar ? 'Uploading...' : 'Change Photo'}
-              <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => handlePhotoSelect(e, 'avatars')} disabled={isSaving} />
-            </label>
-            {profileData.avatarUrl && (
-              <div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    pendingFilesRef.current.avatar = null;
-                    setProfileData(prev => ({ ...prev, avatarUrl: '' }));
-                  }}
-                  style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.75rem', cursor: 'pointer', marginTop: '0.25rem', textDecoration: 'underline' }}
-                >
-                  Remove
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Form Fields */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-                <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569', margin: 0 }}>Nickname *</label>
-                {nickCheckStatus === 'checking' && (
-                  <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Checking availability...</span>
-                )}
-                {nickCheckStatus === 'available' && (
-                  <span style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 600 }}>✓ Available</span>
-                )}
-                {nickCheckStatus === 'taken' && (
-                  <span style={{ fontSize: '0.72rem', color: '#dc2626', fontWeight: 600 }}>✕ Already taken</span>
-                )}
-              </div>
-              <input
-                type="text"
-                value={profileData.nickname}
-                onChange={(e) => setProfileData({ ...profileData, nickname: e.target.value.toLowerCase().replace(/[^a-z0-9.]/g, '') })}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem 1rem',
-                  borderRadius: '8px',
-                  border: `1px solid ${nickCheckStatus === 'taken' ? '#f87171' : nickCheckStatus === 'available' ? '#86efac' : '#cbd5e1'}`,
-                  outline: 'none',
-                  fontSize: '0.95rem'
-                }}
-              />
-              <span style={{ fontSize: '0.72rem', color: '#94a3b8', display: 'block', marginTop: '4px' }}>
-                Used on cards, tags, and team mentions.
-              </span>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '0.4rem' }}>Role / Designation</label>
-              {isAdmin ? (
-                <select
-                  value={profileData.role || ''}
-                  onChange={(e) => setProfileData({ ...profileData, role: e.target.value })}
-                  style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '0.95rem', backgroundColor: 'white' }}
-                >
-                  <option value="">Select Designation...</option>
-                  {designations.map(d => (
-                    <option key={d.name} value={d.name}>{d.name}</option>
-                  ))}
-                  {profileData.role && !designations.some(d => d.name === profileData.role) && (
-                    <option value={profileData.role}>{profileData.role} (Current)</option>
-                  )}
-                </select>
-              ) : (
-                <input
-                  type="text"
-                  value={profileData.role || ''}
-                  readOnly
-                  disabled
-                  title="Only organization administrators can modify employee designations"
-                  style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid #e2e8f0', backgroundColor: '#f8fafc', color: '#64748b', outline: 'none', fontSize: '0.95rem', cursor: 'not-allowed' }}
-                />
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* Organization Settings Card (Only for Admins) */}
       {isAdmin && (
