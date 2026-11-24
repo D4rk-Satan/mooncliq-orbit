@@ -1,17 +1,54 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import {
+  CognitoIdentityProviderClient,
+  AdminCreateUserCommand,
+  AdminSetUserPasswordCommand
+} from '@aws-sdk/client-cognito-identity-provider';
+
+function getCognitoClient() {
+  const accessKeyId =
+    process.env.AWS_ACCESS_KEY_ID ||
+    process.env.SES_AWS_ACCESS_KEY_ID ||
+    process.env.S3_UPLOAD_AWS_ACCESS_KEY_ID;
+
+  const secretAccessKey =
+    process.env.AWS_SECRET_ACCESS_KEY ||
+    process.env.SES_AWS_SECRET_ACCESS_KEY ||
+    process.env.S3_UPLOAD_AWS_SECRET_ACCESS_KEY;
+
+  const region = process.env.NEXT_PUBLIC_AWS_COGNITO_REGION || process.env.AWS_REGION || "ap-south-1";
+
+  const config = { region };
+  if (accessKeyId && secretAccessKey) {
+    config.credentials = {
+      accessKeyId: accessKeyId.trim(),
+      secretAccessKey: secretAccessKey.trim()
+    };
+  }
+
+  return new CognitoIdentityProviderClient(config);
+}
 
 export async function POST(request) {
   try {
-    const { token } = await request.json();
+    const { token, password } = await request.json();
 
-    if (!token) {
-      return NextResponse.json({ error: "Token is required" }, { status: 400 });
+    if (!token || !password) {
+      return NextResponse.json({ error: "Token and password are required." }, { status: 400 });
+    }
+
+    if (password.length < 8) {
+      return NextResponse.json({ error: "Password must be at least 8 characters long." }, { status: 400 });
     }
 
     // 1. Find the pending invitation
     const invitation = await prisma.invitation.findUnique({
-      where: { token }
+      where: { token },
+      include: {
+        organization: true,
+        profile: true
+      }
     });
 
     if (!invitation) {
@@ -27,53 +64,123 @@ export async function POST(request) {
         where: { id: invitation.id },
         data: { status: 'EXPIRED' }
       });
-      return NextResponse.json({ error: "This invitation has expired." }, { status: 400 });
+      return NextResponse.json({ error: "This invitation link has expired." }, { status: 400 });
     }
 
-    // 2. Mock User Creation / Acceptance
-    // In a real app, this happens AFTER they sign up in Cognito. 
-    // Since we are mocking auth, we just create a User record now.
-    const mockCognitoId = `user-${Date.now()}`;
-    
-    // Check if user somehow already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email: invitation.email }
-    });
+    // 2. AWS Cognito User Creation & Auto-Confirmation (No OTP needed)
+    const userPoolId = process.env.NEXT_PUBLIC_AWS_USER_POOL_ID;
+    const cognitoClient = getCognitoClient();
+    let cognitoSub = null;
 
-    if (existingUser) {
-      return NextResponse.json({ error: "User already exists with this email." }, { status: 400 });
+    try {
+      // Step A: AdminCreateUser command sends SUPPRESS so no temp password email is sent
+      const createCommand = new AdminCreateUserCommand({
+        UserPoolId: userPoolId,
+        Username: invitation.email,
+        UserAttributes: [
+          { Name: 'email', Value: invitation.email },
+          { Name: 'email_verified', Value: 'true' },
+          { Name: 'name', Value: invitation.name || invitation.email.split('@')[0] }
+        ],
+        MessageAction: 'SUPPRESS' // User ko Cognito default email nahi jayegi
+      });
+
+      const cognitoUser = await cognitoClient.send(createCommand);
+      const subAttr = cognitoUser.User?.Attributes?.find(attr => attr.Name === 'sub');
+      cognitoSub = subAttr?.Value;
+
+      // Step B: Permanent Password set karein (Permanent: true sets status to CONFIRMED)
+      const setPasswordCommand = new AdminSetUserPasswordCommand({
+        UserPoolId: userPoolId,
+        Username: invitation.email,
+        Password: password,
+        Permanent: true
+      });
+      await cognitoClient.send(setPasswordCommand);
+
+    } catch (cognitoError) {
+      console.error("Cognito user creation error:", cognitoError);
+
+      if (cognitoError.name === 'UsernameExistsException') {
+        // User already exists in Cognito - bas password update karein
+        try {
+          const setPasswordCommand = new AdminSetUserPasswordCommand({
+            UserPoolId: userPoolId,
+            Username: invitation.email,
+            Password: password,
+            Permanent: true
+          });
+          await cognitoClient.send(setPasswordCommand);
+        } catch (pwErr) {
+          console.warn("Failed to reset password for existing Cognito user:", pwErr);
+        }
+      } else {
+        return NextResponse.json({
+          error: cognitoError.message || "Failed to create user in authentication provider."
+        }, { status: 500 });
+      }
     }
 
-    const newUser = await prisma.user.create({
-      data: {
-        id: mockCognitoId,
-        email: invitation.email,
-        name: invitation.name || null,
-        nickname: invitation.nickname || null,
-        role: invitation.role || null,
-        reportsToId: invitation.reportsToId || null,
-        organizationId: invitation.organizationId,
-        profileId: invitation.profileId,
-        isActive: true,
+    // Fallback ID if sub not directly captured
+    const finalUserId = cognitoSub || `user-${Date.now()}`;
+
+    // 3. Database User Upsert / Create with onboardingCompleted: true
+    const existingUser = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { id: finalUserId },
+          { email: invitation.email }
+        ]
       }
     });
 
-    // 3. Mark the invitation as accepted
+    let savedUser;
+    if (existingUser) {
+      savedUser = await prisma.user.update({
+        where: { id: existingUser.id },
+        data: {
+          organizationId: invitation.organizationId,
+          profileId: invitation.profileId,
+          name: invitation.name || existingUser.name,
+          nickname: invitation.nickname || existingUser.nickname,
+          role: invitation.role || existingUser.role,
+          reportsToId: invitation.reportsToId || existingUser.reportsToId,
+          isActive: true,
+          onboardingCompleted: true
+        }
+      });
+    } else {
+      savedUser = await prisma.user.create({
+        data: {
+          id: finalUserId,
+          email: invitation.email,
+          name: invitation.name || null,
+          nickname: invitation.nickname || null,
+          role: invitation.role || null,
+          reportsToId: invitation.reportsToId || null,
+          organizationId: invitation.organizationId,
+          profileId: invitation.profileId,
+          isActive: true,
+          onboardingCompleted: true
+        }
+      });
+    }
+
+    // 4. Mark Invitation as ACCEPTED
     await prisma.invitation.update({
       where: { id: invitation.id },
       data: { status: 'ACCEPTED' }
     });
 
-    // 4. Fetch Organization Name for UI
-    const org = await prisma.organization.findUnique({
-      where: { id: invitation.organizationId },
-      select: { name: true }
-    });
-
-    return NextResponse.json({ 
-      message: "Invitation accepted successfully!",
-      user: { id: newUser.id, email: newUser.email },
-      orgName: org?.name || 'Workspace'
+    return NextResponse.json({
+      success: true,
+      message: "Account activated successfully!",
+      user: {
+        id: savedUser.id,
+        email: savedUser.email,
+        name: savedUser.name
+      },
+      orgName: invitation.organization?.name || 'Workspace'
     }, { status: 200 });
 
   } catch (error) {

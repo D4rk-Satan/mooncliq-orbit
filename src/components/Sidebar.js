@@ -67,7 +67,12 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, refresh
 
   const handleSignOut = async () => {
     try {
-
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('mooncliq_bootstrap_v1');
+        localStorage.removeItem('mooncliq_onboarding_done');
+        document.cookie = "mooncliq_bootstrap_v1=; path=/; max-age=0";
+        document.cookie = "mooncliq_onboarding_done=; path=/; max-age=0";
+      }
       await signOut();
       router.push("/");
     } catch (error) {
